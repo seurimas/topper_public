@@ -1,7 +1,6 @@
 use crate::agents::*;
 use crate::types::*;
 
-#[derive(Debug)]
 pub struct SimulationAgent {
     pub actions: Vec<UnstableAction>,
     pub initial_state: AgentState,
@@ -23,60 +22,95 @@ impl SimulationAgent {
 
 #[derive(Debug)]
 pub struct AgentSimulationSlice {
+    pub entrance: String,
     pub time: CType,
+    pub my_turn: bool,
     pub me_state: AgentState,
     pub enemy_state: AgentState,
 }
+
+const TURN_SIZE: CType = 10;
 
 impl AgentSimulationSlice {
     pub fn next_state(
         &self,
         my_actions: &Vec<UnstableAction>,
         enemy_actions: &Vec<UnstableAction>,
+        enemy_waits: bool,
     ) -> Vec<AgentSimulationSlice> {
         let mut states = Vec::new();
-        self.act(
-            &mut states,
-            my_actions,
-            &self.me_state,
-            &self.enemy_state,
-            false,
-        );
-        self.act(
-            &mut states,
-            enemy_actions,
-            &self.enemy_state,
-            &self.me_state,
-            true,
-        );
-        self.wait(&mut states, &self.me_state, false);
-        self.wait(&mut states, &self.enemy_state, true);
+        if self.my_turn {
+            self.act(
+                &mut states,
+                my_actions,
+                &self.me_state,
+                &self.enemy_state,
+                true,
+            );
+            self.pass(&mut states);
+        } else {
+            let acted = self.act(
+                &mut states,
+                enemy_actions,
+                &self.enemy_state,
+                &self.me_state,
+                false,
+            );
+            if enemy_waits || !acted {
+                self.wait(&mut states);
+            }
+        }
         states
     }
 
-    fn wait(&self, states: &mut Vec<AgentSimulationSlice>, current: &AgentState, enemy: bool) {
+    fn wait(&self, states: &mut Vec<AgentSimulationSlice>) {
         let mut min_balance = CType::max_value();
-        for balance in current.balances.iter() {
+        for balance in self.me_state.balances.iter() {
             if *balance < min_balance && *balance > 0 {
                 min_balance = *balance;
             }
         }
-
-        if min_balance != CType::max_value() {
-            if enemy {
-                states.push(AgentSimulationSlice {
-                    time: self.time + min_balance,
-                    me_state: self.me_state.clone(),
-                    enemy_state: current.wait(min_balance),
-                });
-            } else {
-                states.push(AgentSimulationSlice {
-                    time: self.time + min_balance,
-                    me_state: current.wait(min_balance),
-                    enemy_state: self.enemy_state.clone(),
-                });
+        for balance in self.enemy_state.balances.iter() {
+            if *balance < min_balance && *balance > 0 {
+                min_balance = *balance;
             }
         }
+        if min_balance != CType::max_value() {
+            println!(
+                "Wait({}): {} ({}, {})",
+                min_balance,
+                self.time,
+                self.me_state.stats[SType::Health as usize],
+                self.enemy_state.stats[SType::Health as usize]
+            );
+            let mut new_me = self.me_state.clone();
+            let mut new_you = self.enemy_state.clone();
+            new_me.wait(min_balance);
+            new_you.wait(min_balance);
+            states.push(AgentSimulationSlice {
+                entrance: ".".to_string(),
+                time: self.time + min_balance,
+                me_state: new_me,
+                enemy_state: new_you,
+                my_turn: !self.my_turn,
+            });
+        }
+    }
+
+    fn pass(&self, states: &mut Vec<AgentSimulationSlice>) {
+        println!(
+            "Pass: {} ({}/{})",
+            self.time,
+            self.me_state.stats[SType::Health as usize],
+            self.enemy_state.stats[SType::Health as usize]
+        );
+        states.push(AgentSimulationSlice {
+            entrance: "x".to_string(),
+            time: self.time,
+            me_state: self.me_state.clone(),
+            enemy_state: self.enemy_state.clone(),
+            my_turn: !self.my_turn,
+        });
     }
 
     fn act(
@@ -85,36 +119,50 @@ impl AgentSimulationSlice {
         uactions: &Vec<UnstableAction>,
         owner: &AgentState,
         target: &AgentState,
-        invert: bool,
-    ) {
+        my_move: bool,
+    ) -> bool {
+        let mut acted = false;
         for uaction in uactions.iter() {
             if uaction.initial.satisfied(owner, target) {
                 for (_weight, action) in uaction.paths.iter() {
                     if action.initial.satisfied(owner, target) {
                         let (updated_owner, updated_target) = action.apply(&owner, &target);
-                        if invert {
+                        println!(
+                            "{}: {} ({}/{})",
+                            uaction.desc,
+                            self.time,
+                            self.me_state.stats[SType::Health as usize],
+                            self.enemy_state.stats[SType::Health as usize]
+                        );
+                        if my_move {
                             states.push(AgentSimulationSlice {
-                                time: self.time,
-                                me_state: updated_target,
-                                enemy_state: updated_owner,
-                            });
-                        } else {
-                            states.push(AgentSimulationSlice {
+                                entrance: uaction.desc.clone(),
                                 time: self.time,
                                 me_state: updated_owner,
                                 enemy_state: updated_target,
+                                my_turn: self.my_turn,
+                            });
+                        } else {
+                            states.push(AgentSimulationSlice {
+                                entrance: uaction.desc.clone(),
+                                time: self.time,
+                                me_state: updated_target,
+                                enemy_state: updated_owner,
+                                my_turn: self.my_turn,
                             });
                         }
+                        acted = true;
                     }
                 }
             }
         }
+        acted
     }
 }
 
 #[derive(Debug)]
 pub struct SimulationNode {
-    slice: AgentSimulationSlice,
+    pub slice: AgentSimulationSlice,
     next: Option<Vec<SimulationNode>>,
 }
 
@@ -124,16 +172,16 @@ impl SimulationNode {
         time: CType,
         my_actions: &Vec<UnstableAction>,
         enemy_actions: &Vec<UnstableAction>,
+        enemy_waits: bool,
         depth: i32,
     ) {
-        println!("{}, {}, {}", time, self.slice.time, depth);
         if time < self.slice.time {
             return;
         }
         if self.next.is_none() {
             self.next = Some(
                 self.slice
-                    .next_state(my_actions, enemy_actions)
+                    .next_state(my_actions, enemy_actions, enemy_waits)
                     .drain(..)
                     .map(|slice| SimulationNode {
                         slice: slice,
@@ -143,15 +191,15 @@ impl SimulationNode {
             );
         }
         if let Some(next) = &mut self.next {
-            next.iter_mut()
-                .for_each(|node| node.next_till(time, my_actions, enemy_actions, depth + 1));
+            next.iter_mut().for_each(|node| {
+                node.next_till(time, my_actions, enemy_actions, enemy_waits, depth + 1)
+            });
         }
     }
 }
 
-#[derive(Debug)]
 pub struct AgentSimulation {
-    root: SimulationNode,
+    pub root: SimulationNode,
     me: SimulationAgent,
     enemy: SimulationAgent,
 }
@@ -161,7 +209,9 @@ impl AgentSimulation {
         AgentSimulation {
             root: SimulationNode {
                 slice: AgentSimulationSlice {
+                    entrance: "Start".to_string(),
                     time: 0,
+                    my_turn: true,
                     me_state: me.initial_state.clone(),
                     enemy_state: enemy.initial_state.clone(),
                 },
@@ -171,8 +221,8 @@ impl AgentSimulation {
             enemy,
         }
     }
-    pub fn next_till(&mut self, time: CType) {
+    pub fn next_till(&mut self, time: CType, enemy_waits: bool) {
         self.root
-            .next_till(time, &self.me.actions, &self.enemy.actions, 0);
+            .next_till(time, &self.me.actions, &self.enemy.actions, enemy_waits, 0);
     }
 }

@@ -1,43 +1,52 @@
 use crate::agents::*;
 use crate::types::*;
 
+pub fn apply_me<F>(change: F) -> StateChange
+where
+    F: 'static + Fn(&mut AgentState),
+{
+    Box::new(move |me, _other| {
+        change(me);
+    })
+}
+
+pub fn apply_you<F>(change: F) -> StateChange
+where
+    F: 'static + Fn(&mut AgentState),
+{
+    Box::new(move |_me, other| {
+        change(other);
+    })
+}
+
 pub fn heal_change(amount: CType) -> StateChange {
-    StateChange {
-        agent_relation: AgentRelationId::Owner,
-        agent_type: AgentTypeId::Stat(SType::Health),
-        change_type: ChangeType::Add,
-        change: amount,
-    }
+    apply_me(move |new_me| {
+        new_me.stats[SType::Health as usize] += amount;
+    })
 }
 
 pub fn attack_change(amount: CType) -> StateChange {
-    StateChange {
-        agent_relation: AgentRelationId::Target,
-        agent_type: AgentTypeId::Stat(SType::Health),
-        change_type: ChangeType::Add,
-        change: -amount,
-    }
+    apply_you(move |new_you| {
+        new_you.stats[SType::Health as usize] -= amount;
+    })
 }
 
 pub fn balance_change(balance: BType, duration: f32) -> StateChange {
-    StateChange {
-        agent_relation: AgentRelationId::Owner,
-        agent_type: AgentTypeId::Balance(balance),
-        change_type: ChangeType::Add,
-        change: (duration * BALANCE_SCALE) as i32,
-    }
+    apply_me(move |new_me| {
+        if new_me.balances[balance as usize] < 0 {
+            new_me.balances[balance as usize] = 0;
+        }
+        new_me.balances[balance as usize] += (duration * BALANCE_SCALE) as CType;
+    })
 }
 
 pub fn flag_me(flag: FType, value: bool) -> StateChange {
-    StateChange {
-        agent_relation: AgentRelationId::Owner,
-        agent_type: AgentTypeId::Flag(flag),
-        change_type: ChangeType::Set,
-        change: if value { 1 } else { 0 },
-    }
+    apply_me(move |new_me| {
+        new_me.flags[flag as usize] = value;
+    })
 }
 
-pub fn attack_action(name: &'static str, damage: CType, balance: BType, duration: f32) -> Action {
+pub fn attack_action(name: String, damage: CType, balance: BType, duration: f32) -> Action {
     Action {
         name,
         changes: vec![
@@ -45,25 +54,25 @@ pub fn attack_action(name: &'static str, damage: CType, balance: BType, duration
             balance_change(balance, duration),
             flag_me(FType::Shield, false),
         ],
-        initial: vec![ALIVE, has(balance)],
+        initial: vec![alive(), has(balance)],
     }
 }
 
-pub fn heal_action(name: &'static str, heal: CType) -> Action {
+pub fn heal_action(name: String, heal: CType) -> Action {
     Action {
         name,
         changes: vec![heal_change(heal), balance_change(BType::Elixir, 4.0)],
-        initial: vec![ALIVE, has(BType::Elixir)],
+        initial: vec![alive(), has(BType::Elixir)],
     }
 }
 
-pub fn shield_action(name: &'static str) -> Action {
+pub fn shield_action(name: String) -> Action {
     Action {
         name,
         changes: vec![
             balance_change(BType::Balance, 3.0),
             flag_me(FType::Shield, true),
         ],
-        initial: vec![ALIVE, has(BType::Balance), has(BType::Equil)],
+        initial: vec![alive(), has(BType::Balance), has(BType::Equil)],
     }
 }
