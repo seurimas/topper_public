@@ -22,12 +22,22 @@ where
 pub fn heal_change(amount: CType) -> StateChange {
     apply_me(move |new_me| {
         new_me.stats[SType::Health as usize] += amount;
+        if new_me.stats[SType::Health as usize] > new_me.max_stats[SType::Health as usize] {
+            new_me.stats[SType::Health as usize] = new_me.max_stats[SType::Health as usize];
+        }
     })
+}
+
+pub fn check_health(state: &mut AgentState) {
+    if state.stats[SType::Health as usize] <= 0 {
+        state.flags[FType::Dead as usize] = true;
+    }
 }
 
 pub fn attack_change(amount: CType) -> StateChange {
     apply_you(move |new_you| {
         new_you.stats[SType::Health as usize] -= amount;
+        check_health(new_you);
     })
 }
 
@@ -54,7 +64,7 @@ pub fn attack_action(name: String, damage: CType, balance: BType, duration: f32)
             balance_change(balance, duration),
             flag_me(FType::Shield, false),
         ],
-        initial: vec![alive(), has(balance)],
+        initial: vec![alive(), target(alive()), has(balance)],
     }
 }
 

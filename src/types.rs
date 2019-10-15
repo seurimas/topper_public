@@ -48,11 +48,14 @@ pub struct AgentState {
 
 impl AgentState {
     pub fn wait(&mut self, duration: i32) {
-        let mut base_state = self.clone();
-        for i in 0..base_state.balances.len() {
-            base_state.balances[i] -= duration;
+        for i in 0..self.balances.len() {
+            self.balances[i] -= duration;
         }
     }
+}
+
+pub fn target(matcher: StateMatcher) -> StateMatcher {
+    Box::new(move |_me, them| matcher(them, _me))
 }
 
 pub fn alive() -> StateMatcher {
