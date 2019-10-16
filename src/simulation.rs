@@ -144,6 +144,7 @@ pub struct AgentSimulation {
     ally_ids: Vec<usize>,
     enemy_ids: Vec<usize>,
     sides: Vec<bool>,
+    pub evaluated: i32,
 }
 
 impl AgentSimulation {
@@ -153,6 +154,7 @@ impl AgentSimulation {
             ally_ids: vec![],
             enemy_ids: vec![],
             sides: vec![],
+            evaluated: 0,
         }
     }
 
@@ -163,28 +165,28 @@ impl AgentSimulation {
     }
 
     fn alpha_beta(
-        &self,
+        &mut self,
         eval: &'static StateScorer,
+        time: CType,
         mut alpha: i32,
         mut beta: i32,
-        node: &SimulationNode,
+        node: &mut SimulationNode,
         depth: i32,
     ) -> (i32, Vec<String>) {
-        if let Some(next) = &node.next {
+        if node.next.is_none() {
+            if node.slice.time > time {
+            } else {
+                self.fill(node);
+            }
+        }
+        if let Some(next) = &mut node.next {
             if self.sides[node.turn_id] {
-                /* println!(
-                    "{} {} {} {}",
-                    node.size(),
-                    node.turn_id,
-                    node.slice.entrance,
-                    depth,
-                ); */
                 let mut value = i32::min_value();
                 let mut path = vec![];
-                for next_node in next.iter() {
+                for next_node in next.iter_mut() {
                     let (next_value, next_path) =
-                        self.alpha_beta(eval, alpha, beta, next_node, depth + 1);
-                    if next_value > value {
+                        self.alpha_beta(eval, time, alpha, beta, next_node, depth + 1);
+                    if next_value >= value {
                         value = next_value;
                         path = next_path;
                     }
@@ -193,24 +195,17 @@ impl AgentSimulation {
                         break;
                     }
                 }
-                // println!("{} {} {}", value, alpha, beta);
                 path = path.clone();
                 path.push(node.slice.entrance.clone());
+                // println!("a {:?}", path);
                 (value, path)
             } else {
-                /* println!(
-                    "{} {} {} {}",
-                    node.size(),
-                    node.turn_id,
-                    node.slice.entrance,
-                    depth,
-                ); */
                 let mut value = i32::max_value();
                 let mut path = vec![];
-                for next_node in next.iter() {
+                for next_node in next.iter_mut() {
                     let (next_value, next_path) =
-                        self.alpha_beta(eval, alpha, beta, next_node, depth + 1);
-                    if next_value < value {
+                        self.alpha_beta(eval, time, alpha, beta, next_node, depth + 1);
+                    if next_value <= value {
                         value = next_value;
                         path = next_path;
                     }
@@ -219,18 +214,24 @@ impl AgentSimulation {
                         break;
                     }
                 }
-                // println!("{} {} {}", value, alpha, beta);
                 path = path.clone();
                 path.push(node.slice.entrance.clone());
+                // println!("e {:?}", path);
                 (value, path)
             }
         } else {
+            self.evaluated += 1;
             (eval(&node.slice), vec![node.slice.entrance.clone()])
         }
     }
 
-    pub fn best_path(&self, eval: &'static StateScorer, node: &SimulationNode) -> Vec<String> {
-        self.alpha_beta(eval, i32::min_value(), i32::max_value(), node, 0)
+    pub fn best_path(
+        &mut self,
+        eval: &'static StateScorer,
+        time: CType,
+        node: &mut SimulationNode,
+    ) -> Vec<String> {
+        self.alpha_beta(eval, time, i32::min_value(), i32::max_value(), node, 0)
             .1
     }
 
@@ -240,10 +241,7 @@ impl AgentSimulation {
         self.sides.push(false);
     }
 
-    fn fill_till(&self, time: CType, node: &mut SimulationNode) {
-        if node.slice.time > time {
-            return;
-        }
+    fn fill(&self, node: &mut SimulationNode) {
         let turn = node.turn_id;
         let next = node.next.get_or_insert(Vec::new());
         let friend = self.sides[turn];
@@ -274,12 +272,11 @@ impl AgentSimulation {
                 turn_id: 0,
                 next: None,
             };
-            self.fill_till(time, &mut new_node);
             next.push(new_node);
         }
         if moves_found == 0 || strategy != SimulationStrategy::Strict {
             if node.turn_id < self.agents.len() - 1 {
-                let mut new_node = SimulationNode {
+                let new_node = SimulationNode {
                     slice: AgentSimulationSlice {
                         entrance: "pass".to_string(),
                         time: node.slice.time,
@@ -288,24 +285,25 @@ impl AgentSimulation {
                     turn_id: node.turn_id + 1,
                     next: None,
                 };
-                self.fill_till(time, &mut new_node);
                 next.push(new_node);
             } else {
                 if let Some(waited) = node.slice.wait() {
-                    let mut new_node = SimulationNode {
+                    let new_node = SimulationNode {
                         slice: waited,
                         turn_id: 0,
                         next: None,
                     };
-                    self.fill_till(time, &mut new_node);
                     next.push(new_node);
                 }
             }
         }
+        if next.len() == 0 {
+            node.next = None;
+        }
     }
 
-    pub fn next_till(&mut self, time: CType) -> SimulationNode {
-        let mut root = SimulationNode {
+    pub fn root(&mut self) -> SimulationNode {
+        SimulationNode {
             slice: AgentSimulationSlice {
                 entrance: "Start".to_string(),
                 time: 0,
@@ -317,8 +315,6 @@ impl AgentSimulation {
             },
             turn_id: 0,
             next: None,
-        };
-        self.fill_till(time, &mut root);
-        root
+        }
     }
 }

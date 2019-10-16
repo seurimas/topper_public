@@ -25,7 +25,7 @@ fn main() {
     let mut simulation = AgentSimulation::new();
     simulation.add_ally(player);
     simulation.add_enemy(enemy);
-    let sim_node = simulation.next_till((BALANCE_SCALE * 10.0) as i32);
+    let mut sim_node = simulation.root();
     println!("{}", sim_node.size());
     println!(
         "{:?}",
@@ -41,7 +41,9 @@ fn main() {
                     me.stats[SType::Health as usize] - enemy.stats[SType::Health as usize]
                 }
             },
-            &sim_node
+            1000,
+            &mut sim_node
         )
     );
+    println!("{} {}", sim_node.size(), simulation.evaluated);
 }
