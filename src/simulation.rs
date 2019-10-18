@@ -43,7 +43,6 @@ impl AgentSimulationSlice {
     pub fn generate_moves(
         &self,
         my_actions: &Vec<UnstableAction>,
-        strategy: SimulationStrategy,
         id: usize,
         targets: &Vec<usize>,
     ) -> Vec<AgentSimulationSlice> {
@@ -72,7 +71,7 @@ impl AgentSimulationSlice {
                 })
                 .collect();
             Some(AgentSimulationSlice {
-                entrance: ".".to_string(),
+                entrance: min_balance.to_string(),
                 time: self.time + min_balance,
                 states: new_states,
             })
@@ -231,8 +230,15 @@ impl AgentSimulation {
         time: CType,
         node: &mut SimulationNode,
     ) -> Vec<String> {
-        self.alpha_beta(eval, time, i32::min_value(), i32::max_value(), node, 0)
-            .1
+        self.alpha_beta(
+            eval,
+            time,
+            i32::max_value() - 10000,
+            i32::max_value(),
+            node,
+            0,
+        )
+        .1
     }
 
     pub fn add_enemy(&mut self, agent: SimulationAgent) {
@@ -262,9 +268,7 @@ impl AgentSimulation {
                 .map(|state| state.stats[SType::Health as usize])
                 .collect::<Vec<_>>()
         ); */
-        let moves = node
-            .slice
-            .generate_moves(&actions, strategy, turn, &targets);
+        let moves = node.slice.generate_moves(&actions, turn, &targets);
         let moves_found = moves.len();
         for next_slice in moves.into_iter() {
             let mut new_node = SimulationNode {

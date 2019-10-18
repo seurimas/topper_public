@@ -20,6 +20,8 @@ pub enum BType {
 pub enum SType {
     Health,
     Mana,
+    Sips,
+    Shields,
 
     SIZE,
 }
@@ -30,6 +32,7 @@ pub enum SType {
 pub enum FType {
     Dead,
     Shield,
+    Player,
 
     SIZE,
 }
@@ -50,6 +53,9 @@ impl AgentState {
     pub fn wait(&mut self, duration: i32) {
         for i in 0..self.balances.len() {
             self.balances[i] -= duration;
+            if self.balances[i] < 0 {
+                self.balances[i] = 0;
+            }
         }
     }
 }
@@ -64,4 +70,12 @@ pub fn alive() -> StateMatcher {
 
 pub fn has(balance: BType) -> StateMatcher {
     Box::new(move |me, _them| me.balances[balance as usize] <= 0)
+}
+
+pub fn is(flag: FType) -> StateMatcher {
+    Box::new(move |me, _them| me.flags[flag as usize])
+}
+
+pub fn lacks(flag: FType) -> StateMatcher {
+    Box::new(move |me, _them| !me.flags[flag as usize])
 }

@@ -1,6 +1,6 @@
 use crate::types::*;
 
-pub struct Action {
+pub struct StateAction {
     pub name: String,
     pub changes: Vec<StateChange>,
     pub initial: Vec<StateMatcher>,
@@ -18,7 +18,7 @@ impl StateConditions for Vec<StateMatcher> {
     }
 }
 
-impl Action {
+impl StateAction {
     pub fn apply(&self, owner: &AgentState, other: &AgentState) -> (AgentState, AgentState) {
         let mut me = owner.clone();
         let mut you = other.clone();
@@ -29,13 +29,19 @@ impl Action {
     }
 }
 
+impl StateConditions for StateAction {
+    fn satisfied(&self, owner: &AgentState, other: &AgentState) -> bool {
+        self.initial.satisfied(owner, other)
+    }
+}
+
 pub struct UnstableAction {
     pub desc: String,
-    pub paths: Vec<(i32, Action)>,
+    pub paths: Vec<(i32, StateAction)>,
     pub initial: Vec<StateMatcher>,
 }
 
-impl Action {
+impl StateAction {
     pub fn always(self) -> UnstableAction {
         UnstableAction {
             desc: self.name.clone(),

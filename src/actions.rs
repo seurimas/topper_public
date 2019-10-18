@@ -41,6 +41,12 @@ pub fn attack_change(amount: CType) -> StateChange {
     })
 }
 
+pub fn tick(accumulator: SType) -> StateChange {
+    apply_me(move |new_me| {
+        new_me.stats[accumulator as usize] += 1;
+    })
+}
+
 pub fn balance_change(balance: BType, duration: f32) -> StateChange {
     apply_me(move |new_me| {
         if new_me.balances[balance as usize] < 0 {
@@ -56,33 +62,64 @@ pub fn flag_me(flag: FType, value: bool) -> StateChange {
     })
 }
 
-pub fn attack_action(name: String, damage: CType, balance: BType, duration: f32) -> Action {
-    Action {
+pub fn attack_action(name: String, damage: CType, balance: BType, duration: f32) -> StateAction {
+    StateAction {
         name,
         changes: vec![
             attack_change(damage),
             balance_change(balance, duration),
             flag_me(FType::Shield, false),
         ],
-        initial: vec![alive(), target(alive()), has(balance)],
+        initial: vec![
+            alive(),
+            target(alive()),
+            target(lacks(FType::Shield)),
+            has(BType::Balance),
+            has(BType::Equil),
+        ],
     }
 }
 
-pub fn heal_action(name: String, heal: CType) -> Action {
-    Action {
+pub fn wiff_action(name: String, balance: BType, duration: f32) -> StateAction {
+    StateAction {
         name,
-        changes: vec![heal_change(heal), balance_change(BType::Elixir, 4.0)],
-        initial: vec![alive(), has(BType::Elixir)],
+        changes: vec![balance_change(balance, duration)],
+        initial: vec![
+            alive(),
+            target(alive()),
+            target(is(FType::Shield)),
+            has(BType::Balance),
+            has(BType::Equil),
+        ],
     }
 }
 
-pub fn shield_action(name: String) -> Action {
-    Action {
+pub fn heal_action(name: String, heal: CType) -> StateAction {
+    StateAction {
         name,
         changes: vec![
-            balance_change(BType::Balance, 3.0),
-            flag_me(FType::Shield, true),
+            heal_change(heal),
+            balance_change(BType::Elixir, 6.0),
+            tick(SType::Sips),
         ],
-        initial: vec![alive(), has(BType::Balance), has(BType::Equil)],
+        initial: vec![alive(), target(alive()), has(BType::Elixir)],
+    }
+}
+
+pub fn shield_action(name: String) -> StateAction {
+    StateAction {
+        name,
+        changes: vec![
+            balance_change(BType::Equil, 4.0),
+            flag_me(FType::Shield, true),
+            tick(SType::Shields),
+        ],
+        initial: vec![
+            alive(),
+            target(alive()),
+            lacks(FType::Shield),
+            has(BType::Balance),
+            has(BType::Equil),
+        ],
     }
 }
