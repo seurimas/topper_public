@@ -1,5 +1,4 @@
 mod actions;
-mod agents;
 mod alpha_beta;
 mod simulation;
 mod types;
@@ -7,6 +6,8 @@ use crate::actions::*;
 use crate::alpha_beta::*;
 use crate::simulation::*;
 use crate::types::*;
+
+use std::time::Instant;
 
 fn main() {
     let mut player = SimulationAgent::new(
@@ -81,6 +82,12 @@ fn main() {
                         } else {
                             1
                         }
+                    } else if name.eq_ignore_ascii_case("bit") && me.flags[FType::Shield as usize] {
+                        if me.stats[SType::Health as usize] < 3000 {
+                            1
+                        } else {
+                            -1
+                        }
                     } else {
                         0
                     }
@@ -101,11 +108,10 @@ fn main() {
         ],
         vec![player.initial_state.clone(), enemy.initial_state.clone()],
     );
-    println!("{:?}", ab_sim.run(3000));
-    println!(
-        "{:?}",
-        ab_sim.run_with_window(10000, i32::max_value() - 2000, i32::max_value())
-    );
+    let start = Instant::now();
+    let mut stats = Stats::new();
+    let best_path = ab_sim.run(1000, &mut stats);
+    println!("{:?} {:?} {:?}", start.elapsed(), stats, best_path);
     let mut simulation = AgentSimulation::new();
     simulation.add_ally(player);
     simulation.add_enemy(enemy);

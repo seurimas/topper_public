@@ -1,4 +1,4 @@
-use crate::agents::*;
+use crate::actions::*;
 use crate::types::*;
 
 #[derive(PartialEq, Clone, Copy)]

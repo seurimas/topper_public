@@ -1,4 +1,4 @@
-use crate::agents::*;
+use crate::actions::*;
 use crate::types::*;
 
 #[derive(Debug)]
@@ -121,7 +121,7 @@ impl<'s> SimulationIterator<'s> {
                     transitions.push(Transition::Act(
                         action.name.clone(),
                         action_index,
-                        target_index,
+                        vec![target_index],
                     ));
                 }
             }
@@ -149,7 +149,7 @@ impl<'s> SimulationIterator<'s> {
 
 #[derive(Debug, Clone)]
 pub enum Transition {
-    Act(String, usize, usize),
+    Act(String, usize, Vec<usize>),
     Wait(CType),
     Pass,
     Null,
@@ -169,7 +169,7 @@ impl<'s> Iterator for SimulationIterator<'s> {
                 Some((
                     transition.clone(),
                     self.base_state
-                        .apply_action(action, self.base_state.turn, *target_id),
+                        .apply_action(action, self.base_state.turn, target_id[0]),
                 ))
             }
             Transition::Wait(_) => Some((transition.clone(), self.base_state.wait().unwrap())),
@@ -189,6 +189,23 @@ impl SimulationState {
         score_moves: &'s MoveScorer,
     ) -> SimulationIterator<'s> {
         SimulationIterator::new(self, actions, can_pass, score_moves)
+    }
+}
+
+#[derive(Debug)]
+pub struct Stats {
+    pub max_depth: i32,
+    pub evaluated: i32,
+    pub state_count: i32,
+}
+
+impl Stats {
+    pub fn new() -> Self {
+        Stats {
+            max_depth: 0,
+            evaluated: 0,
+            state_count: 0,
+        }
     }
 }
 
@@ -217,23 +234,31 @@ impl ABSimulation {
         }
     }
 
-    pub fn run(&self, time: CType) -> (Vec<Transition>, i32) {
+    pub fn run(&self, time: CType, stats: &mut Stats) -> (Vec<Transition>, i32) {
         self.alpha_beta(
             &SimulationState::new(&self.initial_states),
             time,
             i32::min_value(),
             i32::max_value(),
             0,
+            stats,
         )
     }
 
-    pub fn run_with_window(&self, time: CType, alpha: i32, beta: i32) -> (Vec<Transition>, i32) {
+    pub fn run_with_window(
+        &self,
+        time: CType,
+        alpha: i32,
+        beta: i32,
+        stats: &mut Stats,
+    ) -> (Vec<Transition>, i32) {
         self.alpha_beta(
             &SimulationState::new(&self.initial_states),
             time,
             alpha,
             beta,
             0,
+            stats,
         )
     }
 
@@ -244,8 +269,11 @@ impl ABSimulation {
         mut alpha: i32,
         mut beta: i32,
         depth: i32,
+        stats: &mut Stats,
     ) -> (Vec<Transition>, i32) {
         if state.time > time {
+            stats.max_depth = i32::max(stats.max_depth, depth);
+            stats.evaluated += 1;
             (vec![], (self.eval)(state))
         } else {
             if state.maximizing_agent() {
@@ -254,9 +282,10 @@ impl ABSimulation {
                 for (transition, next_state) in
                     state.next_iter(&self.actions[state.turn], &self.can_pass, &self.score_move)
                 {
+                    stats.state_count += 1;
                     // println!("Me {:?}", transition);
                     let (transitions, next_value) =
-                        self.alpha_beta(&next_state, time, alpha, beta, depth + 1);
+                        self.alpha_beta(&next_state, time, alpha, beta, depth + 1, stats);
                     if next_value
                         > value
                             .get_or_insert((Transition::Null, vec![], i32::min_value()))
@@ -275,7 +304,8 @@ impl ABSimulation {
                     transitions.push(lower);
                     (transitions, value)
                 } else {
-                    // println!("Evaluating!");
+                    stats.max_depth = i32::max(stats.max_depth, depth);
+                    stats.evaluated += 1;
                     (vec![], (self.eval)(state))
                 }
             } else {
@@ -284,9 +314,10 @@ impl ABSimulation {
                 for (transition, next_state) in
                     state.next_iter(&self.actions[state.turn], &self.can_pass, &self.score_move)
                 {
+                    stats.state_count += 1;
                     // println!("You {:?}", transition);
                     let (transitions, next_value) =
-                        self.alpha_beta(&next_state, time, alpha, beta, depth + 1);
+                        self.alpha_beta(&next_state, time, alpha, beta, depth + 1, stats);
                     if next_value
                         < value
                             .get_or_insert((Transition::Null, vec![], i32::max_value()))
@@ -304,7 +335,8 @@ impl ABSimulation {
                     transitions.push(lower);
                     (transitions, value)
                 } else {
-                    // println!("Evaluating");
+                    stats.max_depth = i32::max(stats.max_depth, depth);
+                    stats.evaluated += 1;
                     (vec![], (self.eval)(state))
                 }
             }
