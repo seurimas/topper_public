@@ -97,7 +97,7 @@ impl SimulationState {
     }
 
     fn maximizing_agent(&self) -> bool {
-        self.states[self.turn].flags[FType::Player as usize]
+        self.states[self.turn].is(FType::Player)
     }
 
     fn wait_time(&self) -> Option<CType> {

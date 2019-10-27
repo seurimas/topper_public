@@ -18,7 +18,7 @@ fn main() {
     );
     player.initialize_stat(SType::Health, 3600, 3600);
     player.initialize_stat(SType::Mana, 3600, 3600);
-    player.initial_state.flags[FType::Player as usize] = true;
+    player.initial_state.set_flag(FType::Player, true);
     let mut enemy = SimulationAgent::new(
         SimulationStrategy::Strict,
         vec![
@@ -45,7 +45,7 @@ fn main() {
             }
         }),
         Box::new(|state: &SimulationState, transitions: &Vec<Transition>| {
-            if state.states[state.turn].flags[FType::Player as usize] {
+            if state.states[state.turn].is(FType::Player) {
                 let mut can_pass = true;
                 for transition in transitions.iter() {
                     if let Transition::Act(name, action_id, target) = transition {
@@ -80,7 +80,7 @@ fn main() {
                         } else {
                             1
                         }
-                    } else if name.eq_ignore_ascii_case("bit") && me.flags[FType::Shield as usize] {
+                    } else if name.eq_ignore_ascii_case("bit") && me.is(FType::Shield) {
                         if me.stats[SType::Health as usize] < 3000 {
                             1
                         } else {
