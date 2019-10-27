@@ -1,10 +1,8 @@
 mod actions;
 mod alpha_beta;
-mod simulation;
 mod types;
 use crate::actions::*;
 use crate::alpha_beta::*;
-use crate::simulation::*;
 use crate::types::*;
 
 use std::time::Instant;
@@ -112,30 +110,4 @@ fn main() {
     let mut stats = Stats::new();
     let best_path = ab_sim.run(1000, &mut stats);
     println!("{:?} {:?} {:?}", start.elapsed(), stats, best_path);
-    let mut simulation = AgentSimulation::new();
-    simulation.add_ally(player);
-    simulation.add_enemy(enemy);
-    let mut sim_node = simulation.root();
-    println!("{}", sim_node.size());
-    println!(
-        "{:?}",
-        simulation.best_path(
-            &|slice| {
-                let me = &slice.states[0];
-                let enemy = &slice.states[1];
-                if !alive()(&me, &enemy) {
-                    i32::min_value()
-                } else if !alive()(&enemy, &me) {
-                    i32::max_value()
-                } else {
-                    me.stats[SType::Health as usize] * 2 + -enemy.stats[SType::Health as usize]
-                        - me.stats[SType::Sips as usize] * 100
-                        - me.stats[SType::Shields as usize] * 1000
-                }
-            },
-            6000,
-            &mut sim_node
-        )
-    );
-    println!("{} {}", sim_node.size(), simulation.evaluated);
 }

@@ -1,11 +1,72 @@
 use crate::actions::*;
 use crate::types::*;
 
-#[derive(Debug)]
+#[derive(PartialEq, Clone, Copy)]
+pub enum SimulationStrategy {
+    Maximin,
+    Strict,
+}
+
+pub struct SimulationAgent {
+    pub actions: Vec<UnstableAction>,
+    pub initial_state: AgentState,
+    pub strategy: SimulationStrategy,
+}
+
+impl SimulationAgent {
+    pub fn new(strategy: SimulationStrategy, actions: Vec<UnstableAction>) -> Self {
+        SimulationAgent {
+            actions,
+            initial_state: Default::default(),
+            strategy,
+        }
+    }
+
+    pub fn initialize_stat(&mut self, stat: SType, value: CType, max_value: CType) {
+        self.initial_state.stats[stat as usize] = value;
+        self.initial_state.max_stats[stat as usize] = max_value;
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct SimulationState {
     pub time: CType,
     pub turn: usize,
     pub states: Vec<AgentState>,
+}
+
+impl PartialEq for SimulationState {
+    fn eq(&self, other: &Self) -> bool {
+        if self.time != other.time {
+            false
+        } else if self.turn != other.turn {
+            false
+        } else {
+            let mut different = false;
+            for i in 0..self.states.len() {
+                if self.states[i] != other.states[i] {
+                    different = true;
+                }
+            }
+            different
+        }
+    }
+}
+
+pub fn multi_index<T>(slc: &mut [T], a: usize, b: usize) -> (&mut T, &mut T) {
+    if a == b {
+        panic!();
+    } else {
+        if a >= slc.len() || b >= slc.len() {
+            panic!();
+        } else {
+            unsafe {
+                let ar = &mut *(slc.get_unchecked_mut(a) as *mut _);
+                let br = &mut *(slc.get_unchecked_mut(b) as *mut _);
+                (ar, br)
+            }
+        }
+    }
 }
 
 impl SimulationState {
@@ -17,35 +78,26 @@ impl SimulationState {
         }
     }
 
-    fn apply_action(&self, action: &StateAction, me_id: usize, you_id: usize) -> SimulationState {
-        let me = &self.states[me_id];
-        let you = &self.states[you_id];
-        let new_me = me.clone();
-        let new_you = you.clone();
-        let (new_me, new_you) = action.apply(&new_me, &new_you);
-        let me_pair = (me_id, new_me);
-        let you_pair = (you_id, new_you);
-        self.update_pair(0, me_pair, you_pair)
+    fn apply_action(
+        &mut self,
+        action: &StateAction,
+        me_id: usize,
+        you_id: usize,
+    ) -> (usize, usize, StateRevert) {
+        let (me, you) = multi_index(&mut self.states, me_id, you_id);
+        let revert = action.apply(me, you);
+        self.turn = 0;
+        (me_id, you_id, revert)
+    }
+
+    fn revert(&mut self, revert: &StateRevert, me_id: usize, you_id: usize) {
+        let (me, you) = multi_index(&mut self.states, me_id, you_id);
+        self.turn = me_id;
+        revert(me, you);
     }
 
     fn maximizing_agent(&self) -> bool {
         self.states[self.turn].flags[FType::Player as usize]
-    }
-
-    fn update_pair(
-        &self,
-        new_turn: usize,
-        (me_id, me): (usize, AgentState),
-        (you_id, you): (usize, AgentState),
-    ) -> Self {
-        let mut updated_states = self.states.clone();
-        updated_states[me_id] = me;
-        updated_states[you_id] = you;
-        SimulationState {
-            time: self.time,
-            turn: new_turn,
-            states: updated_states,
-        }
     }
 
     fn wait_time(&self) -> Option<CType> {
@@ -64,52 +116,47 @@ impl SimulationState {
         }
     }
 
-    fn wait<'s>(&self) -> Option<SimulationState> {
-        if let Some(min_balance) = self.wait_time() {
-            let new_states = self
-                .states
-                .iter()
-                .map(|state| {
-                    let mut new_state = state.clone();
-                    new_state.wait(min_balance);
-                    new_state
-                })
-                .collect();
-            Some(SimulationState {
-                time: self.time + min_balance,
-                turn: 0,
-                states: new_states,
-            })
-        } else {
-            None
+    fn wait<'s>(&mut self, min_balance: CType) -> (usize, CType) {
+        let original_turn = self.turn;
+        for state in self.states.iter_mut() {
+            state.wait(min_balance);
         }
+        self.turn = 0;
+        self.time += min_balance;
+        (original_turn, min_balance)
     }
 
-    fn pass(&self) -> SimulationState {
-        SimulationState {
-            time: self.time,
-            turn: self.turn + 1,
-            states: self.states.clone(),
+    fn unwait(&mut self, turn: usize, duration: CType) {
+        for state in self.states.iter_mut() {
+            state.wait(-duration);
         }
+        self.turn = turn;
+        self.time -= duration;
+    }
+
+    fn pass(&mut self) {
+        self.turn += 1;
+    }
+
+    fn unpass(&mut self) {
+        self.turn -= 1;
     }
 }
 
 type PassChecker = Fn(&SimulationState, &Vec<Transition>) -> bool;
 type MoveScorer = Fn(&SimulationState, &Transition) -> i32;
 
-struct SimulationIterator<'s> {
+struct SimulationIterator {
     index: usize,
-    actions: &'s Vec<StateAction>,
-    base_state: &'s SimulationState,
     transitions: Vec<Transition>,
 }
 
-impl<'s> SimulationIterator<'s> {
+impl SimulationIterator {
     fn new(
-        base_state: &'s SimulationState,
-        actions: &'s Vec<StateAction>,
-        can_pass: &'s PassChecker,
-        score_move: &'s MoveScorer,
+        base_state: &SimulationState,
+        actions: &Vec<StateAction>,
+        can_pass: &PassChecker,
+        score_move: &MoveScorer,
     ) -> Self {
         let mut transitions = vec![];
         let me = &base_state.states[base_state.turn];
@@ -121,7 +168,7 @@ impl<'s> SimulationIterator<'s> {
                     transitions.push(Transition::Act(
                         action.name.clone(),
                         action_index,
-                        vec![target_index],
+                        target_index,
                     ));
                 }
             }
@@ -139,8 +186,6 @@ impl<'s> SimulationIterator<'s> {
         transitions.sort_by_key(|transition| score_move(&base_state, transition));
         //      println!("After: {:?}", transitions);
         SimulationIterator {
-            base_state,
-            actions,
             index: 0,
             transitions,
         }
@@ -149,45 +194,74 @@ impl<'s> SimulationIterator<'s> {
 
 #[derive(Debug, Clone)]
 pub enum Transition {
-    Act(String, usize, Vec<usize>),
+    Act(String, usize, usize),
     Wait(CType),
     Pass,
-    Null,
 }
 
-impl<'s> Iterator for SimulationIterator<'s> {
-    type Item = (Transition, SimulationState);
+pub enum Reversion {
+    Unact(usize, usize, StateRevert),
+    Unpass,
+    Unwait(usize, CType),
+}
+
+impl Transition {
+    pub fn apply(&self, actions: &Vec<StateAction>, state: &mut SimulationState) -> Reversion {
+        match self {
+            Transition::Act(_name, action_id, target) => {
+                let (me, you, revert) =
+                    state.apply_action(&actions[*action_id], state.turn, *target);
+                Reversion::Unact(me, you, revert)
+            }
+            Transition::Wait(duration) => {
+                let (turn, time) = state.wait(*duration);
+                Reversion::Unwait(turn, time)
+            }
+            Transition::Pass => {
+                state.pass();
+                Reversion::Unpass
+            }
+        }
+    }
+}
+
+impl Reversion {
+    pub fn revert(&self, state: &mut SimulationState) {
+        match self {
+            Reversion::Unact(me, you, revert) => {
+                state.revert(revert, *me, *you);
+            }
+            Reversion::Unwait(turn, time) => {
+                state.unwait(*turn, *time);
+            }
+            Reversion::Unpass => {
+                state.unpass();
+            }
+        }
+    }
+}
+
+impl Iterator for SimulationIterator {
+    type Item = (Transition);
     fn next(&mut self) -> Option<Self::Item> {
         if self.index >= self.transitions.len() {
             return None;
         }
         let transition = &self.transitions[self.index];
         self.index += 1;
-        match transition {
-            Transition::Act(_name, action_id, target_id) => {
-                let action = &self.actions[*action_id];
-                Some((
-                    transition.clone(),
-                    self.base_state
-                        .apply_action(action, self.base_state.turn, target_id[0]),
-                ))
-            }
-            Transition::Wait(_) => Some((transition.clone(), self.base_state.wait().unwrap())),
-            Transition::Pass => Some((transition.clone(), self.base_state.pass())),
-            Transition::Null => None,
-        }
+        Some(transition.clone())
     }
 }
 
 pub type StateScorer = Box<Fn(&SimulationState) -> i32>;
 
 impl SimulationState {
-    fn next_iter<'s>(
-        &'s self,
-        actions: &'s Vec<StateAction>,
-        can_pass: &'s PassChecker,
-        score_moves: &'s MoveScorer,
-    ) -> SimulationIterator<'s> {
+    fn next_iter(
+        &self,
+        actions: &Vec<StateAction>,
+        can_pass: &PassChecker,
+        score_moves: &MoveScorer,
+    ) -> SimulationIterator {
         SimulationIterator::new(self, actions, can_pass, score_moves)
     }
 }
@@ -236,7 +310,7 @@ impl ABSimulation {
 
     pub fn run(&self, time: CType, stats: &mut Stats) -> (Vec<Transition>, i32) {
         self.alpha_beta(
-            &SimulationState::new(&self.initial_states),
+            &mut SimulationState::new(&self.initial_states),
             time,
             i32::min_value(),
             i32::max_value(),
@@ -253,7 +327,7 @@ impl ABSimulation {
         stats: &mut Stats,
     ) -> (Vec<Transition>, i32) {
         self.alpha_beta(
-            &SimulationState::new(&self.initial_states),
+            &mut SimulationState::new(&self.initial_states),
             time,
             alpha,
             beta,
@@ -264,7 +338,7 @@ impl ABSimulation {
 
     fn alpha_beta(
         &self,
-        state: &SimulationState,
+        state: &mut SimulationState,
         time: CType,
         mut alpha: i32,
         mut beta: i32,
@@ -278,24 +352,27 @@ impl ABSimulation {
         } else {
             if state.maximizing_agent() {
                 let mut value = None;
-                // println!("Iterating {} {}...", state.turn, depth);
-                for (transition, next_state) in
-                    state.next_iter(&self.actions[state.turn], &self.can_pass, &self.score_move)
-                {
+                let next_transitions = state
+                    .next_iter(&self.actions[state.turn], &self.can_pass, &self.score_move)
+                    .transitions;
+                for transition in next_transitions {
+                    let reversion = transition.apply(&self.actions[state.turn], state);
                     stats.state_count += 1;
-                    // println!("Me {:?}", transition);
                     let (transitions, next_value) =
-                        self.alpha_beta(&next_state, time, alpha, beta, depth + 1, stats);
-                    if next_value
-                        > value
-                            .get_or_insert((Transition::Null, vec![], i32::min_value()))
-                            .2
-                    {
-                        // println!("+ {} {}", next_value, depth);
+                        self.alpha_beta(state, time, alpha, beta, depth + 1, stats);
+                    reversion.revert(state);
+                    if let Some((_transition, _transitions, best_value)) = &value {
+                        if next_value > *best_value {
+                            value = Some((transition, transitions, next_value));
+                            alpha = i32::max(alpha, next_value);
+                            if alpha >= beta {
+                                break;
+                            }
+                        }
+                    } else {
                         value = Some((transition, transitions, next_value));
                         alpha = i32::max(alpha, next_value);
                         if alpha >= beta {
-                            // println!("Broke {} {}", alpha, beta);
                             break;
                         }
                     }
@@ -310,23 +387,27 @@ impl ABSimulation {
                 }
             } else {
                 let mut value = None;
-                // println!("Iterating {} {}...", state.turn, depth);
-                for (transition, next_state) in
-                    state.next_iter(&self.actions[state.turn], &self.can_pass, &self.score_move)
-                {
+                let next_transitions = state
+                    .next_iter(&self.actions[state.turn], &self.can_pass, &self.score_move)
+                    .transitions;
+                for transition in next_transitions {
+                    let reversion = transition.apply(&self.actions[state.turn], state);
                     stats.state_count += 1;
-                    // println!("You {:?}", transition);
                     let (transitions, next_value) =
-                        self.alpha_beta(&next_state, time, alpha, beta, depth + 1, stats);
-                    if next_value
-                        < value
-                            .get_or_insert((Transition::Null, vec![], i32::max_value()))
-                            .2
-                    {
+                        self.alpha_beta(state, time, alpha, beta, depth + 1, stats);
+                    reversion.revert(state);
+                    if let Some((_transition, _transitions, best_value)) = &value {
+                        if next_value < *best_value {
+                            value = Some((transition, transitions, next_value));
+                            beta = i32::min(beta, next_value);
+                            if alpha >= beta {
+                                break;
+                            }
+                        }
+                    } else {
                         value = Some((transition, transitions, next_value));
                         beta = i32::min(beta, next_value);
                         if alpha >= beta {
-                            // println!("Broked {} {}", alpha, beta);
                             break;
                         }
                     }

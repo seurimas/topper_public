@@ -37,7 +37,9 @@ pub enum FType {
     SIZE,
 }
 
-pub type StateChange = Box<Fn(&mut AgentState, &mut AgentState)>;
+pub type StateRevert = Box<Fn(&mut AgentState, &mut AgentState)>;
+
+pub type StateChange = Box<Fn(&mut AgentState, &mut AgentState) -> StateRevert>;
 
 pub type StateMatcher = Box<Fn(&AgentState, &AgentState) -> bool>;
 
@@ -49,13 +51,23 @@ pub struct AgentState {
     pub flags: [bool; FType::SIZE as usize],
 }
 
+impl PartialEq for AgentState {
+    fn eq(&self, other: &Self) -> bool {
+        let mut different = false;
+        for i in 0..self.balances.len() {
+            if self.balances[i] != other.balances[i] {
+                different = true;
+                break;
+            }
+        }
+        different
+    }
+}
+
 impl AgentState {
     pub fn wait(&mut self, duration: i32) {
         for i in 0..self.balances.len() {
             self.balances[i] -= duration;
-            if self.balances[i] < 0 {
-                self.balances[i] = 0;
-            }
         }
     }
 }

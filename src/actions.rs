@@ -18,14 +18,22 @@ impl StateConditions for Vec<StateMatcher> {
     }
 }
 
-impl StateAction {
-    pub fn apply(&self, owner: &AgentState, other: &AgentState) -> (AgentState, AgentState) {
-        let mut me = owner.clone();
-        let mut you = other.clone();
-        for change in self.changes.iter() {
-            change(&mut me, &mut you);
+pub fn join(reversions: Vec<StateRevert>) -> StateRevert {
+    Box::new(move |mut me, mut you| {
+        for reversion in reversions.iter().rev() {
+            reversion(&mut me, &mut you);
         }
-        (me, you)
+    })
+}
+
+impl StateAction {
+    pub fn apply(&self, owner: &mut AgentState, other: &mut AgentState) -> StateRevert {
+        join(
+            self.changes
+                .iter()
+                .map(|change| change(owner, other))
+                .collect(),
+        )
     }
 }
 
@@ -53,28 +61,32 @@ impl StateAction {
 
 pub fn apply_me<F>(change: F) -> StateChange
 where
-    F: 'static + Fn(&mut AgentState),
+    F: 'static + Fn(&mut AgentState) -> Box<Fn(&mut AgentState)>,
 {
     Box::new(move |me, _other| {
-        change(me);
+        let revert = change(me);
+        Box::new(move |me2, _you2| revert(me2))
     })
 }
 
 pub fn apply_you<F>(change: F) -> StateChange
 where
-    F: 'static + Fn(&mut AgentState),
+    F: 'static + Fn(&mut AgentState) -> Box<Fn(&mut AgentState)>,
 {
     Box::new(move |_me, other| {
-        change(other);
+        let revert = change(other);
+        Box::new(move |_me2, you2| revert(you2))
     })
 }
 
 pub fn heal_change(amount: CType) -> StateChange {
     apply_me(move |new_me| {
+        let original = new_me.stats[SType::Health as usize];
         new_me.stats[SType::Health as usize] += amount;
         if new_me.stats[SType::Health as usize] > new_me.max_stats[SType::Health as usize] {
             new_me.stats[SType::Health as usize] = new_me.max_stats[SType::Health as usize];
         }
+        Box::new(move |me| me.stats[SType::Health as usize] = original)
     })
 }
 
@@ -86,29 +98,42 @@ pub fn check_health(state: &mut AgentState) {
 
 pub fn attack_change(amount: CType) -> StateChange {
     apply_you(move |new_you| {
+        let original = new_you.stats[SType::Health as usize];
+        let dead = new_you.flags[FType::Dead as usize];
         new_you.stats[SType::Health as usize] -= amount;
         check_health(new_you);
+        Box::new(move |me| {
+            me.stats[SType::Health as usize] = original;
+            me.flags[FType::Dead as usize] = dead;
+        })
     })
 }
 
 pub fn tick(accumulator: SType) -> StateChange {
     apply_me(move |new_me| {
         new_me.stats[accumulator as usize] += 1;
+        Box::new(move |me| me.stats[accumulator as usize] -= 1)
     })
 }
 
 pub fn balance_change(balance: BType, duration: f32) -> StateChange {
     apply_me(move |new_me| {
+        let original = new_me.balances[balance as usize];
         if new_me.balances[balance as usize] < 0 {
             new_me.balances[balance as usize] = 0;
         }
         new_me.balances[balance as usize] += (duration * BALANCE_SCALE) as CType;
+        Box::new(move |me| {
+            me.balances[balance as usize] = original;
+        })
     })
 }
 
 pub fn flag_me(flag: FType, value: bool) -> StateChange {
     apply_me(move |new_me| {
+        let original = new_me.flags[flag as usize];
         new_me.flags[flag as usize] = value;
+        Box::new(move |me| me.flags[flag as usize] = original)
     })
 }
 
