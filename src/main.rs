@@ -1,13 +1,23 @@
 mod actions;
 mod alpha_beta;
+mod curatives;
+mod io;
+mod timeline;
 mod types;
 use crate::actions::*;
 use crate::alpha_beta::*;
+use crate::curatives::*;
+use crate::io::echo_time_slice;
+use crate::timeline::*;
 use crate::types::*;
 
 use std::time::Instant;
 
 fn main() {
+    echo_time_slice();
+}
+
+fn dummy_simulation() {
     let mut player = SimulationAgent::new(
         SimulationStrategy::Strict,
         vec![
