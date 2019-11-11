@@ -1,4 +1,6 @@
 use num_enum::TryFromPrimitive;
+use serde::Deserialize;
+use std::convert::TryFrom;
 use std::fmt;
 pub type CType = i32;
 
@@ -33,7 +35,7 @@ pub enum SType {
 }
 
 // Flags
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, TryFromPrimitive)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, TryFromPrimitive, Deserialize)]
 #[repr(u16)]
 pub enum FType {
     Dead,
@@ -255,7 +257,7 @@ impl fmt::Debug for FlagSet {
                 if wrote {
                     write!(f, ", ")?;
                 }
-                write!(f, "{:?}", FType::Addiction)?;
+                write!(f, "{:?}", FType::try_from(idx as u16))?;
                 wrote = true;
             }
         }
@@ -312,11 +314,16 @@ impl AgentState {
         self.flags.0[flag as usize] = value;
     }
 
-    pub fn set_balance(&mut self, balance: BType, value: CType) {
-        self.balances[balance as usize] = value;
+    pub fn set_balance(&mut self, balance: BType, value: f32) {
+        self.balances[balance as usize] = (value * BALANCE_SCALE) as CType;
     }
 
     pub fn set_stat(&mut self, stat: SType, value: CType) {
+        self.stats[stat as usize] = value;
+    }
+
+    pub fn initialize_stat(&mut self, stat: SType, value: CType) {
+        self.max_stats[stat as usize] = value;
         self.stats[stat as usize] = value;
     }
 }

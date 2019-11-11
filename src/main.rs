@@ -1,5 +1,8 @@
+#[macro_use]
+extern crate lazy_static;
 mod actions;
 mod alpha_beta;
+mod classes;
 mod curatives;
 mod io;
 mod timeline;
@@ -7,14 +10,15 @@ mod types;
 use crate::actions::*;
 use crate::alpha_beta::*;
 use crate::curatives::*;
-use crate::io::echo_time_slice;
+use crate::io::{echo_time_slice, provide_action};
 use crate::timeline::*;
 use crate::types::*;
 
 use std::time::Instant;
 
 fn main() {
-    echo_time_slice();
+    // echo_time_slice();
+    provide_action();
 }
 
 fn dummy_simulation() {
