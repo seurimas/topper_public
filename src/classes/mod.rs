@@ -2,7 +2,7 @@ use crate::actions::*;
 use crate::timeline::*;
 use crate::types::*;
 use std::collections::HashMap;
-mod syssin;
+pub mod syssin;
 
 pub fn get_offensive_actions(class: Option<&String>) -> Vec<StateAction> {
     vec![]

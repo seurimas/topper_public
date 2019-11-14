@@ -7,7 +7,7 @@ pub type CType = i32;
 pub const BALANCE_SCALE: f32 = 100.0;
 
 // Balances
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, TryFromPrimitive)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Hash, Clone, Copy, TryFromPrimitive)]
 #[repr(usize)]
 pub enum BType {
     // Actions
@@ -18,6 +18,7 @@ pub enum BType {
     Elixir,
     Pill,
     Salve,
+    Smoke,
 
     SIZE,
 }
@@ -41,6 +42,8 @@ pub enum FType {
     Dead,
     Shield,
     Player,
+    Ally,
+    Enemy,
 
     // Antipsychotic
     Sadness,
@@ -314,8 +317,26 @@ impl AgentState {
         self.flags.0[flag as usize] = value;
     }
 
+    pub fn get_flag(&self, flag: FType) -> bool {
+        self.flags.0[flag as usize]
+    }
+
+    pub fn affliction_count(&self) -> i32 {
+        let mut count = 0;
+        for i in 0..(FType::SIZE as usize) {
+            if i >= FType::Sadness as usize && i < FType::SIZE as usize {
+                count += 1;
+            }
+        }
+        count
+    }
+
     pub fn set_balance(&mut self, balance: BType, value: f32) {
         self.balances[balance as usize] = (value * BALANCE_SCALE) as CType;
+    }
+
+    pub fn balanced(&self, balance: BType) -> bool {
+        self.balances[balance as usize] <= 0
     }
 
     pub fn set_stat(&mut self, stat: SType, value: CType) {

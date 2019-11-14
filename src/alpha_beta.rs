@@ -7,27 +7,6 @@ pub enum SimulationStrategy {
     Strict,
 }
 
-pub struct SimulationAgent {
-    pub actions: Vec<UnstableAction>,
-    pub initial_state: AgentState,
-    pub strategy: SimulationStrategy,
-}
-
-impl SimulationAgent {
-    pub fn new(strategy: SimulationStrategy, actions: Vec<UnstableAction>) -> Self {
-        SimulationAgent {
-            actions,
-            initial_state: Default::default(),
-            strategy,
-        }
-    }
-
-    pub fn initialize_stat(&mut self, stat: SType, value: CType, max_value: CType) {
-        self.initial_state.stats[stat as usize] = value;
-        self.initial_state.max_stats[stat as usize] = max_value;
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct SimulationState {
     pub time: CType,
@@ -97,7 +76,15 @@ impl SimulationState {
     }
 
     fn maximizing_agent(&self) -> bool {
-        self.states[self.turn].is(FType::Player)
+        self.states[self.turn].is(FType::Player) && self.states[self.turn].is(FType::Ally)
+    }
+
+    fn minimizing_agent(&self) -> bool {
+        self.states[self.turn].is(FType::Player) && self.states[self.turn].is(FType::Enemy)
+    }
+
+    fn strict_agent(&self) -> bool {
+        !self.maximizing_agent() && !self.minimizing_agent()
     }
 
     fn wait_time(&self) -> Option<CType> {
@@ -385,7 +372,7 @@ impl ABSimulation {
                     stats.evaluated += 1;
                     (vec![], (self.eval)(state))
                 }
-            } else {
+            } else if state.minimizing_agent() {
                 let mut value = None;
                 let next_transitions = state
                     .next_iter(&self.actions[state.turn], &self.can_pass, &self.score_move)
@@ -420,6 +407,24 @@ impl ABSimulation {
                     stats.evaluated += 1;
                     (vec![], (self.eval)(state))
                 }
+            } else if state.strict_agent() {
+                if let Some(transition) = state
+                    .next_iter(&self.actions[state.turn], &self.can_pass, &self.score_move)
+                    .transitions
+                    .pop()
+                {
+                    let reversion = transition.apply(&self.actions[state.turn], state);
+                    stats.state_count += 1;
+                    let (mut transitions, next_value) =
+                        self.alpha_beta(state, time, alpha, beta, depth + 1, stats);
+                    reversion.revert(state);
+                    transitions.push(transition);
+                    (transitions, next_value)
+                } else {
+                    (vec![], (self.eval)(state))
+                }
+            } else {
+                (vec![], (self.eval)(state))
             }
         }
     }

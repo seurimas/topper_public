@@ -20,13 +20,53 @@ mod timeline_tests {
                 associated: vec![
                     Observation::Afflicts(FType::Anorexia),
                     Observation::Afflicts(FType::BrokenLeftArm),
+                    Observation::Balance(BType::Balance, 2.8),
                 ],
             })],
             prompt: Prompt::Blackout,
             time: 0,
         };
         timeline.push_time_slice(dstab_slice);
-        // let simulation = timeline.get_offensive_simulation("Seurimas", "Benedicto");
+        let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
+        assert_eq!(seur_state.balanced(BType::Balance), false);
+        assert_eq!(seur_state.get_flag(FType::BrokenLeftArm), false);
+        assert_eq!(seur_state.get_flag(FType::Anorexia), false);
+        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        assert_eq!(bene_state.balanced(BType::Balance), true);
+        assert_eq!(bene_state.get_flag(FType::BrokenLeftArm), true);
+        assert_eq!(bene_state.get_flag(FType::Anorexia), true);
+    }
+
+    #[test]
+    fn test_dstab_rebounds() {
+        let mut timeline = Timeline::new();
+        let dstab_slice = TimeSlice {
+            incidents: vec![Incident::CombatAction(CombatAction {
+                caster: "Seurimas".to_string(),
+                category: "Assassination".to_string(),
+                skill: "Doublestab".to_string(),
+                target: "Benedicto".to_string(),
+                annotation: "".to_string(),
+                associated: vec![
+                    Observation::Afflicts(FType::Anorexia),
+                    Observation::Rebounds,
+                    Observation::Afflicts(FType::BrokenLeftArm),
+                    Observation::Rebounds,
+                    Observation::Balance(BType::Balance, 2.8),
+                ],
+            })],
+            prompt: Prompt::Blackout,
+            time: 0,
+        };
+        timeline.push_time_slice(dstab_slice);
+        let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
+        assert_eq!(seur_state.balanced(BType::Balance), false);
+        assert_eq!(seur_state.get_flag(FType::BrokenLeftArm), true);
+        assert_eq!(seur_state.get_flag(FType::Anorexia), true);
+        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        assert_eq!(bene_state.balanced(BType::Balance), true);
+        assert_eq!(bene_state.get_flag(FType::BrokenLeftArm), false);
+        assert_eq!(bene_state.get_flag(FType::Anorexia), false);
     }
 }
 
@@ -45,10 +85,39 @@ pub fn handle_combat_action(combat_action: &CombatAction, agent_states: &mut Tim
                 2,
                 &combat_action.associated,
             );
+            apply_or_infer_balance(&mut me, (BType::Balance, 2.8), &combat_action.associated);
+            agent_states.set_agent(&combat_action.caster, me);
+            agent_states.set_agent(&combat_action.target, you);
         }
         "Bedazzle" => {}
         _ => {}
     }
+}
+
+const EPTETH_A: (&'static str, FType) = ("epteth", FType::BrokenLeftLeg);
+const EPTETH_B: (&'static str, FType) = ("epteth", FType::BrokenRightLeg);
+const EPSETH_A: (&'static str, FType) = ("epseth", FType::BrokenLeftArm);
+const EPSETH_B: (&'static str, FType) = ("epseth", FType::BrokenRightArm);
+const SLIKE: (&'static str, FType) = ("slike", FType::Anorexia);
+const KALMIA: (&'static str, FType) = ("kalmia", FType::Slickness);
+const JALK: (&'static str, FType) = ("jalk", FType::Asthma);
+
+const VENOMS: [(&'static str, FType); 7] =
+    [EPTETH_A, EPTETH_B, EPSETH_A, EPSETH_B, SLIKE, KALMIA, JALK];
+
+pub fn get_offensive_actions() -> Vec<StateAction> {
+    let mut actions = vec![];
+    for venom_a in VENOMS.iter() {
+        for venom_b in VENOMS.iter() {
+            if venom_a != venom_b {
+                actions.push(dstab_action(
+                    (venom_a.0.to_string(), venom_a.1),
+                    (venom_b.0.to_string(), venom_b.1),
+                ));
+            }
+        }
+    }
+    actions
 }
 
 pub fn dstab_action(

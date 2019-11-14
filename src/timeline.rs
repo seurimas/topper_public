@@ -1,6 +1,6 @@
 use crate::actions::*;
 use crate::alpha_beta::*;
-use crate::classes::get_offensive_actions;
+use crate::classes::{get_offensive_actions, handle_combat_action};
 use crate::types::*;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -19,6 +19,7 @@ pub enum Observation {
     Connects(String),
     Afflicts(FType),
     Cures(FType),
+    Balance(BType, f32),
     Rebounds,
     Shield,
     Diverts,
@@ -84,12 +85,14 @@ pub struct TimeSlice {
 
 pub struct TimelineState {
     agent_states: HashMap<String, AgentState>,
+    time: CType,
 }
 
 impl TimelineState {
     pub fn new() -> Self {
         TimelineState {
             agent_states: HashMap::new(),
+            time: 0,
         }
     }
 
@@ -98,6 +101,30 @@ impl TimelineState {
             .get_mut(name)
             .unwrap_or(&mut BASE_STATE.clone())
             .clone()
+    }
+
+    pub fn set_agent(&mut self, name: &String, state: AgentState) {
+        self.agent_states.insert(name.to_string(), state);
+    }
+
+    fn wait(&mut self, duration: CType) {
+        for agent_state in self.agent_states.values_mut() {
+            agent_state.wait(duration);
+        }
+    }
+
+    fn apply_time_slice(&mut self, slice: &TimeSlice) {
+        if slice.time > self.time {
+            self.wait(slice.time - self.time);
+        }
+        for incident in slice.incidents.iter() {
+            match incident {
+                Incident::CombatAction(combat_action) => {
+                    handle_combat_action(&combat_action, self);
+                }
+                _ => {}
+            }
+        }
     }
 }
 
@@ -114,6 +141,7 @@ impl Timeline {
     }
 
     pub fn push_time_slice(&mut self, slice: TimeSlice) {
+        self.state.apply_time_slice(&slice);
         self.slices.push(slice);
     }
 }
@@ -152,4 +180,21 @@ pub fn apply_observed_afflictions(
         }
     }
     if found_affs < aff_count {}
+}
+
+pub fn apply_or_infer_balance(
+    who: &mut AgentState,
+    expected_value: (BType, f32),
+    observations: &Vec<Observation>,
+) {
+    for observation in observations.iter() {
+        match observation {
+            Observation::Balance(btype, duration) => {
+                who.set_balance(*btype, *duration);
+                return;
+            }
+            _ => {}
+        }
+    }
+    who.set_balance(expected_value.0, expected_value.1);
 }

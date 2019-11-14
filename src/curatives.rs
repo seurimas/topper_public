@@ -67,13 +67,47 @@ pub fn herb_action(name: String, afflictions: Vec<FType>) -> StateAction {
         name: format!("eat {}", name),
         changes: vec![
             cure_in_order(afflictions.clone()),
-            balance_change(BType::Pill, 3.0),
+            balance_change(BType::Pill, 2.0),
         ],
         initial: vec![
             alive(),
             target(alive()),
             has(BType::Pill),
             lacks(FType::Anorexia),
+            some(afflictions),
+        ],
+    }
+}
+
+pub fn salve_action(name: String, location: String, afflictions: Vec<FType>) -> StateAction {
+    StateAction {
+        name: format!("apply {} to {}", name, location),
+        changes: vec![
+            cure_in_order(afflictions.clone()),
+            balance_change(BType::Salve, 2.0),
+        ],
+        initial: vec![
+            alive(),
+            target(alive()),
+            has(BType::Salve),
+            lacks(FType::Slickness),
+            some(afflictions),
+        ],
+    }
+}
+
+pub fn smoke_action(name: String, afflictions: Vec<FType>) -> StateAction {
+    StateAction {
+        name: format!("smoke {}", name),
+        changes: vec![
+            cure_in_order(afflictions.clone()),
+            balance_change(BType::Smoke, 2.0),
+        ],
+        initial: vec![
+            alive(),
+            target(alive()),
+            has(BType::Smoke),
+            lacks(FType::Asthma),
             some(afflictions),
         ],
     }
@@ -209,23 +243,6 @@ pub fn steroid() -> StateAction {
 
 pub fn opiate() -> StateAction {
     herb_action("opiate".into(), OPIATE_ORDER.to_vec())
-}
-
-pub fn salve_action(name: String, location: String, afflictions: Vec<FType>) -> StateAction {
-    StateAction {
-        name: format!("apply {} to {}", name, location),
-        changes: vec![
-            cure_in_order(afflictions.clone()),
-            balance_change(BType::Salve, 3.0),
-        ],
-        initial: vec![
-            alive(),
-            target(alive()),
-            has(BType::Salve),
-            lacks(FType::Slickness),
-            some(afflictions),
-        ],
-    }
 }
 
 lazy_static! {
@@ -390,4 +407,52 @@ pub fn soothing_arms() -> StateAction {
 
 pub fn soothing_legs() -> StateAction {
     salve_action("soothing".into(), "legs".into(), vec![FType::Whiplash])
+}
+
+lazy_static! {
+    static ref WILLOW_ORDER: Vec<FType> = vec![FType::Aeon, FType::Hellsight, FType::Deadening,];
+}
+
+lazy_static! {
+    static ref YARROW_ORDER: Vec<FType> = vec![
+        FType::Slickness,
+        FType::Withering,
+        FType::Disfigurement,
+        FType::Migraine,
+        FType::Squelched,
+    ];
+}
+
+pub fn willow() -> StateAction {
+    smoke_action("willow".into(), WILLOW_ORDER.to_vec())
+}
+
+pub fn yarrow() -> StateAction {
+    smoke_action("yarrow".into(), YARROW_ORDER.to_vec())
+}
+
+pub fn get_curative_actions() -> Vec<StateAction> {
+    vec![
+        //antipsychotic(),
+        //euphoriant(),
+        decongestant(),
+        //depressant(),
+        //coagulation(),
+        opiate(),
+        //steroid(),
+        //mending_head(),
+        mending_left_arm(),
+        mending_right_arm(),
+        mending_left_leg(),
+        mending_right_leg(),
+        //mending_torso(),
+        //epidermal_head(),
+        epidermal_torso(),
+        //soothing_arms(),
+        //soothing_legs(),
+        //soothing_head(),
+        //soothing_torso(),
+        willow(),
+        yarrow(),
+    ]
 }
