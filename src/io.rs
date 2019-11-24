@@ -20,6 +20,7 @@ enum TopperMessage {
 pub struct TopperResponse {
     pub qeb: Option<String>,
     pub battleStats: Option<BattleStats>,
+    pub error: Option<String>,
 }
 
 impl TopperResponse {
@@ -27,12 +28,21 @@ impl TopperResponse {
         TopperResponse {
             qeb: None,
             battleStats: Some(battleStats),
+            error: None,
         }
     }
     pub fn silent() -> Self {
         TopperResponse {
             qeb: None,
             battleStats: None,
+            error: None,
+        }
+    }
+    pub fn error(message: String) -> TopperResponse {
+        TopperResponse {
+            qeb: None,
+            battleStats: None,
+            error: Some(message),
         }
     }
 }
@@ -96,7 +106,10 @@ pub fn provide_action() {
                     .unwrap()
                 );
             }
-            Err(error) => println!("error: {}", error),
+            Err(error) => println!(
+                "{}",
+                serde_json::to_string(&TopperResponse::error(error.to_string())).unwrap()
+            ),
         }
     }
 }

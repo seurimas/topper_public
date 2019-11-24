@@ -1,6 +1,7 @@
 use crate::actions::*;
 use crate::alpha_beta::*;
 use crate::classes::{get_offensive_actions, handle_combat_action, VENOM_AFFLICTS};
+use crate::curatives::{handle_simple_cure_action, remove_in_order, PILL_CURE_ORDERS};
 use crate::types::*;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -53,7 +54,7 @@ impl CombatAction {
 
 #[derive(Debug, Deserialize)]
 pub enum SimpleCure {
-    Herb(String),
+    Pill(String),
     Salve(String, String),
     Smoke(String),
 }
@@ -130,6 +131,9 @@ impl TimelineState {
             match incident {
                 Incident::CombatAction(combat_action) => {
                     handle_combat_action(&combat_action, self);
+                }
+                Incident::SimpleCureAction(simple_cure) => {
+                    handle_simple_cure_action(&simple_cure, self);
                 }
                 _ => {}
             }
@@ -242,6 +246,15 @@ pub fn apply_or_infer_cure(
             _ => {}
         }
     }
-    if found_cures.len() == 0 {}
+    if found_cures.len() == 0 {
+        match cure {
+            SimpleCure::Pill(pill_name) => {
+                if let Some(order) = PILL_CURE_ORDERS.get(pill_name) {
+                    remove_in_order(order.to_vec())(who);
+                }
+            }
+            _ => {}
+        }
+    }
     found_cures
 }

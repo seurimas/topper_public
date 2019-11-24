@@ -1,7 +1,43 @@
 use crate::actions::*;
+use crate::timeline::*;
 use crate::types::*;
 use std::collections::HashMap;
 
+#[cfg(test)]
+mod timeline_tests {
+    use super::*;
+    use crate::timeline::*;
+
+    #[test]
+    fn test_pill() {
+        let mut timeline = Timeline::new();
+        {
+            let mut updated_seur = timeline.state.get_agent(&"Seurimas".to_string());
+            updated_seur.set_flag(FType::ThinBlood, true);
+            timeline.state.set_agent(&"Seurimas".into(), updated_seur);
+        }
+        {
+            let mut updated_bene = timeline.state.get_agent(&"Benedicto".to_string());
+            updated_bene.set_flag(FType::ThinBlood, true);
+        }
+        let coag_slice = TimeSlice {
+            incidents: vec![Incident::SimpleCureAction(SimpleCureAction {
+                caster: "Benedicto".into(),
+                cure_type: SimpleCure::Pill("coagulant".into()),
+                associated: Vec::new(),
+            })],
+            prompt: Prompt::Blackout,
+            time: 0,
+        };
+        timeline.push_time_slice(coag_slice);
+        let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
+        assert_eq!(seur_state.balanced(BType::Pill), true);
+        assert_eq!(seur_state.get_flag(FType::ThinBlood), true);
+        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        assert_eq!(bene_state.balanced(BType::Pill), false);
+        assert_eq!(bene_state.get_flag(FType::ThinBlood), false);
+    }
+}
 pub fn heal_action(name: String, heal: CType) -> StateAction {
     StateAction {
         name,
@@ -281,6 +317,20 @@ lazy_static! {
 }
 
 lazy_static! {
+    pub static ref PILL_CURE_ORDERS: HashMap<String, Vec<FType>> = {
+        let mut val = HashMap::new();
+        val.insert("antipsychotic".into(), ANTIPSYCHOTIC_ORDER.to_vec());
+        val.insert("euphoriant".into(), EUPHORIANT_ORDER.to_vec());
+        val.insert("decongestant".into(), DECONGESTANT_ORDER.to_vec());
+        val.insert("depressant".into(), DEPRESSANT_ORDER.to_vec());
+        val.insert("coagulation".into(), COAGULATION_ORDER.to_vec());
+        val.insert("steroid".into(), STEROID_ORDER.to_vec());
+        val.insert("opiate".into(), OPIATE_ORDER.to_vec());
+        val
+    };
+}
+
+lazy_static! {
     static ref AFFLICTION_PILLS: HashMap<FType, &'static str> = {
         let mut val = HashMap::new();
         for aff in ANTIPSYCHOTIC_ORDER.to_vec() {
@@ -546,4 +596,16 @@ pub fn get_curative_actions() -> Vec<StateAction> {
         willow(),
         yarrow(),
     ]
+}
+
+pub fn handle_simple_cure_action(simple_cure: &SimpleCureAction, agent_states: &mut TimelineState) {
+    let mut me = agent_states.get_agent(&simple_cure.caster);
+    match &simple_cure.cure_type {
+        SimpleCure::Pill(_) => {
+            apply_or_infer_balance(&mut me, (BType::Pill, 2.0), &simple_cure.associated);
+            apply_or_infer_cure(&mut me, &simple_cure.cure_type, &simple_cure.associated);
+        }
+        _ => {}
+    }
+    agent_states.set_agent(&simple_cure.caster, me);
 }
