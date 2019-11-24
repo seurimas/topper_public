@@ -1,3 +1,4 @@
+use crate::battle_stats::*;
 use crate::timeline::*;
 use serde::{Deserialize, Serialize};
 use serde_json::{from_str, Result};
@@ -5,7 +6,8 @@ use std::io;
 
 #[derive(Deserialize)]
 enum TopperRequest {
-    TargettedQeb(String),
+    Target(String),
+    BattleStats,
 }
 
 #[derive(Deserialize)]
@@ -15,13 +17,30 @@ enum TopperMessage {
 }
 
 #[derive(Serialize)]
-enum TopperResponse {
-    Qeb(String),
-    Silent,
+pub struct TopperResponse {
+    pub qeb: Option<String>,
+    pub battleStats: Option<BattleStats>,
 }
 
-struct Topper {
-    timeline: Timeline,
+impl TopperResponse {
+    pub fn battleStats(battleStats: BattleStats) -> Self {
+        TopperResponse {
+            qeb: None,
+            battleStats: Some(battleStats),
+        }
+    }
+    pub fn silent() -> Self {
+        TopperResponse {
+            qeb: None,
+            battleStats: None,
+        }
+    }
+}
+
+pub struct Topper {
+    pub timeline: Timeline,
+    pub me: String,
+    pub target: Option<String>,
 }
 
 pub fn parse_time_slice(line: &String) -> Result<TimeSlice> {
@@ -33,6 +52,8 @@ impl Topper {
     pub fn new() -> Self {
         Topper {
             timeline: Timeline::new(),
+            me: "Seurimas".into(),
+            target: None,
         }
     }
 
@@ -41,10 +62,16 @@ impl Topper {
         match topper_msg {
             TopperMessage::Event(timeslice) => {
                 self.timeline.push_time_slice(timeslice);
-                Ok(TopperResponse::Silent)
+                Ok(TopperResponse::battleStats(get_battle_stats(self)))
             }
-            TopperMessage::Request(request) => Ok(TopperResponse::Qeb("stand".to_string())),
-            _ => Ok(TopperResponse::Silent),
+            TopperMessage::Request(request) => match request {
+                TopperRequest::Target(target) => {
+                    self.target = Some(target);
+                    Ok(TopperResponse::battleStats(get_battle_stats(self)))
+                }
+                _ => Ok(TopperResponse::silent()),
+            },
+            _ => Ok(TopperResponse::silent()),
         }
     }
 }

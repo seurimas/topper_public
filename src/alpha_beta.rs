@@ -49,7 +49,7 @@ pub fn multi_index<T>(slc: &mut [T], a: usize, b: usize) -> (&mut T, &mut T) {
 }
 
 impl SimulationState {
-    fn new(states: &Vec<AgentState>) -> Self {
+    pub fn new(states: &Vec<AgentState>) -> Self {
         SimulationState {
             time: 0,
             turn: 0,
@@ -57,7 +57,7 @@ impl SimulationState {
         }
     }
 
-    fn apply_action(
+    pub fn apply_action(
         &mut self,
         action: &StateAction,
         me_id: usize,
@@ -210,6 +210,21 @@ impl Transition {
             }
         }
     }
+
+    pub fn visit<R, F>(
+        &self,
+        actions: &Vec<StateAction>,
+        state: &mut SimulationState,
+        mut visitor: F,
+    ) -> R
+    where
+        F: FnMut(&mut SimulationState) -> R,
+    {
+        let reversion = self.apply(actions, state);
+        let return_val = visitor(state);
+        reversion.revert(state);
+        return_val
+    }
 }
 
 impl Reversion {
@@ -343,11 +358,11 @@ impl ABSimulation {
                     .next_iter(&self.actions[state.turn], &self.can_pass, &self.score_move)
                     .transitions;
                 for transition in next_transitions {
-                    let reversion = transition.apply(&self.actions[state.turn], state);
-                    stats.state_count += 1;
                     let (transitions, next_value) =
-                        self.alpha_beta(state, time, alpha, beta, depth + 1, stats);
-                    reversion.revert(state);
+                        transition.visit(&self.actions[state.turn], state, |v_state| {
+                            self.alpha_beta(v_state, time, alpha, beta, depth + 1, stats)
+                        });
+                    stats.state_count += 1;
                     if let Some((_transition, _transitions, best_value)) = &value {
                         if next_value > *best_value {
                             value = Some((transition, transitions, next_value));
@@ -378,11 +393,11 @@ impl ABSimulation {
                     .next_iter(&self.actions[state.turn], &self.can_pass, &self.score_move)
                     .transitions;
                 for transition in next_transitions {
-                    let reversion = transition.apply(&self.actions[state.turn], state);
-                    stats.state_count += 1;
                     let (transitions, next_value) =
-                        self.alpha_beta(state, time, alpha, beta, depth + 1, stats);
-                    reversion.revert(state);
+                        transition.visit(&self.actions[state.turn], state, |v_state| {
+                            self.alpha_beta(v_state, time, alpha, beta, depth + 1, stats)
+                        });
+                    stats.state_count += 1;
                     if let Some((_transition, _transitions, best_value)) = &value {
                         if next_value < *best_value {
                             value = Some((transition, transitions, next_value));
@@ -413,11 +428,11 @@ impl ABSimulation {
                     .transitions
                     .pop()
                 {
-                    let reversion = transition.apply(&self.actions[state.turn], state);
-                    stats.state_count += 1;
                     let (mut transitions, next_value) =
-                        self.alpha_beta(state, time, alpha, beta, depth + 1, stats);
-                    reversion.revert(state);
+                        transition.visit(&self.actions[state.turn], state, |v_state| {
+                            self.alpha_beta(v_state, time, alpha, beta, depth + 1, stats)
+                        });
+                    stats.state_count += 1;
                     transitions.push(transition);
                     (transitions, next_value)
                 } else {

@@ -2,6 +2,7 @@
 extern crate lazy_static;
 mod actions;
 mod alpha_beta;
+mod battle_stats;
 mod classes;
 mod curatives;
 mod io;
@@ -18,9 +19,9 @@ use crate::types::*;
 use std::time::Instant;
 
 fn main() {
-    dummy_dstab_simulation();
+    // dummy_dstab_simulation();
     // echo_time_slice();
-    // provide_action();
+    provide_action();
 }
 
 fn dummy_simulation() {

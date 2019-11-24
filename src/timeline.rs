@@ -1,6 +1,6 @@
 use crate::actions::*;
 use crate::alpha_beta::*;
-use crate::classes::{get_offensive_actions, handle_combat_action};
+use crate::classes::{get_offensive_actions, handle_combat_action, VENOM_AFFLICTS};
 use crate::types::*;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -17,9 +17,11 @@ pub struct PromptStats {
 #[derive(Debug, Deserialize, PartialEq)]
 pub enum Observation {
     Connects(String),
-    Afflicts(FType),
-    Cures(FType),
-    Balance(BType, f32),
+    Devenoms(String),
+    Afflicted(String),
+    Cured(String),
+    Stripped(String),
+    Balance(String, f32),
     Rebounds,
     Shield,
     Diverts,
@@ -52,7 +54,7 @@ impl CombatAction {
 #[derive(Debug, Deserialize)]
 pub enum SimpleCure {
     Herb(String),
-    Salve(String),
+    Salve(String, String),
     Smoke(String),
 }
 
@@ -60,7 +62,6 @@ pub enum SimpleCure {
 pub struct SimpleCureAction {
     pub cure_type: SimpleCure,
     pub caster: String,
-    pub target: String,
     pub associated: Vec<Observation>,
 }
 
@@ -83,8 +84,15 @@ pub struct TimeSlice {
     pub time: CType,
 }
 
+#[derive(Debug)]
+pub struct Hints {
+    pub strategy: String,
+    pub class: String,
+}
+
 pub struct TimelineState {
     agent_states: HashMap<String, AgentState>,
+    hints: HashMap<String, Hints>,
     time: CType,
 }
 
@@ -92,6 +100,7 @@ impl TimelineState {
     pub fn new() -> Self {
         TimelineState {
             agent_states: HashMap::new(),
+            hints: HashMap::new(),
             time: 0,
         }
     }
@@ -147,7 +156,7 @@ impl Timeline {
 }
 
 lazy_static! {
-    static ref BASE_STATE: AgentState = {
+    pub static ref BASE_STATE: AgentState = {
         let mut val = AgentState::default();
         val.initialize_stat(SType::Health, 4000);
         val.initialize_stat(SType::Mana, 4000);
@@ -160,26 +169,39 @@ lazy_static! {
         val.set_flag(FType::Frost, true);
         val.set_flag(FType::Vigor, true);
         val.set_flag(FType::Rebounding, true);
+        val.set_flag(FType::Insomnia, true);
+        val.set_flag(FType::Energetic, true);
         val
     };
 }
 
-pub fn apply_observed_afflictions(
-    who: &mut AgentState,
-    aff_count: i32,
-    observations: &Vec<Observation>,
-) {
-    let mut found_affs = 0;
+pub fn apply_venom(who: &mut AgentState, venom: &String) {
+    if let Some(affliction) = VENOM_AFFLICTS.get(venom) {
+        who.set_flag(*affliction, true);
+    } else if venom == "epseth" {
+        if who.is(FType::BrokenLeftLeg) {
+            who.set_flag(FType::BrokenRightLeg, true);
+        } else {
+            who.set_flag(FType::BrokenLeftLeg, true);
+        }
+    } else if venom == "epteth" {
+        if who.is(FType::BrokenLeftArm) {
+            who.set_flag(FType::BrokenRightArm, true);
+        } else {
+            who.set_flag(FType::BrokenLeftArm, true);
+        }
+    }
+}
+
+pub fn apply_observed_venoms(who: &mut AgentState, observations: &Vec<Observation>) {
     for observation in observations.iter() {
         match observation {
-            Observation::Afflicts(affliction) => {
-                who.set_flag(*affliction, true);
-                found_affs += 1;
+            Observation::Devenoms(venom) => {
+                apply_venom(who, venom);
             }
             _ => {}
         }
     }
-    if found_affs < aff_count {}
 }
 
 pub fn apply_or_infer_balance(
@@ -190,11 +212,36 @@ pub fn apply_or_infer_balance(
     for observation in observations.iter() {
         match observation {
             Observation::Balance(btype, duration) => {
-                who.set_balance(*btype, *duration);
+                who.set_balance(BType::from_name(&btype), *duration);
                 return;
             }
             _ => {}
         }
     }
     who.set_balance(expected_value.0, expected_value.1);
+}
+
+pub fn apply_or_infer_cure(
+    who: &mut AgentState,
+    cure: &SimpleCure,
+    observations: &Vec<Observation>,
+) -> Vec<FType> {
+    let mut found_cures = Vec::new();
+    for observation in observations.iter() {
+        match observation {
+            Observation::Cured(aff_name) => {
+                let aff = FType::from_name(&aff_name);
+                who.set_flag(aff, false);
+                found_cures.push(aff);
+            }
+            Observation::Stripped(def_name) => {
+                let def = FType::from_name(&def_name);
+                who.set_flag(def, false);
+                found_cures.push(def);
+            }
+            _ => {}
+        }
+    }
+    if found_cures.len() == 0 {}
+    found_cures
 }

@@ -13,14 +13,29 @@ pub enum BType {
     // Actions
     Balance,
     Equil,
+    Secondary,
 
     // Curatives
     Elixir,
     Pill,
     Salve,
     Smoke,
+    Focus,
+    Tree,
 
+    UNKNOWN,
     SIZE,
+}
+
+impl BType {
+    pub fn from_name(bal_name: &String) -> Self {
+        match bal_name.as_str() {
+            "Balance" => BType::Balance,
+            "Equilibrium" => BType::Equil,
+            "Shadow" => BType::Secondary,
+            _ => BType::UNKNOWN,
+        }
+    }
 }
 
 // Stats
@@ -36,7 +51,7 @@ pub enum SType {
 }
 
 // Flags
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, TryFromPrimitive, Deserialize)]
+#[derive(Debug, PartialEq, PartialOrd, Eq, Hash, Clone, Copy, TryFromPrimitive, Deserialize)]
 #[repr(u16)]
 pub enum FType {
     Dead,
@@ -44,6 +59,25 @@ pub enum FType {
     Player,
     Ally,
     Enemy,
+
+    // Defences
+    Deathsight,
+    Energetic,
+    Insomnia,
+    Deafness,
+    Blindness,
+    Thirdeye,
+    Daydreams,
+    HardenedSkin,
+    Waterbreathing,
+    // Reishi
+    Rebounding,
+    // Elixirs
+    Levitation,
+    Antivenin,
+    Speed,
+    Frost,
+    Vigor,
 
     // Antipsychotic
     Sadness,
@@ -67,7 +101,7 @@ pub enum FType {
     Impatience,
     Dissonance,
     Infested,
-    Insomnia,
+    // Insomnia,
 
     // Decongestant
     Baldness,
@@ -136,17 +170,6 @@ pub enum FType {
     Patterns,
     Shaderot,
 
-    // Defences
-    Deathsight,
-    Energetic,
-    // Insomnia,
-    Deafness,
-    Blindness,
-    Thirdeye,
-    Daydreams,
-    HardenedSkin,
-    Waterbreathing,
-
     // Willow
     Aeon,
     Hellsight,
@@ -158,16 +181,6 @@ pub enum FType {
     Disfigurement,
     Migraine,
     Squelched,
-
-    // Reishi
-    Rebounding,
-
-    // Elixirs
-    Levitation,
-    Antivenin,
-    Speed,
-    Frost,
-    Vigor,
 
     // Epidermal Head
     Indifference,
@@ -240,7 +253,20 @@ pub enum FType {
     Frozen,
     Shivering,
 
+    // Immunity
+    Voyria,
+
     SIZE,
+}
+
+impl FType {
+    pub fn is_affliction(&self) -> bool {
+        self >= &FType::Sadness
+    }
+
+    pub fn from_name(aff_name: &String) -> Self {
+        FType::ThinBlood
+    }
 }
 
 pub type StateRevert = Box<Fn(&mut AgentState, &mut AgentState)>;
@@ -265,6 +291,26 @@ impl fmt::Debug for FlagSet {
             }
         }
         write!(f, "]")
+    }
+}
+
+impl fmt::Display for FlagSet {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut wrote = false;
+        for idx in 0..self.0.len() {
+            if self.0[idx] {
+                if let Ok(ftype) = FType::try_from(idx as u16) {
+                    if ftype.is_affliction() {
+                        if wrote {
+                            write!(f, ", ")?;
+                        }
+                        write!(f, "{:?}", ftype)?;
+                        wrote = true;
+                    }
+                }
+            }
+        }
+        Ok(())
     }
 }
 
@@ -363,6 +409,17 @@ pub fn is(flag: FType) -> StateMatcher {
 
 pub fn lacks(flag: FType) -> StateMatcher {
     Box::new(move |me, _them| !me.is(flag))
+}
+
+pub fn lacks_some(afflictions: Vec<FType>) -> StateMatcher {
+    Box::new(move |me, _them| {
+        for affliction in afflictions.iter() {
+            if !me.is(*affliction) {
+                return true;
+            }
+        }
+        return false;
+    })
 }
 
 pub fn some(afflictions: Vec<FType>) -> StateMatcher {

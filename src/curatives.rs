@@ -1,5 +1,6 @@
 use crate::actions::*;
 use crate::types::*;
+use std::collections::HashMap;
 
 pub fn heal_action(name: String, heal: CType) -> StateAction {
     StateAction {
@@ -32,11 +33,27 @@ pub fn shield_action(name: String) -> StateAction {
 }
 
 fn noop() -> Box<Fn(&mut AgentState)> {
-    Box::new(|me| {})
+    Box::new(|_me| {})
 }
 
-fn revert_flag(flag: FType) -> Box<Fn(&mut AgentState)> {
-    Box::new(move |me2: &mut AgentState| me2.set_flag(flag, true))
+fn revert_flag(flag: FType, val: bool) -> Box<Fn(&mut AgentState)> {
+    Box::new(move |me2: &mut AgentState| me2.set_flag(flag, val))
+}
+
+pub fn add_in_order(
+    afflictions: Vec<FType>,
+) -> Box<Fn(&mut AgentState) -> Box<Fn(&mut AgentState)>> {
+    Box::new(move |me| {
+        let mut revert = noop();
+        for affliction in afflictions.iter() {
+            if !me.is(*affliction) {
+                revert = revert_flag(*affliction, false);
+                me.set_flag(*affliction, true);
+                break;
+            }
+        }
+        revert
+    })
 }
 
 pub fn remove_in_order(
@@ -46,8 +63,9 @@ pub fn remove_in_order(
         let mut revert = noop();
         for affliction in afflictions.iter() {
             if me.is(*affliction) {
-                revert = revert_flag(*affliction);
+                revert = revert_flag(*affliction, true);
                 me.set_flag(*affliction, false);
+                break;
             }
         }
         revert
@@ -60,6 +78,51 @@ pub fn cure_in_order(afflictions: Vec<FType>) -> StateChange {
 
 pub fn strip_in_order(defenses: Vec<FType>) -> StateChange {
     apply_you(remove_in_order(defenses))
+}
+
+pub fn afflict_in_order(afflictions: Vec<FType>) -> StateChange {
+    apply_you(add_in_order(afflictions))
+}
+
+lazy_static! {
+    static ref MENTAL_AFFLICTIONS: Vec<FType> = vec![];
+}
+
+lazy_static! {
+    static ref AFFLICTIONS: Vec<FType> = vec![];
+}
+
+pub fn focus() -> StateAction {
+    StateAction {
+        name: "focus".into(),
+        changes: vec![
+            cure_in_order(MENTAL_AFFLICTIONS.to_vec()),
+            balance_change(BType::Focus, 5.0),
+        ],
+        initial: vec![
+            alive(),
+            target(alive()),
+            has(BType::Focus),
+            lacks(FType::Impatience),
+            some(MENTAL_AFFLICTIONS.to_vec()),
+        ],
+    }
+}
+
+pub fn tree() -> StateAction {
+    StateAction {
+        name: "touch tree".into(),
+        changes: vec![
+            balance_change(BType::Tree, 11.0),
+            cure_in_order(AFFLICTIONS.to_vec()),
+        ],
+        initial: vec![
+            alive(),
+            target(alive()),
+            has(BType::Tree),
+            lacks(FType::Paralysis),
+        ],
+    }
 }
 
 pub fn herb_action(name: String, afflictions: Vec<FType>) -> StateAction {
@@ -215,6 +278,34 @@ lazy_static! {
         FType::Heartflutter,
         FType::Sandrot,
     ];
+}
+
+lazy_static! {
+    static ref AFFLICTION_PILLS: HashMap<FType, &'static str> = {
+        let mut val = HashMap::new();
+        for aff in ANTIPSYCHOTIC_ORDER.to_vec() {
+            val.insert(aff, "antipsychotic");
+        }
+        for aff in EUPHORIANT_ORDER.to_vec() {
+            val.insert(aff, "euphoriant");
+        }
+        for aff in DECONGESTANT_ORDER.to_vec() {
+            val.insert(aff, "decogestant");
+        }
+        for aff in DEPRESSANT_ORDER.to_vec() {
+            val.insert(aff, "depressant");
+        }
+        for aff in COAGULATION_ORDER.to_vec() {
+            val.insert(aff, "coagulation");
+        }
+        for aff in STEROID_ORDER.to_vec() {
+            val.insert(aff, "steroid");
+        }
+        for aff in OPIATE_ORDER.to_vec() {
+            val.insert(aff, "opiate");
+        }
+        val
+    };
 }
 
 pub fn antipsychotic() -> StateAction {
