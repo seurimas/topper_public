@@ -1,6 +1,6 @@
 use crate::actions::*;
 use crate::alpha_beta::*;
-use crate::classes::{get_offensive_actions, handle_combat_action, VENOM_AFFLICTS};
+use crate::classes::{handle_combat_action, VENOM_AFFLICTS};
 use crate::curatives::{
     handle_simple_cure_action, remove_in_order, PILL_CURE_ORDERS, SALVE_CURE_ORDERS,
     SMOKE_CURE_ORDERS,
@@ -24,6 +24,9 @@ pub enum Observation {
     Devenoms(String),
     Afflicted(String),
     Cured(String),
+    DiscernedCure(String, String),
+    DiscernedAfflict(String, String),
+    Gained(String),
     Stripped(String),
     Balance(String, f32),
     Rebounds,
@@ -117,6 +120,13 @@ impl TimelineState {
             .clone()
     }
 
+    pub fn borrow_agent(&self, name: &String) -> AgentState {
+        self.agent_states
+            .get(name)
+            .unwrap_or(&mut BASE_STATE.clone())
+            .clone()
+    }
+
     pub fn set_agent(&mut self, name: &String, state: AgentState) {
         self.agent_states.insert(name.to_string(), state);
     }
@@ -138,6 +148,9 @@ impl TimelineState {
                 }
                 Incident::SimpleCureAction(simple_cure) => {
                     handle_simple_cure_action(&simple_cure, self)?;
+                }
+                Incident::Headless(observations) => {
+                    apply_observations(observations, self)?;
                 }
                 _ => {}
             }
@@ -189,19 +202,59 @@ pub fn apply_venom(who: &mut AgentState, venom: &String) -> Result<(), String> {
     if let Some(affliction) = VENOM_AFFLICTS.get(venom) {
         who.set_flag(*affliction, true);
     } else if venom == "epseth" {
-        if who.is(FType::BrokenLeftLeg) {
-            who.set_flag(FType::BrokenRightLeg, true);
+        if who.is(FType::LeftLegBroken) {
+            who.set_flag(FType::RightLegBroken, true);
         } else {
-            who.set_flag(FType::BrokenLeftLeg, true);
+            who.set_flag(FType::LeftLegBroken, true);
         }
     } else if venom == "epteth" {
-        if who.is(FType::BrokenLeftArm) {
-            who.set_flag(FType::BrokenRightArm, true);
+        if who.is(FType::LeftArmBroken) {
+            who.set_flag(FType::RightArmBroken, true);
         } else {
-            who.set_flag(FType::BrokenLeftArm, true);
+            who.set_flag(FType::LeftArmBroken, true);
         }
     } else {
         return Err(format!("Could not determine effect of {}", venom));
+    }
+    Ok(())
+}
+
+fn set_flag_for_agent(
+    who: &String,
+    agent_states: &mut TimelineState,
+    flag_name: &String,
+    val: bool,
+) -> Result<(), String> {
+    let mut me = agent_states.get_agent(who);
+    if let Some(aff_flag) = FType::from_name(flag_name) {
+        me.set_flag(aff_flag, val);
+    } else {
+        return Err(format!("Failed to find flag {}", flag_name));
+    }
+    agent_states.set_agent(who, me);
+    Ok(())
+}
+
+pub fn apply_observations(
+    observations: &Vec<Observation>,
+    agent_states: &mut TimelineState,
+) -> Result<(), String> {
+    for observation in observations.iter() {
+        match observation {
+            Observation::DiscernedCure(who, affliction) => {
+                set_flag_for_agent(who, agent_states, affliction, false)?;
+            }
+            Observation::Cured(affliction) => {
+                set_flag_for_agent(&"Seurimas".into(), agent_states, affliction, false)?;
+            }
+            Observation::Afflicted(affliction) => {
+                set_flag_for_agent(&"Seurimas".into(), agent_states, affliction, true)?;
+            }
+            Observation::Stripped(defense) => {
+                set_flag_for_agent(&"Seurimas".into(), agent_states, defense, false)?;
+            }
+            _ => {}
+        }
     }
     Ok(())
 }
@@ -247,14 +300,16 @@ pub fn apply_or_infer_cure(
     for observation in observations.iter() {
         match observation {
             Observation::Cured(aff_name) => {
-                let aff = FType::from_name(&aff_name);
-                who.set_flag(aff, false);
-                found_cures.push(aff);
+                if let Some(aff) = FType::from_name(&aff_name) {
+                    who.set_flag(aff, false);
+                    found_cures.push(aff);
+                }
             }
             Observation::Stripped(def_name) => {
-                let def = FType::from_name(&def_name);
-                who.set_flag(def, false);
-                found_cures.push(def);
+                if let Some(def) = FType::from_name(&def_name) {
+                    who.set_flag(def, false);
+                    found_cures.push(def);
+                }
             }
             _ => {}
         }

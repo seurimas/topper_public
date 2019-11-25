@@ -1,5 +1,8 @@
 #[macro_use]
 extern crate lazy_static;
+extern crate strum;
+#[macro_use]
+extern crate strum_macros;
 mod actions;
 mod alpha_beta;
 mod battle_stats;

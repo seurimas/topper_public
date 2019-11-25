@@ -44,12 +44,12 @@ mod timeline_tests {
         let mut timeline = Timeline::new();
         {
             let mut updated_seur = timeline.state.get_agent(&"Seurimas".to_string());
-            updated_seur.set_flag(FType::BrokenLeftArm, true);
+            updated_seur.set_flag(FType::LeftArmBroken, true);
             timeline.state.set_agent(&"Seurimas".into(), updated_seur);
         }
         {
             let mut updated_bene = timeline.state.get_agent(&"Benedicto".to_string());
-            updated_bene.set_flag(FType::BrokenLeftLeg, true);
+            updated_bene.set_flag(FType::LeftLegBroken, true);
             timeline.state.set_agent(&"Benedicto".into(), updated_bene);
         }
         let coag_slice = TimeSlice {
@@ -64,10 +64,10 @@ mod timeline_tests {
         timeline.push_time_slice(coag_slice);
         let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Salve), true);
-        assert_eq!(seur_state.get_flag(FType::BrokenLeftArm), true);
+        assert_eq!(seur_state.get_flag(FType::LeftArmBroken), true);
         let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Salve), false);
-        assert_eq!(bene_state.get_flag(FType::BrokenLeftArm), false);
+        assert_eq!(bene_state.get_flag(FType::LeftArmBroken), false);
     }
 }
 pub fn heal_action(name: String, heal: CType) -> StateAction {
@@ -438,20 +438,24 @@ lazy_static! {
 }
 
 lazy_static! {
+    static ref CALORIC_TORSO_ORDER: Vec<FType> = vec![FType::Frozen, FType::Shivering,];
+}
+
+lazy_static! {
     static ref MENDING_SKIN_ORDER: Vec<FType> = vec![
-        FType::BrokenLeftArm,
-        FType::BrokenRightArm,
-        FType::BrokenLeftLeg,
-        FType::BrokenRightLeg,
+        FType::LeftArmBroken,
+        FType::RightArmBroken,
+        FType::LeftLegBroken,
+        FType::RightLegBroken,
     ];
 }
 
 lazy_static! {
-    static ref MENDING_ARMS_ORDER: Vec<FType> = vec![FType::BrokenLeftArm, FType::BrokenRightArm,];
+    static ref MENDING_ARMS_ORDER: Vec<FType> = vec![FType::LeftArmBroken, FType::RightArmBroken,];
 }
 
 lazy_static! {
-    static ref MENDING_LEGS_ORDER: Vec<FType> = vec![FType::BrokenLeftLeg, FType::BrokenRightLeg,];
+    static ref MENDING_LEGS_ORDER: Vec<FType> = vec![FType::LeftLegBroken, FType::RightLegBroken,];
 }
 
 lazy_static! {
@@ -478,7 +482,7 @@ lazy_static! {
 lazy_static! {
     static ref MENDING_LEFT_ARM_ORDER: Vec<FType> = vec![
         FType::CritBruiseLeftArm,
-        FType::BrokenLeftArm,
+        FType::LeftArmBroken,
         FType::ModBruiseLeftArm,
         FType::BruiseLeftArm,
         FType::DislocatedLeftArm,
@@ -488,7 +492,7 @@ lazy_static! {
 lazy_static! {
     static ref MENDING_RIGHT_ARM_ORDER: Vec<FType> = vec![
         FType::CritBruiseRightArm,
-        FType::BrokenRightArm,
+        FType::RightArmBroken,
         FType::ModBruiseRightArm,
         FType::BruiseRightArm,
         FType::DislocatedRightArm,
@@ -498,7 +502,7 @@ lazy_static! {
 lazy_static! {
     static ref MENDING_LEFT_LEG_ORDER: Vec<FType> = vec![
         FType::CritBruiseLeftLeg,
-        FType::BrokenLeftLeg,
+        FType::LeftLegBroken,
         FType::ModBruiseLeftLeg,
         FType::BruiseLeftLeg,
         FType::DislocatedLeftLeg,
@@ -508,7 +512,7 @@ lazy_static! {
 lazy_static! {
     static ref MENDING_RIGHT_LEG_ORDER: Vec<FType> = vec![
         FType::CritBruiseRightLeg,
-        FType::BrokenRightLeg,
+        FType::RightLegBroken,
         FType::ModBruiseRightLeg,
         FType::BruiseRightLeg,
         FType::DislocatedRightLeg,
@@ -545,6 +549,20 @@ lazy_static! {
         val.insert(
             ("mending".into(), "right arm".into()),
             MENDING_RIGHT_ARM_ORDER.to_vec(),
+        );
+
+        val.insert(
+            ("epidermal".into(), "torso".into()),
+            EPIDERMAL_TORSO_ORDER.to_vec(),
+        );
+        val.insert(
+            ("epidermal".into(), "head".into()),
+            EPIDERMAL_HEAD_ORDER.to_vec(),
+        );
+
+        val.insert(
+            ("caloric".into(), "torso".into()),
+            CALORIC_TORSO_ORDER.to_vec(),
         );
         val
     };

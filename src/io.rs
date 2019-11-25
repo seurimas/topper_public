@@ -1,4 +1,5 @@
 use crate::battle_stats::*;
+use crate::classes::get_attack;
 use crate::timeline::*;
 use serde::{Deserialize, Serialize};
 use serde_json::{from_str, Result as JsonResult};
@@ -9,12 +10,14 @@ use std::panic;
 enum TopperRequest {
     Target(String),
     BattleStats,
+    Attack(String),
 }
 
 #[derive(Deserialize)]
 enum TopperMessage {
     Event(TimeSlice),
     Request(TopperRequest),
+    Target(String),
 }
 
 #[derive(Serialize)]
@@ -44,6 +47,13 @@ impl TopperResponse {
             qeb: None,
             battleStats: None,
             error: Some(message),
+        }
+    }
+    pub fn qeb(action: String) -> TopperResponse {
+        TopperResponse {
+            qeb: Some(action),
+            battleStats: None,
+            error: None,
         }
     }
 }
@@ -80,6 +90,13 @@ impl Topper {
                     TopperRequest::Target(target) => {
                         self.target = Some(target);
                         Ok(TopperResponse::battleStats(get_battle_stats(self)))
+                    }
+                    TopperRequest::Attack(strategy) => {
+                        if let Some(target) = &self.target {
+                            Ok(TopperResponse::qeb(get_attack(self, target, &strategy)))
+                        } else {
+                            Ok(TopperResponse::error("No target.".into()))
+                        }
                     }
                     _ => Ok(TopperResponse::silent()),
                 },

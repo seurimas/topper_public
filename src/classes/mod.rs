@@ -1,12 +1,9 @@
 use crate::actions::*;
+use crate::io::*;
 use crate::timeline::*;
 use crate::types::*;
 use std::collections::HashMap;
 pub mod syssin;
-
-pub fn get_offensive_actions(class: Option<&String>) -> Vec<StateAction> {
-    vec![]
-}
 
 pub fn handle_combat_action(
     combat_action: &CombatAction,
@@ -16,20 +13,9 @@ pub fn handle_combat_action(
         "Subterfuge" | "Assassination" | "Hypnosis" => {
             syssin::handle_combat_action(combat_action, agent_states)
         }
-        _ => Ok(()),
+        _ => apply_observations(&combat_action.associated, agent_states),
     }
 }
-
-const EPTETH_A: (&'static str, FType) = ("epteth", FType::BrokenLeftLeg);
-const EPTETH_B: (&'static str, FType) = ("epteth", FType::BrokenRightLeg);
-const EPSETH_A: (&'static str, FType) = ("epseth", FType::BrokenLeftArm);
-const EPSETH_B: (&'static str, FType) = ("epseth", FType::BrokenRightArm);
-const SLIKE: (&'static str, FType) = ("slike", FType::Anorexia);
-const KALMIA: (&'static str, FType) = ("kalmia", FType::Slickness);
-const JALK: (&'static str, FType) = ("jalk", FType::Asthma);
-
-const VENOMS: [(&'static str, FType); 7] =
-    [EPTETH_A, EPTETH_B, EPSETH_A, EPSETH_B, SLIKE, KALMIA, JALK];
 
 lazy_static! {
     static ref AFFLICT_VENOMS: HashMap<FType, &'static str> = {
@@ -40,9 +26,9 @@ lazy_static! {
         val.insert(FType::Asthma, "kalmia");
         val.insert(FType::Shyness, "digitalis");
         val.insert(FType::Allergies, "darkshade");
-        val.insert(FType::Paralysis, "curare");
-        val.insert(FType::BrokenLeftArm, "epteth");
-        val.insert(FType::BrokenRightArm, "epteth");
+        val.insert(FType::Paresis, "curare");
+        val.insert(FType::LeftArmBroken, "epteth");
+        val.insert(FType::RightArmBroken, "epteth");
         val.insert(FType::Sensitivity, "prefarar");
         val.insert(FType::Disfigurement, "monkshood");
         val.insert(FType::Vomiting, "euphorbia");
@@ -51,8 +37,8 @@ lazy_static! {
         val.insert(FType::Haemophilia, "hepafarin");
         val.insert(FType::Stuttering, "jalk");
         val.insert(FType::Weariness, "vernalius");
-        val.insert(FType::BrokenRightLeg, "epseth");
-        val.insert(FType::BrokenLeftLeg, "epseth");
+        val.insert(FType::RightLegBroken, "epseth");
+        val.insert(FType::LeftLegBroken, "epseth");
         val.insert(FType::Dizziness, "larkspur");
         val.insert(FType::Anorexia, "slike");
         val.insert(FType::Voyria, "voyria");
@@ -74,7 +60,7 @@ lazy_static! {
         val.insert("kalmia".into(), FType::Asthma);
         val.insert("digitalis".into(), FType::Shyness);
         val.insert("darkshade".into(), FType::Allergies);
-        val.insert("curare".into(), FType::Paralysis);
+        val.insert("curare".into(), FType::Paresis);
         val.insert("prefarar".into(), FType::Sensitivity);
         val.insert("monkshood".into(), FType::Disfigurement);
         val.insert("euphorbia".into(), FType::Vomiting);
@@ -107,4 +93,8 @@ pub fn get_venoms(afflictions: Vec<FType>, count: usize, target: &AgentState) ->
         }
     }
     venoms
+}
+
+pub fn get_attack(topper: &Topper, target: &String, strategy: &String) -> String {
+    syssin::get_attack(topper, target, strategy)
 }

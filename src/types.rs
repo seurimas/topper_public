@@ -51,7 +51,9 @@ pub enum SType {
 }
 
 // Flags
-#[derive(Debug, PartialEq, PartialOrd, Eq, Hash, Clone, Copy, TryFromPrimitive, Deserialize)]
+#[derive(
+    Debug, PartialEq, PartialOrd, Eq, Hash, Clone, Copy, TryFromPrimitive, Deserialize, EnumString,
+)]
 #[repr(u16)]
 pub enum FType {
     Dead,
@@ -153,6 +155,7 @@ pub enum FType {
     Magnanimity,
 
     // Opiate
+    Paresis,
     Paralysis,
     Mirroring,
     CrippledBody,
@@ -214,28 +217,28 @@ pub enum FType {
 
     // Mending Left Arm
     CritBruiseLeftArm,
-    BrokenLeftArm,
+    LeftArmBroken,
     ModBruiseLeftArm,
     BruiseLeftArm,
     DislocatedLeftArm,
 
     // Mending Left Arm
     CritBruiseRightArm,
-    BrokenRightArm,
+    RightArmBroken,
     ModBruiseRightArm,
     BruiseRightArm,
     DislocatedRightArm,
 
     // Mending Left Arm
     CritBruiseLeftLeg,
-    BrokenLeftLeg,
+    LeftLegBroken,
     ModBruiseLeftLeg,
     BruiseLeftLeg,
     DislocatedLeftLeg,
 
     // Mending Left Arm
     CritBruiseRightLeg,
-    BrokenRightLeg,
+    RightLegBroken,
     ModBruiseRightLeg,
     BruiseRightLeg,
     DislocatedRightLeg,
@@ -264,8 +267,19 @@ impl FType {
         self >= &FType::Sadness
     }
 
-    pub fn from_name(aff_name: &String) -> Self {
-        FType::ThinBlood
+    pub fn from_name(aff_name: &String) -> Option<FType> {
+        let pretty = aff_name
+            .split("_")
+            .map(|word| {
+                let mut c = word.chars();
+                match c.next() {
+                    None => String::new(),
+                    Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+                }
+            })
+            .collect::<String>();
+        let result: Option<FType> = pretty.parse().ok();
+        result
     }
 }
 

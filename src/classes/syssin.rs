@@ -1,7 +1,8 @@
 use crate::actions::*;
 use crate::alpha_beta::*;
-use crate::classes::AFFLICT_VENOMS;
+use crate::classes::{get_venoms, AFFLICT_VENOMS};
 use crate::curatives::*;
+use crate::io::*;
 use crate::timeline::*;
 use crate::types::*;
 
@@ -123,16 +124,66 @@ pub fn handle_combat_action(
             agent_states.set_agent(&combat_action.caster, me);
             agent_states.set_agent(&combat_action.target, you);
         }
-        "Bedazzle" => {}
-        _ => {}
+        _ => {
+            apply_observations(&combat_action.associated, agent_states)?;
+        }
     }
     Ok(())
+}
+
+lazy_static! {
+    static ref COAG_STACK: Vec<FType> = vec![
+        FType::Allergies,
+        FType::Vomiting,
+        FType::Haemophilia,
+        FType::Asthma,
+        FType::Stupidity,
+        FType::Paresis,
+    ];
+}
+
+pub fn get_attack(topper: &Topper, target: &String, strategy: &String) -> String {
+    if strategy == "Soft Coag" {
+        let you = topper.timeline.state.borrow_agent(target);
+        if you.is(FType::Shield) || you.is(FType::Rebounding) {
+            let defense = if you.is(FType::Shield) {
+                "shield"
+            } else {
+                "rebounding"
+            };
+            if let Some(venom) = get_venoms(COAG_STACK.to_vec(), 1, &you).pop() {
+                return format!("qeb fl {} {}", defense, venom);
+            } else {
+                return format!("qeb fl {}", defense);
+            }
+        } else {
+            let mut venoms = get_venoms(COAG_STACK.to_vec(), 2, &you);
+            let v1 = venoms.pop();
+            let v2 = venoms.pop();
+            if let (Some(v1), Some(v2)) = (v1, v2) {
+                return format!("qeb qds {} {}", v1, v2);
+            } else if let Some(v1) = v1 {
+                return format!("qeb qds {} {}", v1, "delphinium");
+            } else {
+                return format!("qeb qds {} {}", "delphinium", "delphinium");
+            }
+        }
+    } else if strategy == "Damage" {
+        let you = topper.timeline.state.borrow_agent(target);
+        if you.is(FType::HardenedSkin) {
+            return "qeb fl hardenedskin".into();
+        } else {
+            return "qeb bitv camus".into();
+        }
+    } else {
+        "touch shield".into()
+    }
 }
 pub fn get_offensive_actions() -> Vec<StateAction> {
     let mut actions = vec![];
     // Aggro Stack
     actions.push(dstab_stack(vec![
-        FType::Paralysis,
+        FType::Paresis,
         FType::Asthma,
         FType::ThinBlood,
         FType::Stupidity,
@@ -142,21 +193,13 @@ pub fn get_offensive_actions() -> Vec<StateAction> {
         FType::Slickness,
     ]));
     // Coag Stack
-    actions.push(dstab_stack(vec![
-        FType::Allergies,
-        FType::Vomiting,
-        FType::ThinBlood,
-        FType::Haemophilia,
-        FType::Asthma,
-        FType::Stupidity,
-        FType::Paralysis,
-    ]));
+    actions.push(dstab_stack(COAG_STACK.to_vec()));
     // Salve Stack
     actions.push(dstab_stack(vec![
-        FType::BrokenLeftLeg,
-        FType::BrokenRightLeg,
-        FType::BrokenLeftArm,
-        FType::BrokenRightArm,
+        FType::LeftLegBroken,
+        FType::RightLegBroken,
+        FType::LeftArmBroken,
+        FType::RightArmBroken,
         FType::Anorexia,
         FType::Slickness,
         FType::Asthma,
@@ -171,58 +214,58 @@ mod simulation_tests {
     #[test]
     fn test_dstab_stack() {
         let salve_stack = dstab_stack(vec![
-            FType::BrokenLeftLeg,
-            FType::BrokenRightLeg,
-            FType::BrokenLeftArm,
-            FType::BrokenRightArm,
+            FType::LeftLegBroken,
+            FType::RightLegBroken,
+            FType::LeftArmBroken,
+            FType::RightArmBroken,
             FType::Anorexia,
         ]);
         let mut simulation = SimulationState::new(&vec![BASE_STATE.clone(), BASE_STATE.clone()]);
         simulation.apply_action(&salve_stack, 0, 1);
-        assert_eq!(simulation.states[1].is(FType::BrokenLeftLeg), true);
-        assert_eq!(simulation.states[1].is(FType::BrokenRightLeg), true);
-        assert_eq!(simulation.states[1].is(FType::BrokenLeftArm), false);
-        assert_eq!(simulation.states[1].is(FType::BrokenRightArm), false);
+        assert_eq!(simulation.states[1].is(FType::LeftLegBroken), true);
+        assert_eq!(simulation.states[1].is(FType::RightLegBroken), true);
+        assert_eq!(simulation.states[1].is(FType::LeftArmBroken), false);
+        assert_eq!(simulation.states[1].is(FType::RightArmBroken), false);
         assert_eq!(simulation.states[1].is(FType::Anorexia), false);
         simulation.apply_action(&salve_stack, 0, 1);
-        assert_eq!(simulation.states[1].is(FType::BrokenLeftLeg), true);
-        assert_eq!(simulation.states[1].is(FType::BrokenRightLeg), true);
-        assert_eq!(simulation.states[1].is(FType::BrokenLeftArm), true);
-        assert_eq!(simulation.states[1].is(FType::BrokenRightArm), true);
+        assert_eq!(simulation.states[1].is(FType::LeftLegBroken), true);
+        assert_eq!(simulation.states[1].is(FType::RightLegBroken), true);
+        assert_eq!(simulation.states[1].is(FType::LeftArmBroken), true);
+        assert_eq!(simulation.states[1].is(FType::RightArmBroken), true);
         assert_eq!(simulation.states[1].is(FType::Anorexia), false);
         simulation.apply_action(&salve_stack, 0, 1);
-        assert_eq!(simulation.states[1].is(FType::BrokenLeftLeg), true);
-        assert_eq!(simulation.states[1].is(FType::BrokenRightLeg), true);
-        assert_eq!(simulation.states[1].is(FType::BrokenLeftArm), true);
-        assert_eq!(simulation.states[1].is(FType::BrokenRightArm), true);
+        assert_eq!(simulation.states[1].is(FType::LeftLegBroken), true);
+        assert_eq!(simulation.states[1].is(FType::RightLegBroken), true);
+        assert_eq!(simulation.states[1].is(FType::LeftArmBroken), true);
+        assert_eq!(simulation.states[1].is(FType::RightArmBroken), true);
         assert_eq!(simulation.states[1].is(FType::Anorexia), true);
     }
 
     #[test]
     fn test_flay_stack() {
         let salve_stack = flay_stack(vec![
-            FType::BrokenLeftLeg,
-            FType::BrokenRightLeg,
-            FType::BrokenLeftArm,
-            FType::BrokenRightArm,
+            FType::LeftLegBroken,
+            FType::RightLegBroken,
+            FType::LeftArmBroken,
+            FType::RightArmBroken,
             FType::Anorexia,
         ]);
         let mut simulation = SimulationState::new(&vec![BASE_STATE.clone(), BASE_STATE.clone()]);
         simulation.states[1].set_flag(FType::Shield, true);
         simulation.states[1].set_flag(FType::Rebounding, true);
         simulation.apply_action(&salve_stack, 0, 1);
-        assert_eq!(simulation.states[1].is(FType::BrokenLeftLeg), true);
-        assert_eq!(simulation.states[1].is(FType::BrokenRightLeg), false);
-        assert_eq!(simulation.states[1].is(FType::BrokenLeftArm), false);
-        assert_eq!(simulation.states[1].is(FType::BrokenRightArm), false);
+        assert_eq!(simulation.states[1].is(FType::LeftLegBroken), true);
+        assert_eq!(simulation.states[1].is(FType::RightLegBroken), false);
+        assert_eq!(simulation.states[1].is(FType::LeftArmBroken), false);
+        assert_eq!(simulation.states[1].is(FType::RightArmBroken), false);
         assert_eq!(simulation.states[1].is(FType::Anorexia), false);
         assert_eq!(simulation.states[1].is(FType::Shield), false);
         assert_eq!(simulation.states[1].is(FType::Rebounding), true);
         simulation.apply_action(&salve_stack, 0, 1);
-        assert_eq!(simulation.states[1].is(FType::BrokenLeftLeg), true);
-        assert_eq!(simulation.states[1].is(FType::BrokenRightLeg), true);
-        assert_eq!(simulation.states[1].is(FType::BrokenLeftArm), false);
-        assert_eq!(simulation.states[1].is(FType::BrokenRightArm), false);
+        assert_eq!(simulation.states[1].is(FType::LeftLegBroken), true);
+        assert_eq!(simulation.states[1].is(FType::RightLegBroken), true);
+        assert_eq!(simulation.states[1].is(FType::LeftArmBroken), false);
+        assert_eq!(simulation.states[1].is(FType::RightArmBroken), false);
         assert_eq!(simulation.states[1].is(FType::Anorexia), false);
         assert_eq!(simulation.states[1].is(FType::Shield), false);
         assert_eq!(simulation.states[1].is(FType::Rebounding), false);
