@@ -19,6 +19,7 @@ mod timeline_tests {
         {
             let mut updated_bene = timeline.state.get_agent(&"Benedicto".to_string());
             updated_bene.set_flag(FType::ThinBlood, true);
+            timeline.state.set_agent(&"Benedicto".into(), updated_bene);
         }
         let coag_slice = TimeSlice {
             incidents: vec![Incident::SimpleCureAction(SimpleCureAction {
@@ -36,6 +37,37 @@ mod timeline_tests {
         let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Pill), false);
         assert_eq!(bene_state.get_flag(FType::ThinBlood), false);
+    }
+
+    #[test]
+    fn test_mending() {
+        let mut timeline = Timeline::new();
+        {
+            let mut updated_seur = timeline.state.get_agent(&"Seurimas".to_string());
+            updated_seur.set_flag(FType::BrokenLeftArm, true);
+            timeline.state.set_agent(&"Seurimas".into(), updated_seur);
+        }
+        {
+            let mut updated_bene = timeline.state.get_agent(&"Benedicto".to_string());
+            updated_bene.set_flag(FType::BrokenLeftLeg, true);
+            timeline.state.set_agent(&"Benedicto".into(), updated_bene);
+        }
+        let coag_slice = TimeSlice {
+            incidents: vec![Incident::SimpleCureAction(SimpleCureAction {
+                caster: "Benedicto".into(),
+                cure_type: SimpleCure::Salve("mending".into(), "skin".into()),
+                associated: Vec::new(),
+            })],
+            prompt: Prompt::Blackout,
+            time: 0,
+        };
+        timeline.push_time_slice(coag_slice);
+        let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
+        assert_eq!(seur_state.balanced(BType::Salve), true);
+        assert_eq!(seur_state.get_flag(FType::BrokenLeftArm), true);
+        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        assert_eq!(bene_state.balanced(BType::Salve), false);
+        assert_eq!(bene_state.get_flag(FType::BrokenLeftArm), false);
     }
 }
 pub fn heal_action(name: String, heal: CType) -> StateAction {
@@ -323,7 +355,7 @@ lazy_static! {
         val.insert("euphoriant".into(), EUPHORIANT_ORDER.to_vec());
         val.insert("decongestant".into(), DECONGESTANT_ORDER.to_vec());
         val.insert("depressant".into(), DEPRESSANT_ORDER.to_vec());
-        val.insert("coagulation".into(), COAGULATION_ORDER.to_vec());
+        val.insert("coagulant".into(), COAGULATION_ORDER.to_vec());
         val.insert("steroid".into(), STEROID_ORDER.to_vec());
         val.insert("opiate".into(), OPIATE_ORDER.to_vec());
         val
@@ -406,6 +438,23 @@ lazy_static! {
 }
 
 lazy_static! {
+    static ref MENDING_SKIN_ORDER: Vec<FType> = vec![
+        FType::BrokenLeftArm,
+        FType::BrokenRightArm,
+        FType::BrokenLeftLeg,
+        FType::BrokenRightLeg,
+    ];
+}
+
+lazy_static! {
+    static ref MENDING_ARMS_ORDER: Vec<FType> = vec![FType::BrokenLeftArm, FType::BrokenRightArm,];
+}
+
+lazy_static! {
+    static ref MENDING_LEGS_ORDER: Vec<FType> = vec![FType::BrokenLeftLeg, FType::BrokenRightLeg,];
+}
+
+lazy_static! {
     static ref MENDING_HEAD_ORDER: Vec<FType> = vec![
         FType::CritBruiseHead,
         FType::DestroyedThroat,
@@ -466,6 +515,41 @@ lazy_static! {
     ];
 }
 
+lazy_static! {
+    pub static ref SALVE_CURE_ORDERS: HashMap<(String, String), Vec<FType>> = {
+        let mut val = HashMap::new();
+        val.insert(
+            ("mending".into(), "skin".into()),
+            MENDING_SKIN_ORDER.to_vec(),
+        );
+        val.insert(
+            ("mending".into(), "legs".into()),
+            MENDING_LEGS_ORDER.to_vec(),
+        );
+        val.insert(
+            ("mending".into(), "arms".into()),
+            MENDING_ARMS_ORDER.to_vec(),
+        );
+        val.insert(
+            ("mending".into(), "left leg".into()),
+            MENDING_LEFT_LEG_ORDER.to_vec(),
+        );
+        val.insert(
+            ("mending".into(), "right leg".into()),
+            MENDING_RIGHT_LEG_ORDER.to_vec(),
+        );
+        val.insert(
+            ("mending".into(), "left arm".into()),
+            MENDING_LEFT_ARM_ORDER.to_vec(),
+        );
+        val.insert(
+            ("mending".into(), "right arm".into()),
+            MENDING_RIGHT_ARM_ORDER.to_vec(),
+        );
+        val
+    };
+}
+
 pub fn epidermal_head() -> StateAction {
     salve_action(
         "epidermal".into(),
@@ -480,6 +564,18 @@ pub fn epidermal_torso() -> StateAction {
         "torso".into(),
         EPIDERMAL_TORSO_ORDER.to_vec(),
     )
+}
+
+pub fn mending_skin() -> StateAction {
+    salve_action("mending".into(), "skin".into(), MENDING_SKIN_ORDER.to_vec())
+}
+
+pub fn mending_legs() -> StateAction {
+    salve_action("mending".into(), "legs".into(), MENDING_LEGS_ORDER.to_vec())
+}
+
+pub fn mending_arms() -> StateAction {
+    salve_action("mending".into(), "arms".into(), MENDING_ARMS_ORDER.to_vec())
 }
 
 pub fn mending_head() -> StateAction {
@@ -564,6 +660,15 @@ lazy_static! {
     ];
 }
 
+lazy_static! {
+    pub static ref SMOKE_CURE_ORDERS: HashMap<String, Vec<FType>> = {
+        let mut val = HashMap::new();
+        val.insert("yarrow".into(), YARROW_ORDER.to_vec());
+        val.insert("willow".into(), WILLOW_ORDER.to_vec());
+        val
+    };
+}
+
 pub fn willow() -> StateAction {
     smoke_action("willow".into(), WILLOW_ORDER.to_vec())
 }
@@ -598,14 +703,29 @@ pub fn get_curative_actions() -> Vec<StateAction> {
     ]
 }
 
-pub fn handle_simple_cure_action(simple_cure: &SimpleCureAction, agent_states: &mut TimelineState) {
+pub fn handle_simple_cure_action(
+    simple_cure: &SimpleCureAction,
+    agent_states: &mut TimelineState,
+) -> Result<(), String> {
     let mut me = agent_states.get_agent(&simple_cure.caster);
-    match &simple_cure.cure_type {
+    let results = match &simple_cure.cure_type {
         SimpleCure::Pill(_) => {
             apply_or_infer_balance(&mut me, (BType::Pill, 2.0), &simple_cure.associated);
-            apply_or_infer_cure(&mut me, &simple_cure.cure_type, &simple_cure.associated);
+            apply_or_infer_cure(&mut me, &simple_cure.cure_type, &simple_cure.associated)?;
+            Ok(())
         }
-        _ => {}
-    }
+        SimpleCure::Salve(salve_name, salve_loc) => {
+            apply_or_infer_balance(&mut me, (BType::Salve, 2.0), &simple_cure.associated);
+            apply_or_infer_cure(&mut me, &simple_cure.cure_type, &simple_cure.associated)?;
+            Ok(())
+        }
+        SimpleCure::Smoke(_) => {
+            apply_or_infer_balance(&mut me, (BType::Smoke, 2.0), &simple_cure.associated);
+            apply_or_infer_cure(&mut me, &simple_cure.cure_type, &simple_cure.associated)?;
+            Ok(())
+        }
+        _ => Ok(()),
+    };
     agent_states.set_agent(&simple_cure.caster, me);
+    results
 }

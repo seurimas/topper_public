@@ -8,12 +8,15 @@ pub fn get_offensive_actions(class: Option<&String>) -> Vec<StateAction> {
     vec![]
 }
 
-pub fn handle_combat_action(combat_action: &CombatAction, agent_states: &mut TimelineState) {
+pub fn handle_combat_action(
+    combat_action: &CombatAction,
+    agent_states: &mut TimelineState,
+) -> Result<(), String> {
     match combat_action.category.as_ref() {
         "Subterfuge" | "Assassination" | "Hypnosis" => {
             syssin::handle_combat_action(combat_action, agent_states)
         }
-        _ => {}
+        _ => Ok(()),
     }
 }
 

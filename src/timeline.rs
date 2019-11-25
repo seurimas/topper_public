@@ -1,7 +1,10 @@
 use crate::actions::*;
 use crate::alpha_beta::*;
 use crate::classes::{get_offensive_actions, handle_combat_action, VENOM_AFFLICTS};
-use crate::curatives::{handle_simple_cure_action, remove_in_order, PILL_CURE_ORDERS};
+use crate::curatives::{
+    handle_simple_cure_action, remove_in_order, PILL_CURE_ORDERS, SALVE_CURE_ORDERS,
+    SMOKE_CURE_ORDERS,
+};
 use crate::types::*;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -70,6 +73,7 @@ pub struct SimpleCureAction {
 pub enum Incident {
     CombatAction(CombatAction),
     SimpleCureAction(SimpleCureAction),
+    Headless(Vec<Observation>),
 }
 
 #[derive(Debug, Deserialize)]
@@ -123,21 +127,22 @@ impl TimelineState {
         }
     }
 
-    fn apply_time_slice(&mut self, slice: &TimeSlice) {
+    fn apply_time_slice(&mut self, slice: &TimeSlice) -> Result<(), String> {
         if slice.time > self.time {
             self.wait(slice.time - self.time);
         }
         for incident in slice.incidents.iter() {
             match incident {
                 Incident::CombatAction(combat_action) => {
-                    handle_combat_action(&combat_action, self);
+                    handle_combat_action(&combat_action, self)?;
                 }
                 Incident::SimpleCureAction(simple_cure) => {
-                    handle_simple_cure_action(&simple_cure, self);
+                    handle_simple_cure_action(&simple_cure, self)?;
                 }
                 _ => {}
             }
         }
+        Ok(())
     }
 }
 
@@ -153,9 +158,10 @@ impl Timeline {
         }
     }
 
-    pub fn push_time_slice(&mut self, slice: TimeSlice) {
-        self.state.apply_time_slice(&slice);
+    pub fn push_time_slice(&mut self, slice: TimeSlice) -> Result<(), String> {
+        let result = self.state.apply_time_slice(&slice);
         self.slices.push(slice);
+        result
     }
 }
 
@@ -179,7 +185,7 @@ lazy_static! {
     };
 }
 
-pub fn apply_venom(who: &mut AgentState, venom: &String) {
+pub fn apply_venom(who: &mut AgentState, venom: &String) -> Result<(), String> {
     if let Some(affliction) = VENOM_AFFLICTS.get(venom) {
         who.set_flag(*affliction, true);
     } else if venom == "epseth" {
@@ -194,18 +200,25 @@ pub fn apply_venom(who: &mut AgentState, venom: &String) {
         } else {
             who.set_flag(FType::BrokenLeftArm, true);
         }
+    } else {
+        return Err(format!("Could not determine effect of {}", venom));
     }
+    Ok(())
 }
 
-pub fn apply_observed_venoms(who: &mut AgentState, observations: &Vec<Observation>) {
+pub fn apply_observed_venoms(
+    who: &mut AgentState,
+    observations: &Vec<Observation>,
+) -> Result<(), String> {
     for observation in observations.iter() {
         match observation {
             Observation::Devenoms(venom) => {
-                apply_venom(who, venom);
+                apply_venom(who, venom)?;
             }
             _ => {}
         }
     }
+    Ok(())
 }
 
 pub fn apply_or_infer_balance(
@@ -229,7 +242,7 @@ pub fn apply_or_infer_cure(
     who: &mut AgentState,
     cure: &SimpleCure,
     observations: &Vec<Observation>,
-) -> Vec<FType> {
+) -> Result<Vec<FType>, String> {
     let mut found_cures = Vec::new();
     for observation in observations.iter() {
         match observation {
@@ -251,10 +264,30 @@ pub fn apply_or_infer_cure(
             SimpleCure::Pill(pill_name) => {
                 if let Some(order) = PILL_CURE_ORDERS.get(pill_name) {
                     remove_in_order(order.to_vec())(who);
+                } else {
+                    return Err(format!("Could not find pill {}", pill_name));
+                }
+            }
+            SimpleCure::Salve(salve_name, salve_loc) => {
+                if let Some(order) =
+                    SALVE_CURE_ORDERS.get(&(salve_name.to_string(), salve_loc.to_string()))
+                {
+                    remove_in_order(order.to_vec())(who);
+                    apply_or_infer_balance(who, (BType::Salve, 2.0), &observations);
+                } else {
+                    return Err(format!("Could not find {} on {}", salve_name, salve_loc));
+                }
+            }
+            SimpleCure::Smoke(herb_name) => {
+                if let Some(order) = SMOKE_CURE_ORDERS.get(herb_name) {
+                    remove_in_order(order.to_vec())(who);
+                    apply_or_infer_balance(who, (BType::Smoke, 2.0), &observations);
+                } else {
+                    return Err(format!("Could not find smoke {}", herb_name));
                 }
             }
             _ => {}
         }
     }
-    found_cures
+    Ok(found_cures)
 }

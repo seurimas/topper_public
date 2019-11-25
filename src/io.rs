@@ -1,8 +1,9 @@
 use crate::battle_stats::*;
 use crate::timeline::*;
 use serde::{Deserialize, Serialize};
-use serde_json::{from_str, Result};
+use serde_json::{from_str, Result as JsonResult};
 use std::io;
+use std::panic;
 
 #[derive(Deserialize)]
 enum TopperRequest {
@@ -53,7 +54,7 @@ pub struct Topper {
     pub target: Option<String>,
 }
 
-pub fn parse_time_slice(line: &String) -> Result<TimeSlice> {
+pub fn parse_time_slice(line: &String) -> JsonResult<TimeSlice> {
     let slice: TimeSlice = from_str(line)?;
     Ok(slice)
 }
@@ -67,21 +68,24 @@ impl Topper {
         }
     }
 
-    pub fn parse_request_or_event(&mut self, line: &String) -> Result<TopperResponse> {
-        let topper_msg: TopperMessage = from_str(line)?;
-        match topper_msg {
-            TopperMessage::Event(timeslice) => {
-                self.timeline.push_time_slice(timeslice);
-                Ok(TopperResponse::battleStats(get_battle_stats(self)))
-            }
-            TopperMessage::Request(request) => match request {
-                TopperRequest::Target(target) => {
-                    self.target = Some(target);
+    pub fn parse_request_or_event(&mut self, line: &String) -> Result<TopperResponse, String> {
+        let parsed = from_str(line);
+        match parsed {
+            Ok(topper_msg) => match topper_msg {
+                TopperMessage::Event(timeslice) => {
+                    self.timeline.push_time_slice(timeslice)?;
                     Ok(TopperResponse::battleStats(get_battle_stats(self)))
                 }
+                TopperMessage::Request(request) => match request {
+                    TopperRequest::Target(target) => {
+                        self.target = Some(target);
+                        Ok(TopperResponse::battleStats(get_battle_stats(self)))
+                    }
+                    _ => Ok(TopperResponse::silent()),
+                },
                 _ => Ok(TopperResponse::silent()),
             },
-            _ => Ok(TopperResponse::silent()),
+            Err(error) => Err(error.to_string()),
         }
     }
 }
@@ -96,14 +100,12 @@ pub fn provide_action() {
                     break;
                 }
                 let without_newline = &input[..input.len() - 1];
+                let response = &topper
+                    .parse_request_or_event(&without_newline.to_string())
+                    .unwrap_or_else(|err| TopperResponse::error(err.to_string()));
                 println!(
                     "{}",
-                    serde_json::to_string(
-                        &topper
-                            .parse_request_or_event(&without_newline.to_string())
-                            .unwrap()
-                    )
-                    .unwrap()
+                    serde_json::to_string(response).unwrap_or("{err: \"JSON Error\"}".into())
                 );
             }
             Err(error) => println!(

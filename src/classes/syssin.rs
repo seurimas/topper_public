@@ -94,7 +94,10 @@ mod timeline_tests {
     }
 }
 
-pub fn handle_combat_action(combat_action: &CombatAction, agent_states: &mut TimelineState) {
+pub fn handle_combat_action(
+    combat_action: &CombatAction,
+    agent_states: &mut TimelineState,
+) -> Result<(), String> {
     match combat_action.skill.as_ref() {
         "Doublestab" => {
             let mut me = agent_states.get_agent(&combat_action.caster);
@@ -106,7 +109,7 @@ pub fn handle_combat_action(combat_action: &CombatAction, agent_states: &mut Tim
                     &mut you
                 },
                 &combat_action.associated,
-            );
+            )?;
             apply_or_infer_balance(&mut me, (BType::Balance, 2.8), &combat_action.associated);
             agent_states.set_agent(&combat_action.caster, me);
             agent_states.set_agent(&combat_action.target, you);
@@ -115,7 +118,7 @@ pub fn handle_combat_action(combat_action: &CombatAction, agent_states: &mut Tim
             let mut me = agent_states.get_agent(&combat_action.caster);
             let mut you = agent_states.get_agent(&combat_action.target);
             me.set_balance(BType::Balance, 1.9);
-            apply_venom(&mut you, &combat_action.annotation);
+            apply_venom(&mut you, &combat_action.annotation)?;
             apply_or_infer_balance(&mut me, (BType::Balance, 1.9), &combat_action.associated);
             agent_states.set_agent(&combat_action.caster, me);
             agent_states.set_agent(&combat_action.target, you);
@@ -123,6 +126,7 @@ pub fn handle_combat_action(combat_action: &CombatAction, agent_states: &mut Tim
         "Bedazzle" => {}
         _ => {}
     }
+    Ok(())
 }
 pub fn get_offensive_actions() -> Vec<StateAction> {
     let mut actions = vec![];
