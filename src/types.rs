@@ -80,6 +80,9 @@ pub enum FType {
     Speed,
     Frost,
     Vigor,
+    // Salves
+    Insulation,
+    Density,
 
     // Antipsychotic
     Sadness,
@@ -401,6 +404,10 @@ impl AgentState {
 
     pub fn set_stat(&mut self, stat: SType, value: CType) {
         self.stats[stat as usize] = value;
+    }
+
+    pub fn get_stat(&self, stat: SType) -> CType {
+        self.stats[stat as usize]
     }
 
     pub fn initialize_stat(&mut self, stat: SType, value: CType) {

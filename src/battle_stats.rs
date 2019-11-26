@@ -16,16 +16,29 @@ fn format_target_state(state: &AgentState) -> String {
     format!("Target Afflictions: {}", state.flags)
 }
 
-fn format_combat_action(combat_action: &CombatAction) -> String {
-    format!(
+fn format_combat_action(combat_action: &CombatAction) -> Vec<String> {
+    let mut lines = vec![format!(
         "{} ={}= @ {}",
         combat_action.caster, combat_action.skill, combat_action.target
-    )
+    )];
+    let mut line2 = "".to_string();
+    for observe in combat_action.associated.iter() {
+        match observe {
+            Observation::Devenoms(venom) => {
+                line2 = format!("{} *{}*", line2, venom);
+            }
+            _ => {}
+        }
+    }
+    if line2.len() > 0 {
+        lines.push(line2);
+    }
+    lines
 }
 
 pub fn get_battle_stats(topper: &mut Topper) -> BattleStats {
     let mut lines = Vec::new();
-    let mut lines_available = 20;
+    let mut lines_available = 16;
     lines.push(format_self_state(
         &topper.timeline.state.get_agent(&topper.me),
     ));
@@ -40,8 +53,13 @@ pub fn get_battle_stats(topper: &mut Topper) -> BattleStats {
                 break;
             }
             if let Incident::CombatAction(combat_action) = incident {
-                lines.push(format_combat_action(combat_action));
-                lines_available -= 1;
+                let mut new_lines = format_combat_action(combat_action);
+                for line in new_lines.iter().rev() {
+                    if lines_available > 0 {
+                        lines.push(line.to_string());
+                        lines_available -= 1;
+                    }
+                }
             }
             if let Incident::SimpleCureAction(simple_cure) = incident {
                 lines.push(format!(

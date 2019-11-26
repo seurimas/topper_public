@@ -153,7 +153,38 @@ pub fn afflict_in_order(afflictions: Vec<FType>) -> StateChange {
 }
 
 lazy_static! {
-    static ref MENTAL_AFFLICTIONS: Vec<FType> = vec![];
+    pub static ref MENTAL_AFFLICTIONS: Vec<FType> = vec![
+        FType::Egocentric,
+        FType::Stupidity,
+        FType::Anorexia,
+        FType::Epilepsy,
+        FType::Mirroring,
+        FType::MentalDisruption,
+        FType::Peace,
+        FType::Paranoia,
+        FType::Hallucinations,
+        FType::Dizziness,
+        FType::Indifference,
+        FType::Berserking,
+        FType::Pacifism,
+        FType::LoversEffect,
+        FType::Laxity,
+        FType::Hatred,
+        FType::Generosity,
+        FType::Claustrophobia,
+        FType::Vertigo,
+        FType::Faintness,
+        FType::Loneliness,
+        FType::Agoraphobia,
+        FType::Masochism,
+        FType::Recklessness,
+        FType::Weariness,
+        FType::Impatience,
+        FType::Confusion,
+        FType::Dementia,
+        FType::Nyctophobia,
+        // Premonition
+    ];
 }
 
 lazy_static! {
@@ -338,6 +369,7 @@ lazy_static! {
 lazy_static! {
     static ref OPIATE_ORDER: Vec<FType> = vec![
         FType::Paralysis,
+        FType::Paresis,
         FType::Mirroring,
         FType::CrippledBody,
         FType::Crippled,
@@ -355,7 +387,7 @@ lazy_static! {
         val.insert("euphoriant".into(), EUPHORIANT_ORDER.to_vec());
         val.insert("decongestant".into(), DECONGESTANT_ORDER.to_vec());
         val.insert("depressant".into(), DEPRESSANT_ORDER.to_vec());
-        val.insert("coagulant".into(), COAGULATION_ORDER.to_vec());
+        val.insert("coagulation".into(), COAGULATION_ORDER.to_vec());
         val.insert("steroid".into(), STEROID_ORDER.to_vec());
         val.insert("opiate".into(), OPIATE_ORDER.to_vec());
         val
@@ -438,7 +470,7 @@ lazy_static! {
 }
 
 lazy_static! {
-    static ref CALORIC_TORSO_ORDER: Vec<FType> = vec![FType::Frozen, FType::Shivering,];
+    pub static ref CALORIC_TORSO_ORDER: Vec<FType> = vec![FType::Frozen, FType::Shivering,];
 }
 
 lazy_static! {
@@ -562,6 +594,10 @@ lazy_static! {
 
         val.insert(
             ("caloric".into(), "torso".into()),
+            CALORIC_TORSO_ORDER.to_vec(),
+        );
+        val.insert(
+            ("caloric".into(), "skin".into()),
             CALORIC_TORSO_ORDER.to_vec(),
         );
         val

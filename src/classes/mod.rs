@@ -1,8 +1,10 @@
 use crate::actions::*;
+use crate::curatives::MENTAL_AFFLICTIONS;
 use crate::io::*;
 use crate::timeline::*;
 use crate::types::*;
 use std::collections::HashMap;
+pub mod carnifex;
 pub mod syssin;
 
 pub fn handle_combat_action(
@@ -13,6 +15,22 @@ pub fn handle_combat_action(
         "Subterfuge" | "Assassination" | "Hypnosis" => {
             syssin::handle_combat_action(combat_action, agent_states)
         }
+        "Savagery" | "Deathlore" | "Warhound" => {
+            carnifex::handle_combat_action(combat_action, agent_states)
+        }
+        "Survival" => match combat_action.skill.as_ref() {
+            "Focus" => {
+                let mut me = agent_states.get_agent(&combat_action.caster);
+                apply_or_infer_cures(
+                    &mut me,
+                    MENTAL_AFFLICTIONS.to_vec(),
+                    &combat_action.associated,
+                )?;
+                agent_states.set_agent(&combat_action.caster, me);
+                Ok(())
+            }
+            _ => apply_observations(&combat_action.associated, agent_states),
+        },
         _ => apply_observations(&combat_action.associated, agent_states),
     }
 }
@@ -47,6 +65,7 @@ lazy_static! {
         val.insert(FType::Slickness, "gecko");
         val.insert(FType::ThinBlood, "scytherus");
         val.insert(FType::Pacifism, "ouabain");
+        val.insert(FType::Stupidity, "aconite");
         val
     };
 }
@@ -76,6 +95,7 @@ lazy_static! {
         val.insert("gecko".into(), FType::Slickness);
         val.insert("scytherus".into(), FType::ThinBlood);
         val.insert("ouabain".into(), FType::Pacifism);
+        val.insert("aconite".into(), FType::Stupidity);
         val
     };
 }

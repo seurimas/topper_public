@@ -124,6 +124,22 @@ pub fn handle_combat_action(
             agent_states.set_agent(&combat_action.caster, me);
             agent_states.set_agent(&combat_action.target, you);
         }
+        "Flay" => {
+            let mut me = agent_states.get_agent(&combat_action.caster);
+            let mut you = agent_states.get_agent(&combat_action.target);
+            me.set_balance(BType::Balance, 1.9);
+            apply_or_infer_balance(&mut me, (BType::Balance, 1.9), &combat_action.associated);
+            apply_observed_venoms(&mut you, &combat_action.associated)?;
+            if combat_action.annotation == "failure" {
+                if you.is(FType::Rebounding) {
+                    you.set_flag(FType::Rebounding, false);
+                } else if you.is(FType::HardenedSkin) {
+                    you.set_flag(FType::HardenedSkin, false);
+                }
+            }
+            agent_states.set_agent(&combat_action.caster, me);
+            agent_states.set_agent(&combat_action.target, you);
+        }
         _ => {
             apply_observations(&combat_action.associated, agent_states)?;
         }
@@ -137,8 +153,17 @@ lazy_static! {
         FType::Vomiting,
         FType::Haemophilia,
         FType::Asthma,
-        FType::Stupidity,
         FType::Paresis,
+        FType::Stuttering,
+    ];
+}
+
+lazy_static! {
+    static ref SOFT_STACK: Vec<FType> = vec![
+        FType::Asthma,
+        FType::Paresis,
+        FType::Anorexia,
+        FType::Slickness,
     ];
 }
 
@@ -157,23 +182,26 @@ pub fn get_attack(topper: &Topper, target: &String, strategy: &String) -> String
                 return format!("qeb fl {}", defense);
             }
         } else {
-            let mut venoms = get_venoms(COAG_STACK.to_vec(), 2, &you);
+            let mut venoms = get_venoms(SOFT_STACK.to_vec(), 3, &you);
+            if venoms.len() > 2 {
+                venoms = get_venoms(COAG_STACK.to_vec(), 2, &you);
+            }
             let v1 = venoms.pop();
             let v2 = venoms.pop();
             if let (Some(v1), Some(v2)) = (v1, v2) {
-                return format!("qeb qds {} {}", v1, v2);
+                return format!("qeb qds {} {}%%qs dis", v1, v2);
             } else if let Some(v1) = v1 {
-                return format!("qeb qds {} {}", v1, "delphinium");
+                return format!("qeb qds {} {}%%qs dis", v1, "aconite");
             } else {
-                return format!("qeb qds {} {}", "delphinium", "delphinium");
+                return format!("qeb qds {} {}qs%%dis", "delphinium", "delphinium");
             }
         }
     } else if strategy == "Damage" {
         let you = topper.timeline.state.borrow_agent(target);
         if you.is(FType::HardenedSkin) {
-            return "qeb fl hardenedskin".into();
+            return "qeb fl hardenedskin%%qs blank".into();
         } else {
-            return "qeb bitv camus".into();
+            return "qeb bitv camus%%qs blank".into();
         }
     } else {
         "touch shield".into()

@@ -2,8 +2,8 @@ use crate::actions::*;
 use crate::alpha_beta::*;
 use crate::classes::{handle_combat_action, VENOM_AFFLICTS};
 use crate::curatives::{
-    handle_simple_cure_action, remove_in_order, PILL_CURE_ORDERS, SALVE_CURE_ORDERS,
-    SMOKE_CURE_ORDERS,
+    handle_simple_cure_action, remove_in_order, CALORIC_TORSO_ORDER, PILL_CURE_ORDERS,
+    SALVE_CURE_ORDERS, SMOKE_CURE_ORDERS,
 };
 use crate::types::*;
 use serde::Deserialize;
@@ -140,6 +140,7 @@ impl TimelineState {
     fn apply_time_slice(&mut self, slice: &TimeSlice) -> Result<(), String> {
         if slice.time > self.time {
             self.wait(slice.time - self.time);
+            self.time = slice.time;
         }
         for incident in slice.incidents.iter() {
             match incident {
@@ -213,6 +214,8 @@ pub fn apply_venom(who: &mut AgentState, venom: &String) -> Result<(), String> {
         } else {
             who.set_flag(FType::LeftArmBroken, true);
         }
+    } else if venom == "camus" {
+        who.set_stat(SType::Health, who.get_stat(SType::Health) - 1000);
     } else {
         return Err(format!("Could not determine effect of {}", venom));
     }
@@ -291,6 +294,35 @@ pub fn apply_or_infer_balance(
     who.set_balance(expected_value.0, expected_value.1);
 }
 
+pub fn apply_or_infer_cures(
+    who: &mut AgentState,
+    cures: Vec<FType>,
+    observations: &Vec<Observation>,
+) -> Result<(), String> {
+    let mut found_cures = Vec::new();
+    for observation in observations.iter() {
+        match observation {
+            Observation::Cured(aff_name) => {
+                if let Some(aff) = FType::from_name(&aff_name) {
+                    who.set_flag(aff, false);
+                    found_cures.push(aff);
+                }
+            }
+            Observation::Stripped(def_name) => {
+                if let Some(def) = FType::from_name(&def_name) {
+                    who.set_flag(def, false);
+                    found_cures.push(def);
+                }
+            }
+            _ => {}
+        }
+    }
+    if found_cures.len() == 0 {
+        remove_in_order(cures)(who);
+    }
+    Ok(())
+}
+
 pub fn apply_or_infer_cure(
     who: &mut AgentState,
     cure: &SimpleCure,
@@ -324,7 +356,15 @@ pub fn apply_or_infer_cure(
                 }
             }
             SimpleCure::Salve(salve_name, salve_loc) => {
-                if let Some(order) =
+                if salve_name == "caloric" {
+                    if some(CALORIC_TORSO_ORDER.to_vec())(who, who) {
+                        remove_in_order(CALORIC_TORSO_ORDER.to_vec())(who);
+                    } else {
+                        who.set_flag(FType::Insulation, true);
+                    }
+                } else if salve_name == "mass" {
+                    who.set_flag(FType::Density, true);
+                } else if let Some(order) =
                     SALVE_CURE_ORDERS.get(&(salve_name.to_string(), salve_loc.to_string()))
                 {
                     remove_in_order(order.to_vec())(who);
