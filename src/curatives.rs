@@ -22,10 +22,9 @@ mod timeline_tests {
             timeline.state.set_agent(&"Benedicto".into(), updated_bene);
         }
         let coag_slice = TimeSlice {
-            incidents: vec![Incident::SimpleCureAction(SimpleCureAction {
+            observations: vec![Observation::SimpleCureAction(SimpleCureAction {
                 caster: "Benedicto".into(),
-                cure_type: SimpleCure::Pill("coagulant".into()),
-                associated: Vec::new(),
+                cure_type: SimpleCure::Pill("coagulation".into()),
             })],
             prompt: Prompt::Blackout,
             time: 0,
@@ -53,10 +52,9 @@ mod timeline_tests {
             timeline.state.set_agent(&"Benedicto".into(), updated_bene);
         }
         let coag_slice = TimeSlice {
-            incidents: vec![Incident::SimpleCureAction(SimpleCureAction {
+            observations: vec![Observation::SimpleCureAction(SimpleCureAction {
                 caster: "Benedicto".into(),
                 cure_type: SimpleCure::Salve("mending".into(), "skin".into()),
-                associated: Vec::new(),
             })],
             prompt: Prompt::Blackout,
             time: 0,
@@ -760,22 +758,24 @@ pub fn get_curative_actions() -> Vec<StateAction> {
 pub fn handle_simple_cure_action(
     simple_cure: &SimpleCureAction,
     agent_states: &mut TimelineState,
+    before: &Vec<Observation>,
+    after: &Vec<Observation>,
 ) -> Result<(), String> {
     let mut me = agent_states.get_agent(&simple_cure.caster);
     let results = match &simple_cure.cure_type {
         SimpleCure::Pill(_) => {
-            apply_or_infer_balance(&mut me, (BType::Pill, 2.0), &simple_cure.associated);
-            apply_or_infer_cure(&mut me, &simple_cure.cure_type, &simple_cure.associated)?;
+            apply_or_infer_balance(&mut me, (BType::Pill, 2.0), after);
+            apply_or_infer_cure(&mut me, &simple_cure.cure_type, after)?;
             Ok(())
         }
         SimpleCure::Salve(salve_name, salve_loc) => {
-            apply_or_infer_balance(&mut me, (BType::Salve, 2.0), &simple_cure.associated);
-            apply_or_infer_cure(&mut me, &simple_cure.cure_type, &simple_cure.associated)?;
+            apply_or_infer_balance(&mut me, (BType::Salve, 2.0), after);
+            apply_or_infer_cure(&mut me, &simple_cure.cure_type, after)?;
             Ok(())
         }
         SimpleCure::Smoke(_) => {
-            apply_or_infer_balance(&mut me, (BType::Smoke, 2.0), &simple_cure.associated);
-            apply_or_infer_cure(&mut me, &simple_cure.cure_type, &simple_cure.associated)?;
+            apply_or_infer_balance(&mut me, (BType::Smoke, 2.0), after);
+            apply_or_infer_cure(&mut me, &simple_cure.cure_type, after)?;
             Ok(())
         }
         _ => Ok(()),

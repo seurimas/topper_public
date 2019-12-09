@@ -262,6 +262,10 @@ pub enum FType {
     // Immunity
     Voyria,
 
+    // Timed
+    Blackout,
+    Stun,
+
     SIZE,
 }
 
@@ -431,7 +435,6 @@ pub fn is(flag: FType) -> StateMatcher {
 pub fn lacks(flag: FType) -> StateMatcher {
     Box::new(move |me, _them| !me.is(flag))
 }
-
 pub fn lacks_some(afflictions: Vec<FType>) -> StateMatcher {
     Box::new(move |me, _them| {
         for affliction in afflictions.iter() {

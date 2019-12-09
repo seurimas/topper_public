@@ -9,16 +9,16 @@ use crate::types::*;
 pub fn handle_combat_action(
     combat_action: &CombatAction,
     agent_states: &mut TimelineState,
+    before: &Vec<Observation>,
+    after: &Vec<Observation>,
 ) -> Result<(), String> {
     match combat_action.skill.as_ref() {
         "Fitness" => {
             let mut me = agent_states.get_agent(&combat_action.caster);
-            apply_or_infer_cures(&mut me, vec![FType::Asthma], &combat_action.associated)?;
+            apply_or_infer_cures(&mut me, vec![FType::Asthma], after)?;
             agent_states.set_agent(&combat_action.caster, me);
         }
-        _ => {
-            apply_observations(&combat_action.associated, agent_states)?;
-        }
+        _ => {}
     }
     Ok(())
 }

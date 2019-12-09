@@ -18,8 +18,32 @@ pub struct PromptStats {
     pub shadow: bool,
 }
 
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
+pub struct CombatAction {
+    pub caster: String,
+    pub category: String,
+    pub skill: String,
+    pub annotation: String,
+    pub target: String,
+}
+
+#[derive(Debug, Deserialize, PartialEq, Clone)]
+pub enum SimpleCure {
+    Pill(String),
+    Salve(String, String),
+    Smoke(String),
+}
+
+#[derive(Debug, Deserialize, PartialEq, Clone)]
+pub struct SimpleCureAction {
+    pub cure_type: SimpleCure,
+    pub caster: String,
+}
+
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub enum Observation {
+    CombatAction(CombatAction),
+    SimpleCureAction(SimpleCureAction),
     Connects(String),
     Devenoms(String),
     Afflicted(String),
@@ -36,50 +60,6 @@ pub enum Observation {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct CombatAction {
-    pub caster: String,
-    pub category: String,
-    pub skill: String,
-    pub annotation: String,
-    pub target: String,
-    pub associated: Vec<Observation>,
-}
-
-impl CombatAction {
-    pub fn rebounded(&self) -> bool {
-        let mut rebounded = false;
-        for observation in self.associated.iter() {
-            if *observation == Observation::Rebounds {
-                rebounded = true;
-                break;
-            }
-        }
-        rebounded
-    }
-}
-
-#[derive(Debug, Deserialize)]
-pub enum SimpleCure {
-    Pill(String),
-    Salve(String, String),
-    Smoke(String),
-}
-
-#[derive(Debug, Deserialize)]
-pub struct SimpleCureAction {
-    pub cure_type: SimpleCure,
-    pub caster: String,
-    pub associated: Vec<Observation>,
-}
-
-#[derive(Debug, Deserialize)]
-pub enum Incident {
-    CombatAction(CombatAction),
-    SimpleCureAction(SimpleCureAction),
-    Headless(Vec<Observation>),
-}
-
-#[derive(Debug, Deserialize)]
 pub enum Prompt {
     Blackout,
     Stats(PromptStats),
@@ -87,7 +67,7 @@ pub enum Prompt {
 
 #[derive(Debug, Deserialize)]
 pub struct TimeSlice {
-    pub incidents: Vec<Incident>,
+    pub observations: Vec<Observation>,
     pub prompt: Prompt,
     pub time: CType,
 }
@@ -131,10 +111,56 @@ impl TimelineState {
         self.agent_states.insert(name.to_string(), state);
     }
 
+    fn set_flag_for_agent(
+        &mut self,
+        who: &String,
+        flag_name: &String,
+        val: bool,
+    ) -> Result<(), String> {
+        let mut me = self.get_agent(who);
+        if let Some(aff_flag) = FType::from_name(flag_name) {
+            me.set_flag(aff_flag, val);
+        } else {
+            return Err(format!("Failed to find flag {}", flag_name));
+        }
+        self.set_agent(who, me);
+        Ok(())
+    }
+
     fn wait(&mut self, duration: CType) {
         for agent_state in self.agent_states.values_mut() {
             agent_state.wait(duration);
         }
+    }
+
+    pub fn apply_observation(
+        &mut self,
+        observation: &Observation,
+        before: &Vec<Observation>,
+        after: &Vec<Observation>,
+    ) -> Result<(), String> {
+        match observation {
+            Observation::CombatAction(combat_action) => {
+                handle_combat_action(combat_action, self, before, after)?;
+            }
+            Observation::SimpleCureAction(simple_cure) => {
+                handle_simple_cure_action(simple_cure, self, before, after)?;
+            }
+            Observation::DiscernedCure(who, affliction) => {
+                self.set_flag_for_agent(who, affliction, false)?;
+            }
+            Observation::Cured(affliction) => {
+                self.set_flag_for_agent(&"Seurimas".into(), affliction, false)?;
+            }
+            Observation::Afflicted(affliction) => {
+                self.set_flag_for_agent(&"Seurimas".into(), affliction, true)?;
+            }
+            Observation::Stripped(defense) => {
+                self.set_flag_for_agent(&"Seurimas".into(), defense, false)?;
+            }
+            _ => {}
+        }
+        Ok(())
     }
 
     fn apply_time_slice(&mut self, slice: &TimeSlice) -> Result<(), String> {
@@ -142,18 +168,13 @@ impl TimelineState {
             self.wait(slice.time - self.time);
             self.time = slice.time;
         }
-        for incident in slice.incidents.iter() {
-            match incident {
-                Incident::CombatAction(combat_action) => {
-                    handle_combat_action(&combat_action, self)?;
-                }
-                Incident::SimpleCureAction(simple_cure) => {
-                    handle_simple_cure_action(&simple_cure, self)?;
-                }
-                Incident::Headless(observations) => {
-                    apply_observations(observations, self)?;
-                }
-                _ => {}
+        let mut before = Vec::new();
+        let mut after = slice.observations.clone();
+        for observation in slice.observations.iter() {
+            self.apply_observation(observation, &before, &after)?;
+            if after.len() > 0 {
+                let next = after.remove(0);
+                before.push(next);
             }
         }
         Ok(())
@@ -222,41 +243,18 @@ pub fn apply_venom(who: &mut AgentState, venom: &String) -> Result<(), String> {
     Ok(())
 }
 
-fn set_flag_for_agent(
-    who: &String,
-    agent_states: &mut TimelineState,
-    flag_name: &String,
-    val: bool,
-) -> Result<(), String> {
-    let mut me = agent_states.get_agent(who);
-    if let Some(aff_flag) = FType::from_name(flag_name) {
-        me.set_flag(aff_flag, val);
-    } else {
-        return Err(format!("Failed to find flag {}", flag_name));
-    }
-    agent_states.set_agent(who, me);
-    Ok(())
-}
-
-pub fn apply_observations(
+pub fn apply_weapon_hits(
+    attacker: &mut AgentState,
+    target: &mut AgentState,
     observations: &Vec<Observation>,
-    agent_states: &mut TimelineState,
 ) -> Result<(), String> {
-    for observation in observations.iter() {
-        match observation {
-            Observation::DiscernedCure(who, affliction) => {
-                set_flag_for_agent(who, agent_states, affliction, false)?;
+    for i in 0..observations.len() {
+        if let Some(Observation::Devenoms(venom)) = observations.get(i) {
+            if let Some(Observation::Rebounds) = observations.get(i + 1) {
+                apply_venom(attacker, venom)?;
+            } else {
+                apply_venom(target, venom)?;
             }
-            Observation::Cured(affliction) => {
-                set_flag_for_agent(&"Seurimas".into(), agent_states, affliction, false)?;
-            }
-            Observation::Afflicted(affliction) => {
-                set_flag_for_agent(&"Seurimas".into(), agent_states, affliction, true)?;
-            }
-            Observation::Stripped(defense) => {
-                set_flag_for_agent(&"Seurimas".into(), agent_states, defense, false)?;
-            }
-            _ => {}
         }
     }
     Ok(())
@@ -297,10 +295,10 @@ pub fn apply_or_infer_balance(
 pub fn apply_or_infer_cures(
     who: &mut AgentState,
     cures: Vec<FType>,
-    observations: &Vec<Observation>,
+    after: &Vec<Observation>,
 ) -> Result<(), String> {
     let mut found_cures = Vec::new();
-    for observation in observations.iter() {
+    for observation in after.iter() {
         match observation {
             Observation::Cured(aff_name) => {
                 if let Some(aff) = FType::from_name(&aff_name) {
@@ -326,30 +324,25 @@ pub fn apply_or_infer_cures(
 pub fn apply_or_infer_cure(
     who: &mut AgentState,
     cure: &SimpleCure,
-    observations: &Vec<Observation>,
+    after: &Vec<Observation>,
 ) -> Result<Vec<FType>, String> {
     let mut found_cures = Vec::new();
-    for observation in observations.iter() {
-        match observation {
-            Observation::Cured(aff_name) => {
-                if let Some(aff) = FType::from_name(&aff_name) {
-                    who.set_flag(aff, false);
-                    found_cures.push(aff);
-                }
-            }
-            Observation::Stripped(def_name) => {
-                if let Some(def) = FType::from_name(&def_name) {
-                    who.set_flag(def, false);
-                    found_cures.push(def);
-                }
-            }
-            _ => {}
+    if let Some(Observation::Cured(aff_name)) = after.get(0) {
+        if let Some(aff) = FType::from_name(&aff_name) {
+            who.set_flag(aff, false);
+            found_cures.push(aff);
         }
-    }
-    if found_cures.len() == 0 {
+    } else if let Some(Observation::Stripped(def_name)) = after.get(0) {
+        if let Some(def) = FType::from_name(&def_name) {
+            who.set_flag(def, false);
+            found_cures.push(def);
+        }
+    } else {
         match cure {
             SimpleCure::Pill(pill_name) => {
-                if let Some(order) = PILL_CURE_ORDERS.get(pill_name) {
+                println!("{}", pill_name);
+                if pill_name == "anabiotic" {
+                } else if let Some(order) = PILL_CURE_ORDERS.get(pill_name) {
                     remove_in_order(order.to_vec())(who);
                 } else {
                     return Err(format!("Could not find pill {}", pill_name));
@@ -368,7 +361,6 @@ pub fn apply_or_infer_cure(
                     SALVE_CURE_ORDERS.get(&(salve_name.to_string(), salve_loc.to_string()))
                 {
                     remove_in_order(order.to_vec())(who);
-                    apply_or_infer_balance(who, (BType::Salve, 2.0), &observations);
                 } else {
                     return Err(format!("Could not find {} on {}", salve_name, salve_loc));
                 }
@@ -376,7 +368,6 @@ pub fn apply_or_infer_cure(
             SimpleCure::Smoke(herb_name) => {
                 if let Some(order) = SMOKE_CURE_ORDERS.get(herb_name) {
                     remove_in_order(order.to_vec())(who);
-                    apply_or_infer_balance(who, (BType::Smoke, 2.0), &observations);
                 } else {
                     return Err(format!("Could not find smoke {}", herb_name));
                 }

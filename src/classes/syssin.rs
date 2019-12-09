@@ -14,17 +14,17 @@ mod timeline_tests {
     fn test_dstab() {
         let mut timeline = Timeline::new();
         let dstab_slice = TimeSlice {
-            incidents: vec![Incident::CombatAction(CombatAction {
-                caster: "Seurimas".to_string(),
-                category: "Assassination".to_string(),
-                skill: "Doublestab".to_string(),
-                target: "Benedicto".to_string(),
-                annotation: "".to_string(),
-                associated: vec![
-                    Observation::Devenoms("slike".into()),
-                    Observation::Devenoms("kalmia".into()),
-                ],
-            })],
+            observations: vec![
+                Observation::CombatAction(CombatAction {
+                    caster: "Seurimas".to_string(),
+                    category: "Assassination".to_string(),
+                    skill: "Doublestab".to_string(),
+                    target: "Benedicto".to_string(),
+                    annotation: "".to_string(),
+                }),
+                Observation::Devenoms("slike".into()),
+                Observation::Devenoms("kalmia".into()),
+            ],
             prompt: Prompt::Blackout,
             time: 0,
         };
@@ -43,19 +43,19 @@ mod timeline_tests {
     fn test_dstab_rebounds() {
         let mut timeline = Timeline::new();
         let dstab_slice = TimeSlice {
-            incidents: vec![Incident::CombatAction(CombatAction {
-                caster: "Seurimas".to_string(),
-                category: "Assassination".to_string(),
-                skill: "Doublestab".to_string(),
-                target: "Benedicto".to_string(),
-                annotation: "".to_string(),
-                associated: vec![
-                    Observation::Devenoms("slike".into()),
-                    Observation::Rebounds,
-                    Observation::Devenoms("kalmia".into()),
-                    Observation::Rebounds,
-                ],
-            })],
+            observations: vec![
+                Observation::CombatAction(CombatAction {
+                    caster: "Seurimas".to_string(),
+                    category: "Assassination".to_string(),
+                    skill: "Doublestab".to_string(),
+                    target: "Benedicto".to_string(),
+                    annotation: "".to_string(),
+                }),
+                Observation::Devenoms("slike".into()),
+                Observation::Rebounds,
+                Observation::Devenoms("kalmia".into()),
+                Observation::Rebounds,
+            ],
             prompt: Prompt::Blackout,
             time: 0,
         };
@@ -74,13 +74,12 @@ mod timeline_tests {
     fn test_bite() {
         let mut timeline = Timeline::new();
         let dstab_slice = TimeSlice {
-            incidents: vec![Incident::CombatAction(CombatAction {
+            observations: vec![Observation::CombatAction(CombatAction {
                 caster: "Seurimas".to_string(),
                 category: "Assassination".to_string(),
                 skill: "Bite".to_string(),
                 target: "Benedicto".to_string(),
                 annotation: "scytherus".to_string(),
-                associated: vec![],
             })],
             prompt: Prompt::Blackout,
             time: 0,
@@ -98,20 +97,15 @@ mod timeline_tests {
 pub fn handle_combat_action(
     combat_action: &CombatAction,
     agent_states: &mut TimelineState,
+    before: &Vec<Observation>,
+    after: &Vec<Observation>,
 ) -> Result<(), String> {
     match combat_action.skill.as_ref() {
         "Doublestab" => {
             let mut me = agent_states.get_agent(&combat_action.caster);
             let mut you = agent_states.get_agent(&combat_action.target);
-            apply_observed_venoms(
-                if combat_action.rebounded() {
-                    &mut me
-                } else {
-                    &mut you
-                },
-                &combat_action.associated,
-            )?;
-            apply_or_infer_balance(&mut me, (BType::Balance, 2.8), &combat_action.associated);
+            apply_weapon_hits(&mut me, &mut you, after)?;
+            apply_or_infer_balance(&mut me, (BType::Balance, 2.8), after);
             agent_states.set_agent(&combat_action.caster, me);
             agent_states.set_agent(&combat_action.target, you);
         }
@@ -120,7 +114,7 @@ pub fn handle_combat_action(
             let mut you = agent_states.get_agent(&combat_action.target);
             me.set_balance(BType::Balance, 1.9);
             apply_venom(&mut you, &combat_action.annotation)?;
-            apply_or_infer_balance(&mut me, (BType::Balance, 1.9), &combat_action.associated);
+            apply_or_infer_balance(&mut me, (BType::Balance, 1.9), after);
             agent_states.set_agent(&combat_action.caster, me);
             agent_states.set_agent(&combat_action.target, you);
         }
@@ -128,21 +122,18 @@ pub fn handle_combat_action(
             let mut me = agent_states.get_agent(&combat_action.caster);
             let mut you = agent_states.get_agent(&combat_action.target);
             me.set_balance(BType::Balance, 1.9);
-            apply_or_infer_balance(&mut me, (BType::Balance, 1.9), &combat_action.associated);
-            apply_observed_venoms(&mut you, &combat_action.associated)?;
-            if combat_action.annotation == "failure" {
-                if you.is(FType::Rebounding) {
+            apply_or_infer_balance(&mut me, (BType::Balance, 1.9), after);
+            apply_weapon_hits(&mut me, &mut you, after)?;
+            match combat_action.annotation.as_ref() {
+                "rebounding" => {
                     you.set_flag(FType::Rebounding, false);
-                } else if you.is(FType::HardenedSkin) {
-                    you.set_flag(FType::HardenedSkin, false);
                 }
+                _ => {}
             }
             agent_states.set_agent(&combat_action.caster, me);
             agent_states.set_agent(&combat_action.target, you);
         }
-        _ => {
-            apply_observations(&combat_action.associated, agent_states)?;
-        }
+        _ => {}
     }
     Ok(())
 }

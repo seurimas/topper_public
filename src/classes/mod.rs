@@ -10,28 +10,26 @@ pub mod syssin;
 pub fn handle_combat_action(
     combat_action: &CombatAction,
     agent_states: &mut TimelineState,
+    before: &Vec<Observation>,
+    after: &Vec<Observation>,
 ) -> Result<(), String> {
     match combat_action.category.as_ref() {
         "Subterfuge" | "Assassination" | "Hypnosis" => {
-            syssin::handle_combat_action(combat_action, agent_states)
+            syssin::handle_combat_action(combat_action, agent_states, before, after)
         }
         "Savagery" | "Deathlore" | "Warhound" => {
-            carnifex::handle_combat_action(combat_action, agent_states)
+            carnifex::handle_combat_action(combat_action, agent_states, before, after)
         }
         "Survival" => match combat_action.skill.as_ref() {
             "Focus" => {
                 let mut me = agent_states.get_agent(&combat_action.caster);
-                apply_or_infer_cures(
-                    &mut me,
-                    MENTAL_AFFLICTIONS.to_vec(),
-                    &combat_action.associated,
-                )?;
+                apply_or_infer_cures(&mut me, MENTAL_AFFLICTIONS.to_vec(), after)?;
                 agent_states.set_agent(&combat_action.caster, me);
                 Ok(())
             }
-            _ => apply_observations(&combat_action.associated, agent_states),
+            _ => Ok(()),
         },
-        _ => apply_observations(&combat_action.associated, agent_states),
+        _ => Ok(()),
     }
 }
 

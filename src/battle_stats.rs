@@ -21,18 +21,6 @@ fn format_combat_action(combat_action: &CombatAction) -> Vec<String> {
         "{} ={}= @ {}",
         combat_action.caster, combat_action.skill, combat_action.target
     )];
-    let mut line2 = "".to_string();
-    for observe in combat_action.associated.iter() {
-        match observe {
-            Observation::Devenoms(venom) => {
-                line2 = format!("{} *{}*", line2, venom);
-            }
-            _ => {}
-        }
-    }
-    if line2.len() > 0 {
-        lines.push(line2);
-    }
     lines
 }
 
@@ -48,11 +36,11 @@ pub fn get_battle_stats(topper: &mut Topper) -> BattleStats {
         ));
     }
     for timeslice in topper.timeline.slices.iter().rev() {
-        for incident in timeslice.incidents.iter().rev() {
+        for observation in timeslice.observations.iter().rev() {
             if lines_available <= 0 {
                 break;
             }
-            if let Incident::CombatAction(combat_action) = incident {
+            if let Observation::CombatAction(combat_action) = observation {
                 let mut new_lines = format_combat_action(combat_action);
                 for line in new_lines.iter().rev() {
                     if lines_available > 0 {
@@ -61,7 +49,7 @@ pub fn get_battle_stats(topper: &mut Topper) -> BattleStats {
                     }
                 }
             }
-            if let Incident::SimpleCureAction(simple_cure) = incident {
+            if let Observation::SimpleCureAction(simple_cure) = observation {
                 lines.push(format!(
                     "{} <= {:?}",
                     simple_cure.caster, simple_cure.cure_type
