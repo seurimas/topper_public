@@ -23,6 +23,11 @@ pub enum BType {
     Focus,
     Tree,
 
+    // Timers
+    Hypnosis,
+    Fangbarrier,
+    Rebounding,
+
     UNKNOWN,
     SIZE,
 }
@@ -57,12 +62,16 @@ pub enum SType {
 #[repr(u16)]
 pub enum FType {
     Dead,
-    Shield,
+
+    // Control
     Player,
     Ally,
     Enemy,
+    Hypnotized,
+    Snapped,
 
     // Defences
+    Shield,
     Deathsight,
     Energetic,
     Insomnia,
@@ -83,6 +92,11 @@ pub enum FType {
     // Salves
     Insulation,
     Density,
+
+    // Uncurable
+    Void,
+    WeakVoid,
+    Backstabbed,
 
     // Antipsychotic
     Sadness,
@@ -335,6 +349,41 @@ impl fmt::Display for FlagSet {
     }
 }
 
+pub struct FlagSetIterator<'s> {
+    index: usize,
+    set: &'s FlagSet,
+}
+
+impl<'s> Iterator for FlagSetIterator<'s> {
+    type Item = FType;
+    fn next(&mut self) -> Option<Self::Item> {
+        while self.index < self.set.0.len() && !self.set.0[self.index] {
+            self.index += 1;
+        }
+        if self.index < self.set.0.len() {
+            self.index += 1;
+            Some(FType::try_from((self.index - 1) as u16).unwrap())
+        } else {
+            None
+        }
+    }
+}
+
+impl<'s> FlagSetIterator<'s> {
+    fn new(flagset: &'s FlagSet, affs: bool) -> Self {
+        FlagSetIterator {
+            index: if affs { FType::Sadness as usize } else { 0 },
+            set: flagset,
+        }
+    }
+}
+
+impl FlagSet {
+    pub fn aff_iter<'s>(&'s self) -> FlagSetIterator<'s> {
+        FlagSetIterator::new(self, true)
+    }
+}
+
 impl Default for FlagSet {
     fn default() -> Self {
         FlagSet([false; FType::SIZE as usize])
@@ -348,12 +397,19 @@ impl Clone for FlagSet {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum Hypnosis {
+    Aff(FType),
+    Action(String),
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct AgentState {
     pub balances: [CType; BType::SIZE as usize],
     pub stats: [CType; SType::SIZE as usize],
     pub max_stats: [CType; SType::SIZE as usize],
     pub flags: FlagSet,
+    pub hypnosis_stack: Vec<Hypnosis>,
 }
 
 impl PartialEq for AgentState {
@@ -417,6 +473,29 @@ impl AgentState {
     pub fn initialize_stat(&mut self, stat: SType, value: CType) {
         self.max_stats[stat as usize] = value;
         self.stats[stat as usize] = value;
+    }
+
+    pub fn can_smoke(&self) -> bool {
+        !self.is(FType::Asthma) && self.balanced(BType::Smoke)
+    }
+
+    pub fn can_pill(&self) -> bool {
+        !self.is(FType::Anorexia) && self.balanced(BType::Pill)
+    }
+
+    pub fn can_salve(&self) -> bool {
+        !self.is(FType::Slickness) && self.balanced(BType::Salve)
+    }
+
+    pub fn can_tree(&self) -> bool {
+        !self.is(FType::Paresis)
+            && !self.is(FType::Paralysis)
+            && !(self.is(FType::LeftArmBroken) && self.is(FType::RightArmBroken))
+            && self.balanced(BType::Tree)
+    }
+
+    pub fn can_focus(&self) -> bool {
+        !self.is(FType::Impatience) && self.balanced(BType::Focus)
     }
 }
 

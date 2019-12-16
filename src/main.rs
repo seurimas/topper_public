@@ -3,6 +3,7 @@ extern crate lazy_static;
 extern crate strum;
 #[macro_use]
 extern crate strum_macros;
+extern crate regex;
 mod actions;
 mod alpha_beta;
 mod battle_stats;

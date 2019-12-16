@@ -1,9 +1,9 @@
 use crate::actions::*;
 use crate::alpha_beta::*;
-use crate::classes::{handle_combat_action, VENOM_AFFLICTS};
+use crate::classes::{handle_combat_action, handle_sent, VENOM_AFFLICTS};
 use crate::curatives::{
     handle_simple_cure_action, remove_in_order, CALORIC_TORSO_ORDER, PILL_CURE_ORDERS,
-    SALVE_CURE_ORDERS, SMOKE_CURE_ORDERS,
+    PILL_DEFENCES, SALVE_CURE_ORDERS, SMOKE_CURE_ORDERS,
 };
 use crate::types::*;
 use serde::Deserialize;
@@ -50,17 +50,21 @@ pub enum Observation {
     Cured(String),
     DiscernedCure(String, String),
     DiscernedAfflict(String, String),
-    Gained(String),
+    Gained(String, String),
     Stripped(String),
     Balance(String, f32),
+    BalanceBack(String),
     Rebounds,
+    Fangbarrier,
     Shield,
     Diverts,
     Dodges,
+    Sent(String),
 }
 
 #[derive(Debug, Deserialize)]
 pub enum Prompt {
+    Promptless,
     Blackout,
     Stats(PromptStats),
 }
@@ -81,6 +85,7 @@ pub struct Hints {
 pub struct TimelineState {
     agent_states: HashMap<String, AgentState>,
     hints: HashMap<String, Hints>,
+    free_hints: HashMap<String, String>,
     time: CType,
 }
 
@@ -88,9 +93,21 @@ impl TimelineState {
     pub fn new() -> Self {
         TimelineState {
             agent_states: HashMap::new(),
+            free_hints: HashMap::new(),
             hints: HashMap::new(),
             time: 0,
         }
+    }
+
+    pub fn add_player_hint(&mut self, name: &str, hint_type: &str, hint: String) {
+        self.free_hints
+            .insert(format!("{}_{}", name, hint_type), hint);
+    }
+
+    pub fn get_player_hint(&mut self, name: &String, hint_type: &String) -> Option<String> {
+        self.free_hints
+            .get(&format!("{}_{}", name, hint_type))
+            .cloned()
     }
 
     pub fn get_agent(&mut self, name: &String) -> AgentState {
@@ -140,11 +157,17 @@ impl TimelineState {
         after: &Vec<Observation>,
     ) -> Result<(), String> {
         match observation {
+            Observation::Sent(command) => {
+                handle_sent(command, self);
+            }
             Observation::CombatAction(combat_action) => {
                 handle_combat_action(combat_action, self, before, after)?;
             }
             Observation::SimpleCureAction(simple_cure) => {
                 handle_simple_cure_action(simple_cure, self, before, after)?;
+            }
+            Observation::DiscernedAfflict(who, affliction) => {
+                self.set_flag_for_agent(who, affliction, true)?;
             }
             Observation::DiscernedCure(who, affliction) => {
                 self.set_flag_for_agent(who, affliction, false)?;
@@ -157,6 +180,9 @@ impl TimelineState {
             }
             Observation::Stripped(defense) => {
                 self.set_flag_for_agent(&"Seurimas".into(), defense, false)?;
+            }
+            Observation::Gained(who, defence) => {
+                self.set_flag_for_agent(who, defence, true)?;
             }
             _ => {}
         }
@@ -218,6 +244,31 @@ lazy_static! {
         val.set_flag(FType::Energetic, true);
         val
     };
+}
+
+pub fn pop_suggestion(who: &mut AgentState) {
+    who.hypnosis_stack.pop();
+}
+
+pub fn push_suggestion(who: &mut AgentState, suggestion: Hypnosis) {
+    who.hypnosis_stack.push(suggestion);
+}
+
+pub fn apply_or_infer_suggestion(
+    who: &mut AgentState,
+    after: &Vec<Observation>,
+) -> Result<(), String> {
+    if let Some(Observation::DiscernedAfflict(_name, affliction)) = after.get(0) {
+        // This is fine. Discerned afflict will be applied independently.
+    } else if let Some(Hypnosis::Aff(affliction)) = who.hypnosis_stack.get(0) {
+        // Discernment is off??? Might be out of sync, don't assume.
+        // who.set_flag(*affliction, true);
+    }
+    who.hypnosis_stack.remove(0);
+    if who.hypnosis_stack.len() == 0 {
+        who.set_flag(FType::Snapped, false);
+    }
+    Ok(())
 }
 
 pub fn apply_venom(who: &mut AgentState, venom: &String) -> Result<(), String> {
@@ -340,10 +391,11 @@ pub fn apply_or_infer_cure(
     } else {
         match cure {
             SimpleCure::Pill(pill_name) => {
-                println!("{}", pill_name);
                 if pill_name == "anabiotic" {
                 } else if let Some(order) = PILL_CURE_ORDERS.get(pill_name) {
                     remove_in_order(order.to_vec())(who);
+                } else if let Some(defence) = PILL_DEFENCES.get(pill_name) {
+                    who.set_flag(*defence, true);
                 } else {
                     return Err(format!("Could not find pill {}", pill_name));
                 }

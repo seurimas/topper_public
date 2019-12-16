@@ -7,6 +7,10 @@ use std::collections::HashMap;
 pub mod carnifex;
 pub mod syssin;
 
+pub fn handle_sent(command: &String, agent_states: &mut TimelineState) {
+    syssin::handle_sent(command, agent_states);
+}
+
 pub fn handle_combat_action(
     combat_action: &CombatAction,
     agent_states: &mut TimelineState,

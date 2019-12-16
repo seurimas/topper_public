@@ -393,6 +393,20 @@ lazy_static! {
 }
 
 lazy_static! {
+    pub static ref PILL_DEFENCES: HashMap<String, FType> = {
+        let mut val = HashMap::new();
+        val.insert("thanatonin".into(), FType::Deathsight);
+        val.insert("stimulant".into(), FType::Energetic);
+        val.insert("kawhe".into(), FType::Insomnia);
+        val.insert("ototoxin".into(), FType::Deafness);
+        val.insert("amaurosis".into(), FType::Blindness);
+        val.insert("acuity".into(), FType::Thirdeye);
+        val.insert("waterbreathing".into(), FType::Waterbreathing);
+        val
+    };
+}
+
+lazy_static! {
     static ref AFFLICTION_PILLS: HashMap<FType, &'static str> = {
         let mut val = HashMap::new();
         for aff in ANTIPSYCHOTIC_ORDER.to_vec() {
@@ -694,6 +708,18 @@ pub fn soothing_arms() -> StateAction {
     )
 }
 
+lazy_static! {
+    static ref AFFLICTION_SALVES: HashMap<FType, (String, String)> = {
+        let mut val = HashMap::new();
+        for (key, affs) in SALVE_CURE_ORDERS.iter() {
+            for aff in affs {
+                val.insert(*aff, key.clone());
+            }
+        }
+        val
+    };
+}
+
 pub fn soothing_legs() -> StateAction {
     salve_action("soothing".into(), "legs".into(), vec![FType::Whiplash])
 }
@@ -717,6 +743,19 @@ lazy_static! {
         let mut val = HashMap::new();
         val.insert("yarrow".into(), YARROW_ORDER.to_vec());
         val.insert("willow".into(), WILLOW_ORDER.to_vec());
+        val
+    };
+}
+
+lazy_static! {
+    static ref AFFLICTION_SMOKES: HashMap<FType, &'static str> = {
+        let mut val = HashMap::new();
+        for aff in YARROW_ORDER.to_vec() {
+            val.insert(aff, "yarrow");
+        }
+        for aff in WILLOW_ORDER.to_vec() {
+            val.insert(aff, "willow");
+        }
         val
     };
 }
@@ -753,6 +792,113 @@ pub fn get_curative_actions() -> Vec<StateAction> {
         willow(),
         yarrow(),
     ]
+}
+
+pub struct FirstAid {
+    simple_priorities: HashMap<FType, u32>,
+    use_tree: bool,
+    use_focus: bool,
+}
+
+impl FirstAid {
+    pub fn new() -> Self {
+        let mut simple_priorities = HashMap::new();
+        simple_priorities.insert(FType::Anorexia, 1);
+        simple_priorities.insert(FType::Indifference, 1);
+        simple_priorities.insert(FType::Paralysis, 1);
+        simple_priorities.insert(FType::Paresis, 1);
+
+        simple_priorities.insert(FType::Slickness, 2);
+        simple_priorities.insert(FType::Asthma, 2);
+        simple_priorities.insert(FType::LimpVeins, 2);
+
+        simple_priorities.insert(FType::Clumsiness, 3);
+        simple_priorities.insert(FType::ThinBlood, 3);
+
+        simple_priorities.insert(FType::Disfigurement, 4);
+        simple_priorities.insert(FType::RightArmBroken, 4);
+        simple_priorities.insert(FType::RightLegBroken, 4);
+        simple_priorities.insert(FType::LeftLegBroken, 4);
+        simple_priorities.insert(FType::LeftArmBroken, 4);
+        simple_priorities.insert(FType::Impatience, 4);
+        simple_priorities.insert(FType::Recklessness, 4);
+        simple_priorities.insert(FType::Hypochondria, 4);
+        simple_priorities.insert(FType::Weariness, 4);
+        simple_priorities.insert(FType::Pacifism, 4);
+
+        simple_priorities.insert(FType::Confusion, 5);
+
+        simple_priorities.insert(FType::Sensitivity, 6);
+        simple_priorities.insert(FType::Epilepsy, 6);
+        simple_priorities.insert(FType::Masochism, 6);
+        simple_priorities.insert(FType::Loneliness, 6);
+        simple_priorities.insert(FType::Haemophilia, 6);
+        simple_priorities.insert(FType::Lethargy, 6);
+        simple_priorities.insert(FType::Vomiting, 6);
+        simple_priorities.insert(FType::Allergies, 6);
+
+        simple_priorities.insert(FType::Stuttering, 7);
+        simple_priorities.insert(FType::Stupidity, 7);
+        simple_priorities.insert(FType::Hallucinations, 7);
+        simple_priorities.insert(FType::Hypersomnia, 7);
+        simple_priorities.insert(FType::Berserking, 7);
+        FirstAid {
+            simple_priorities,
+            use_tree: true,
+            use_focus: true,
+        }
+    }
+
+    fn best_cure(&self, state: &AgentState, aff: &FType) -> Option<String> {
+        if let Some(herb) = AFFLICTION_SMOKES.get(aff) {
+            if state.can_smoke() {
+                return Some(format!("smoke {}", herb));
+            }
+        }
+        if let Some(pill) = AFFLICTION_PILLS.get(aff) {
+            if state.can_pill() {
+                return Some(format!("eat {}", pill));
+            }
+        }
+        if let Some((salve, location)) = AFFLICTION_SALVES.get(aff) {
+            if state.can_salve() {
+                return Some(format!("apply {} to {}", salve, location));
+            }
+        }
+        // if let Some(elixir) = AFFLICTION_ELIXIRS.get(aff) {
+        //     format!("sip {}", elixir)
+        // }
+        if self.use_focus && MENTAL_AFFLICTIONS.to_vec().contains(aff) && state.can_focus() {
+            Some(format!("focus"))
+        } else if self.use_tree && state.can_tree() {
+            Some(format!("touch tree"))
+        } else {
+            None
+        }
+    }
+
+    fn get_cure(&self, state: &AgentState) -> Option<(FType, String)> {
+        let mut top_priority: Option<(FType, u32, String)> = None;
+        for aff in state.flags.aff_iter() {
+            if let Some(priority) = self.simple_priorities.get(&aff) {
+                match top_priority {
+                    Some((aff, top, _)) => {
+                        if *priority > top {
+                            if let Some(cure) = self.best_cure(state, &aff) {
+                                top_priority = Some((aff, *priority, cure))
+                            }
+                        }
+                    }
+                    None => {
+                        if let Some(cure) = self.best_cure(state, &aff) {
+                            top_priority = Some((aff, *priority, cure))
+                        }
+                    }
+                }
+            }
+        }
+        top_priority.map(|(aff, _, cure)| (aff, cure))
+    }
 }
 
 pub fn handle_simple_cure_action(
