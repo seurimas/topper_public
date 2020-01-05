@@ -93,11 +93,6 @@ pub enum FType {
     Insulation,
     Density,
 
-    // Uncurable
-    Void,
-    WeakVoid,
-    Backstabbed,
-
     // Antipsychotic
     Sadness,
     Confusion,
@@ -279,6 +274,12 @@ pub enum FType {
     // Timed
     Blackout,
     Stun,
+    Asleep,
+
+    // Uncurable
+    Void,
+    Weakvoid,
+    Backstabbed,
 
     SIZE,
 }
@@ -410,6 +411,7 @@ pub struct AgentState {
     pub max_stats: [CType; SType::SIZE as usize],
     pub flags: FlagSet,
     pub hypnosis_stack: Vec<Hypnosis>,
+    pub relapses: Vec<String>,
 }
 
 impl PartialEq for AgentState {
@@ -496,6 +498,22 @@ impl AgentState {
 
     pub fn can_focus(&self) -> bool {
         !self.is(FType::Impatience) && self.balanced(BType::Focus)
+    }
+
+    pub fn push_toxin(&mut self, venom: String) {
+        self.relapses.push(venom);
+    }
+
+    pub fn relapse(&mut self) -> Option<String> {
+        if let Some(aff) = self.relapses.first() {
+            Some(self.relapses.remove(0))
+        } else {
+            None
+        }
+    }
+
+    pub fn clear_relapses(&mut self) {
+        self.relapses = Vec::new();
     }
 }
 

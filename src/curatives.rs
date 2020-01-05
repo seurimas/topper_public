@@ -106,6 +106,16 @@ fn revert_flag(flag: FType, val: bool) -> Box<Fn(&mut AgentState)> {
     Box::new(move |me2: &mut AgentState| me2.set_flag(flag, val))
 }
 
+pub fn top_aff(who: &AgentState, afflictions: Vec<FType>) -> Option<FType> {
+    let mut top = None;
+    for affliction in afflictions.iter() {
+        if who.is(*affliction) {
+            top = Some(*affliction);
+        }
+    }
+    top
+}
+
 pub fn add_in_order(
     afflictions: Vec<FType>,
 ) -> Box<Fn(&mut AgentState) -> Box<Fn(&mut AgentState)>> {
@@ -569,6 +579,10 @@ lazy_static! {
         val.insert(
             ("mending".into(), "skin".into()),
             MENDING_SKIN_ORDER.to_vec(),
+        );
+        val.insert(
+            ("mending".into(), "torso".into()),
+            MENDING_TORSO_ORDER.to_vec(),
         );
         val.insert(
             ("mending".into(), "legs".into()),

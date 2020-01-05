@@ -41,6 +41,14 @@ pub fn get_battle_stats(topper: &mut Topper) -> BattleStats {
                 break;
             }
             if let Observation::CombatAction(combat_action) = observation {
+                if let Some(who) = &topper.target {
+                    if !who.eq_ignore_ascii_case(&combat_action.target)
+                        && !who.eq_ignore_ascii_case(&combat_action.caster)
+                        && !who.eq_ignore_ascii_case(&topper.me)
+                    {
+                        continue;
+                    }
+                }
                 let mut new_lines = format_combat_action(combat_action);
                 for line in new_lines.iter().rev() {
                     if lines_available > 0 {

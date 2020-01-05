@@ -3,6 +3,7 @@ use crate::classes::get_attack;
 use crate::timeline::*;
 use serde::{Deserialize, Serialize};
 use serde_json::{from_str, Result as JsonResult};
+use std::collections::HashMap;
 use std::io;
 use std::panic;
 
@@ -11,6 +12,8 @@ enum TopperRequest {
     Target(String),
     BattleStats,
     Attack(String),
+    Hint(String, String, String),
+    Reset,
 }
 
 #[derive(Deserialize)]
@@ -90,6 +93,14 @@ impl Topper {
                     TopperRequest::Target(target) => {
                         self.target = Some(target);
                         Ok(TopperResponse::battleStats(get_battle_stats(self)))
+                    }
+                    TopperRequest::Hint(who, hint, value) => {
+                        self.timeline.state.add_player_hint(&who, &hint, value);
+                        Ok(TopperResponse::silent())
+                    }
+                    TopperRequest::Reset => {
+                        self.timeline.reset();
+                        Ok(TopperResponse::silent())
                     }
                     TopperRequest::Attack(strategy) => {
                         if let Some(target) = &self.target {

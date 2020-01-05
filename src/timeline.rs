@@ -2,7 +2,7 @@ use crate::actions::*;
 use crate::alpha_beta::*;
 use crate::classes::{handle_combat_action, handle_sent, VENOM_AFFLICTS};
 use crate::curatives::{
-    handle_simple_cure_action, remove_in_order, CALORIC_TORSO_ORDER, PILL_CURE_ORDERS,
+    handle_simple_cure_action, remove_in_order, top_aff, CALORIC_TORSO_ORDER, PILL_CURE_ORDERS,
     PILL_DEFENCES, SALVE_CURE_ORDERS, SMOKE_CURE_ORDERS,
 };
 use crate::types::*;
@@ -47,10 +47,12 @@ pub enum Observation {
     Connects(String),
     Devenoms(String),
     Afflicted(String),
+    OtherAfflicted(String, String),
     Cured(String),
     DiscernedCure(String, String),
-    DiscernedAfflict(String, String),
+    DiscernedAfflict(String),
     Gained(String, String),
+    LostRebound(String),
     Stripped(String),
     Balance(String, f32),
     BalanceBack(String),
@@ -59,6 +61,7 @@ pub enum Observation {
     Shield,
     Diverts,
     Dodges,
+    Relapse(String),
     Sent(String),
 }
 
@@ -104,7 +107,7 @@ impl TimelineState {
             .insert(format!("{}_{}", name, hint_type), hint);
     }
 
-    pub fn get_player_hint(&mut self, name: &String, hint_type: &String) -> Option<String> {
+    pub fn get_player_hint(&self, name: &String, hint_type: &String) -> Option<String> {
         self.free_hints
             .get(&format!("{}_{}", name, hint_type))
             .cloned()
@@ -136,6 +139,9 @@ impl TimelineState {
     ) -> Result<(), String> {
         let mut me = self.get_agent(who);
         if let Some(aff_flag) = FType::from_name(flag_name) {
+            if aff_flag == FType::ThinBlood && !val {
+                me.clear_relapses();
+            }
             me.set_flag(aff_flag, val);
         } else {
             return Err(format!("Failed to find flag {}", flag_name));
@@ -166,9 +172,6 @@ impl TimelineState {
             Observation::SimpleCureAction(simple_cure) => {
                 handle_simple_cure_action(simple_cure, self, before, after)?;
             }
-            Observation::DiscernedAfflict(who, affliction) => {
-                self.set_flag_for_agent(who, affliction, true)?;
-            }
             Observation::DiscernedCure(who, affliction) => {
                 self.set_flag_for_agent(who, affliction, false)?;
             }
@@ -178,11 +181,23 @@ impl TimelineState {
             Observation::Afflicted(affliction) => {
                 self.set_flag_for_agent(&"Seurimas".into(), affliction, true)?;
             }
+            Observation::OtherAfflicted(who, affliction) => {
+                println!("{} {}", who, affliction);
+                self.set_flag_for_agent(who, affliction, true)?;
+            }
             Observation::Stripped(defense) => {
                 self.set_flag_for_agent(&"Seurimas".into(), defense, false)?;
             }
+            Observation::LostRebound(who) => {
+                self.set_flag_for_agent(who, &"Rebounding".to_string(), false)?;
+            }
             Observation::Gained(who, defence) => {
                 self.set_flag_for_agent(who, defence, true)?;
+            }
+            Observation::Relapse(who) => {
+                let mut you = self.get_agent(who);
+                apply_or_infer_relapse(&mut you, after)?;
+                self.set_agent(who, you);
             }
             _ => {}
         }
@@ -219,6 +234,10 @@ impl Timeline {
         }
     }
 
+    pub fn reset(&mut self) {
+        self.state.agent_states = HashMap::new();
+    }
+
     pub fn push_time_slice(&mut self, slice: TimeSlice) -> Result<(), String> {
         let result = self.state.apply_time_slice(&slice);
         self.slices.push(slice);
@@ -241,6 +260,7 @@ lazy_static! {
         val.set_flag(FType::Vigor, true);
         val.set_flag(FType::Rebounding, true);
         val.set_flag(FType::Insomnia, true);
+        val.set_flag(FType::HardenedSkin, true);
         val.set_flag(FType::Energetic, true);
         val
     };
@@ -258,7 +278,7 @@ pub fn apply_or_infer_suggestion(
     who: &mut AgentState,
     after: &Vec<Observation>,
 ) -> Result<(), String> {
-    if let Some(Observation::DiscernedAfflict(_name, affliction)) = after.get(0) {
+    if let Some(Observation::DiscernedAfflict(affliction)) = after.get(0) {
         // This is fine. Discerned afflict will be applied independently.
     } else if let Some(Hypnosis::Aff(affliction)) = who.hypnosis_stack.get(0) {
         // Discernment is off??? Might be out of sync, don't assume.
@@ -272,6 +292,9 @@ pub fn apply_or_infer_suggestion(
 }
 
 pub fn apply_venom(who: &mut AgentState, venom: &String) -> Result<(), String> {
+    if who.is(FType::ThinBlood) {
+        who.push_toxin(venom.clone());
+    }
     if let Some(affliction) = VENOM_AFFLICTS.get(venom) {
         who.set_flag(*affliction, true);
     } else if venom == "epseth" {
@@ -288,6 +311,10 @@ pub fn apply_venom(who: &mut AgentState, venom: &String) -> Result<(), String> {
         }
     } else if venom == "camus" {
         who.set_stat(SType::Health, who.get_stat(SType::Health) - 1000);
+    } else if venom == "delphinium" && who.is(FType::Insomnia) {
+        who.set_flag(FType::Insomnia, false);
+    } else if venom == "delphinium" {
+        who.set_flag(FType::Asleep, true);
     } else {
         return Err(format!("Could not determine effect of {}", venom));
     }
@@ -326,6 +353,19 @@ pub fn apply_observed_venoms(
     Ok(())
 }
 
+pub fn apply_or_infer_relapse(
+    who: &mut AgentState,
+    observations: &Vec<Observation>,
+) -> Result<(), String> {
+    if let Some(venom) = who.relapse() {
+        println!("Relapse: {}", venom);
+        apply_venom(who, &venom)?;
+    } else {
+        println!("No relapse found...");
+    }
+    Ok(())
+}
+
 pub fn apply_or_infer_balance(
     who: &mut AgentState,
     expected_value: (BType, f32),
@@ -341,6 +381,23 @@ pub fn apply_or_infer_balance(
         }
     }
     who.set_balance(expected_value.0, expected_value.1);
+}
+
+pub fn apply_or_infer_random_afflictions(
+    who: &mut AgentState,
+    after: &Vec<Observation>,
+) -> Result<(), String> {
+    for observation in after.iter() {
+        match observation {
+            Observation::DiscernedAfflict(aff_name) => {
+                if let Some(aff) = FType::from_name(&aff_name) {
+                    who.set_flag(aff, true);
+                }
+            }
+            _ => {}
+        }
+    }
+    Ok(())
 }
 
 pub fn apply_or_infer_cures(
@@ -383,6 +440,14 @@ pub fn apply_or_infer_cure(
             who.set_flag(aff, false);
             found_cures.push(aff);
         }
+    } else if let Some(Observation::DiscernedCure(you, aff_name)) = after.get(0) {
+        if let Some(aff) = FType::from_name(&aff_name) {
+            who.set_flag(aff, false);
+            if aff == FType::Void {
+                who.set_flag(FType::Weakvoid, true);
+            }
+            found_cures.push(aff);
+        }
     } else if let Some(Observation::Stripped(def_name)) = after.get(0) {
         if let Some(def) = FType::from_name(&def_name) {
             who.set_flag(def, false);
@@ -393,7 +458,11 @@ pub fn apply_or_infer_cure(
             SimpleCure::Pill(pill_name) => {
                 if pill_name == "anabiotic" {
                 } else if let Some(order) = PILL_CURE_ORDERS.get(pill_name) {
+                    let cured = top_aff(who, order.to_vec());
                     remove_in_order(order.to_vec())(who);
+                    if cured == Some(FType::ThinBlood) {
+                        who.clear_relapses();
+                    }
                 } else if let Some(defence) = PILL_DEFENCES.get(pill_name) {
                     who.set_flag(*defence, true);
                 } else {

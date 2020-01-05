@@ -100,7 +100,7 @@ mod timeline_tests {
         let mut timeline = Timeline::new();
         let suggest_slice = TimeSlice {
             observations: vec![
-                Observation::Sent("suggestion Benedicto stupidity".to_string()),
+                Observation::Sent("suggest Benedicto stupidity".to_string()),
                 Observation::CombatAction(CombatAction {
                     caster: "Seurimas".to_string(),
                     category: "Hypnosis".to_string(),
@@ -115,6 +115,33 @@ mod timeline_tests {
         timeline.push_time_slice(suggest_slice);
         let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Equil), false);
+        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        assert_eq!(
+            bene_state.hypnosis_stack.get(0),
+            Some(&Hypnosis::Aff(FType::Stupidity))
+        );
+    }
+
+    #[test]
+    fn test_suggest_qeb() {
+        let mut timeline = Timeline::new();
+        let suggest_slice = TimeSlice {
+            observations: vec![
+                Observation::Sent(
+                    "qeb dstab Benedicto aconite kalmia;;suggest Benedicto stupidity".to_string(),
+                ),
+                Observation::CombatAction(CombatAction {
+                    caster: "Seurimas".to_string(),
+                    category: "Hypnosis".to_string(),
+                    skill: "Suggest".to_string(),
+                    target: "Benedicto".to_string(),
+                    annotation: "".to_string(),
+                }),
+            ],
+            prompt: Prompt::Blackout,
+            time: 0,
+        };
+        timeline.push_time_slice(suggest_slice);
         let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
         assert_eq!(
             bene_state.hypnosis_stack.get(0),
@@ -145,6 +172,7 @@ pub fn infer_suggestion(name: &String, agent_states: &mut TimelineState) -> Hypn
             }
         }
     } else {
+        println!("Bad, no hint");
         Hypnosis::Aff(FType::Impatience)
     }
 }
@@ -185,6 +213,19 @@ pub fn handle_combat_action(
             me.set_balance(BType::Balance, 1.9);
             apply_venom(&mut you, &combat_action.annotation)?;
             apply_or_infer_balance(&mut me, (BType::Balance, 1.9), after);
+            agent_states.set_agent(&combat_action.caster, me);
+            agent_states.set_agent(&combat_action.target, you);
+        }
+        "Sleight" => {
+            let mut me = agent_states.get_agent(&combat_action.caster);
+            let mut you = agent_states.get_agent(&combat_action.target);
+            match combat_action.annotation.as_ref() {
+                "Void" => {
+                    apply_or_infer_balance(&mut me, (BType::Secondary, 6.0), after);
+                    you.set_flag(FType::Void, true);
+                }
+                _ => {}
+            }
             agent_states.set_agent(&combat_action.caster, me);
             agent_states.set_agent(&combat_action.target, you);
         }
@@ -251,6 +292,19 @@ pub fn handle_combat_action(
                 agent_states.set_agent(&target, you);
             }
         }
+        "Bedazzle" => {
+            let mut me = agent_states.get_agent(&combat_action.caster);
+            let mut you = agent_states.get_agent(&combat_action.target);
+            apply_or_infer_balance(&mut me, (BType::Balance, 2.25), after);
+            apply_or_infer_random_afflictions(&mut you, after);
+            agent_states.set_agent(&combat_action.caster, me);
+            agent_states.set_agent(&combat_action.target, you);
+        }
+        "Fire" => {
+            let mut you = agent_states.get_agent(&combat_action.target);
+            apply_or_infer_random_afflictions(&mut you, after);
+            agent_states.set_agent(&combat_action.target, you)
+        }
         _ => {}
     }
     Ok(())
@@ -260,10 +314,35 @@ lazy_static! {
     static ref COAG_STACK: Vec<FType> = vec![
         FType::Allergies,
         FType::Vomiting,
-        FType::Haemophilia,
+        FType::Clumsiness,
         FType::Asthma,
+        FType::Shyness,
+        FType::Stupidity,
         FType::Paresis,
-        FType::Stuttering,
+    ];
+}
+
+lazy_static! {
+    static ref FIRE_STACK: Vec<FType> = vec![
+        FType::Paresis,
+        FType::Shyness,
+        FType::Clumsiness,
+        FType::Asthma,
+        FType::Stupidity,
+        FType::Allergies,
+        FType::Vomiting,
+    ];
+}
+
+lazy_static! {
+    static ref PHYS_STACK: Vec<FType> = vec![
+        FType::Paresis,
+        FType::Clumsiness,
+        FType::Weariness,
+        FType::Allergies,
+        FType::Stupidity,
+        FType::Asthma,
+        FType::Vomiting,
     ];
 }
 
@@ -271,6 +350,7 @@ lazy_static! {
     static ref AGGRO_STACK: Vec<FType> = vec![
         FType::Asthma,
         FType::Clumsiness,
+        FType::Paresis,
         FType::Stupidity,
         FType::Allergies,
         FType::Dizziness,
@@ -281,18 +361,31 @@ lazy_static! {
 }
 
 lazy_static! {
-    static ref SOFT_STACK: Vec<FType> = vec![
-        FType::Asthma,
-        FType::Paresis,
-        FType::Anorexia,
-        FType::Slickness,
+    static ref SLIT_STACK: Vec<FType> = vec![
+        FType::Haemophilia,
+        FType::LeftLegBroken,
+        FType::RightLegBroken,
+        FType::LeftArmBroken,
+        FType::RightArmBroken,
+        FType::Allergies,
+        FType::Vomiting,
     ];
+}
+
+lazy_static! {
+    static ref SOFT_STACK: Vec<FType> = vec![FType::Asthma, FType::Anorexia, FType::Slickness,];
+}
+
+lazy_static! {
+    static ref THIN_BUFFER_STACK: Vec<FType> = vec![FType::Allergies, FType::Vomiting];
 }
 
 lazy_static! {
     static ref STACKING_STRATEGIES: HashMap<String, Vec<FType>> = {
         let mut val = HashMap::new();
         val.insert("coag".into(), COAG_STACK.to_vec());
+        val.insert("phys".into(), PHYS_STACK.to_vec());
+        val.insert("fire".into(), FIRE_STACK.to_vec());
         val.insert("aggro".into(), AGGRO_STACK.to_vec());
         val
     };
@@ -300,14 +393,14 @@ lazy_static! {
 
 lazy_static! {
     static ref HARD_HYPNO: Vec<Hypnosis> = vec![
-        Hypnosis::Aff(FType::Stupidity),
-        Hypnosis::Aff(FType::Stupidity),
+        Hypnosis::Aff(FType::Lethargy),
+        Hypnosis::Aff(FType::Lethargy),
         Hypnosis::Aff(FType::Impatience),
-        Hypnosis::Aff(FType::Hypersomnia),
-        Hypnosis::Aff(FType::Stupidity),
         Hypnosis::Aff(FType::Impatience),
-        Hypnosis::Aff(FType::Hypersomnia),
-        Hypnosis::Aff(FType::Hypersomnia),
+        Hypnosis::Aff(FType::Loneliness),
+        Hypnosis::Aff(FType::Loneliness),
+        Hypnosis::Aff(FType::Impatience),
+        Hypnosis::Aff(FType::Loneliness),
     ];
 }
 
@@ -348,6 +441,60 @@ pub fn get_top_hypno(name: &String, target: &AgentState, hypnos: &Vec<Hypnosis>)
     }
 }
 
+fn use_one_rag(topper: &Topper) -> bool {
+    topper
+        .timeline
+        .state
+        .get_player_hint(&topper.me, &"ONE_RAG".to_string())
+        .unwrap_or("false".to_string())
+        .eq(&"true")
+}
+
+fn go_for_thin_blood(topper: &Topper, you: &AgentState, strategy: &String) -> bool {
+    let mut buffer_count = 0;
+    if you.is(FType::Lethargy) {
+        buffer_count = buffer_count + 1;
+    }
+    if you.is(FType::Vomiting) {
+        buffer_count = buffer_count + 1;
+    }
+    if you.is(FType::Allergies) {
+        buffer_count = buffer_count + 1;
+    }
+    (buffer_count >= 2 || (buffer_count >= 1 && !you.is(FType::HardenedSkin)))
+        && !you.is(FType::ThinBlood)
+}
+
+fn should_lock(you: &AgentState, lockers: &Vec<&str>) -> bool {
+    (you.is(FType::Impatience) || you.is(FType::Stupidity) || !you.balanced(BType::Focus))
+        && (you.is(FType::Paresis) || !you.balanced(BType::Tree))
+        && lockers.len() < 3
+}
+
+pub fn get_flay_action(topper: &Topper, target: &String, def: String, v1: String) -> String {
+    if use_one_rag(topper) && !v1.eq_ignore_ascii_case("") {
+        format!("hw {};;flay {} {}", v1, target, def)
+    } else {
+        format!("flay {} {} {}", target, def, v1)
+    }
+}
+
+pub fn get_dstab_action(topper: &Topper, target: &String, v1: String, v2: String) -> String {
+    if use_one_rag(topper) {
+        format!("hr {};;hr {};;dstab {}", v2, v1, target)
+    } else {
+        format!("dstab {} {} {}", target, v1, v2)
+    }
+}
+
+pub fn get_slit_action(topper: &Topper, target: &String, v1: String) -> String {
+    if use_one_rag(topper) {
+        format!("hr {};;slit {}", v1, target)
+    } else {
+        format!("slit {} {}", target, v1)
+    }
+}
+
 pub fn get_balance_attack(topper: &Topper, target: &String, strategy: &String) -> String {
     if let Some(stack) = STACKING_STRATEGIES.get(strategy) {
         let you = topper.timeline.state.borrow_agent(target);
@@ -365,24 +512,60 @@ pub fn get_balance_attack(topper: &Topper, target: &String, strategy: &String) -
                 return format!("flay {} {}", target, defense);
             }
         } else {
-            let mut venoms = get_venoms(SOFT_STACK.to_vec(), 3, &you);
-            if venoms.len() > 2 {
-                venoms = get_venoms(stack.to_vec(), 2, &you);
+            println!("{}", you.flags);
+            let mut venoms = get_venoms(stack.to_vec(), 2, &you);
+            if go_for_thin_blood(topper, &you, strategy) {
+                println!("Thinning!");
+                if you.is(FType::HardenedSkin) {
+                    return format!("flay {} fangbarrier", target);
+                } else {
+                    return format!("bite {} scytherus", target);
+                }
+            }
+            let lockers = get_venoms(SOFT_STACK.to_vec(), 3, &you);
+            if should_lock(&you, &lockers) {
+                println!("Locking!");
+                if lockers.len() == 1 && venoms.first() != lockers.first() {
+                    if let Some(vl) = lockers.first() {
+                        venoms.push(vl);
+                    }
+                } else if lockers.len() == 2 {
+                    venoms = lockers;
+                }
+            }
+            let buffer = get_venoms(THIN_BUFFER_STACK.to_vec(), 2, &you);
+            if you.is(FType::ThinBlood) && buffer.len() > 0 {
+                println!("Buffering! {:?}", venoms);
+                if buffer.len() == 1 && venoms.first() != buffer.first() {
+                    if let Some(vb) = buffer.first() {
+                        venoms.push(vb);
+                    }
+                } else if buffer.len() == 2 {
+                    venoms = buffer;
+                }
             }
             let v1 = venoms.pop();
             let v2 = venoms.pop();
-            if let (Some(v1), Some(v2)) = (v1, v2) {
-                return format!("dstab {} {} {}", target, v1, v2);
-            } else if let Some(v1) = v1 {
-                return format!("dstab {} {} {}", target, v1, "delphinium");
+            println!("{:?} {:?}", v1, v2);
+            if you.is(FType::Hypersomnia) && !you.is(FType::Asleep) {
+                return get_dstab_action(
+                    topper,
+                    target,
+                    "delphinium".to_string(),
+                    "delphinium".to_string(),
+                );
+            } else if let (Some(v1), Some(v2)) = (v1, v2) {
+                return get_dstab_action(topper, target, v1.to_string(), v2.to_string());
+            } else if you.is(FType::HardenedSkin) {
+                return format!("flay {} fangbarrier", target);
             } else {
-                return format!("dstab {} {} {}", target, "delphinium", "delphinium");
+                return format!("bite {} camus", target);
             }
         }
     } else if strategy == "damage" {
         let you = topper.timeline.state.borrow_agent(target);
         if you.is(FType::HardenedSkin) {
-            return format!("flay {} hardenedskin", target);
+            return format!("flay {} fangbarrier", target);
         } else {
             return format!("bite {} camus", target);
         }
@@ -399,11 +582,10 @@ pub fn get_equil_attack(topper: &Topper, target: &String, strategy: &String) -> 
 
 pub fn get_shadow_attack(topper: &Topper, target: &String, strategy: &String) -> String {
     let you = topper.timeline.state.borrow_agent(target);
-    if (you.get_flag(FType::Void) || you.get_flag(FType::WeakVoid)) && !you.get_flag(FType::Snapped)
-    {
-        format!("shadow sleight void {}", target)
-    } else {
+    if you.get_flag(FType::Void) || you.get_flag(FType::Weakvoid) || you.get_flag(FType::Snapped) {
         format!("shadow sleight dissipate {}", target)
+    } else {
+        format!("shadow sleight void {}", target)
     }
 }
 
