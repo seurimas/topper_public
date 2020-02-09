@@ -9,11 +9,35 @@ pub struct BattleStats {
 }
 
 fn format_self_state(state: &AgentState) -> String {
-    format!("My Afflictions: {}", state.flags)
+    let locked = if let Some(duration) = state.lock_duration() {
+        format!("<magenta>[LOCKED FOR {}] <green>", duration)
+    } else {
+        "".into()
+    };
+    format!(
+        "<green>My Afflictions: {}{} {}",
+        locked, state.flags, state.limb_damage
+    )
 }
 
 fn format_target_state(state: &AgentState) -> String {
-    format!("Target Afflictions: {}", state.flags)
+    let locked = if let Some(duration) = state.lock_duration() {
+        format!("<magenta>[LOCKED FOR {}] <red>", duration)
+    } else {
+        "".into()
+    };
+    format!(
+        "<red>Target Afflictions: {}{} {}",
+        locked, state.flags, state.limb_damage
+    )
+}
+
+fn format_self_limbs(state: &AgentState) -> String {
+    format!("<green>My Limbs: [{:?}]", state.limb_damage)
+}
+
+fn format_target_limbs(state: &AgentState) -> String {
+    format!("<red>Target Limbs: [{:?}]", state.limb_damage)
 }
 
 fn format_combat_action(combat_action: &CombatAction) -> Vec<String> {
@@ -27,11 +51,15 @@ fn format_combat_action(combat_action: &CombatAction) -> Vec<String> {
 pub fn get_battle_stats(topper: &mut Topper) -> BattleStats {
     let mut lines = Vec::new();
     let mut lines_available = 16;
-    lines.push(format_self_state(
-        &topper.timeline.state.get_agent(&topper.me),
-    ));
+    lines.push(format_self_state(&topper.timeline.state.get_me()));
     if let Some(target) = &topper.target {
         lines.push(format_target_state(
+            &topper.timeline.state.get_agent(target),
+        ));
+    }
+    lines.push(format_self_limbs(&topper.timeline.state.get_me()));
+    if let Some(target) = &topper.target {
+        lines.push(format_target_limbs(
             &topper.timeline.state.get_agent(target),
         ));
     }
@@ -44,7 +72,7 @@ pub fn get_battle_stats(topper: &mut Topper) -> BattleStats {
                 if let Some(who) = &topper.target {
                     if !who.eq_ignore_ascii_case(&combat_action.target)
                         && !who.eq_ignore_ascii_case(&combat_action.caster)
-                        && !who.eq_ignore_ascii_case(&topper.me)
+                        && !who.eq_ignore_ascii_case(&topper.timeline.who_am_i())
                     {
                         continue;
                     }
@@ -57,12 +85,14 @@ pub fn get_battle_stats(topper: &mut Topper) -> BattleStats {
                     }
                 }
             }
-            if let Observation::SimpleCureAction(simple_cure) = observation {
-                lines.push(format!(
-                    "{} <= {:?}",
-                    simple_cure.caster, simple_cure.cure_type
-                ));
-                lines_available -= 1;
+            if None == topper.target {
+                if let Observation::SimpleCureAction(simple_cure) = observation {
+                    lines.push(format!(
+                        "{} <= {:?}",
+                        simple_cure.caster, simple_cure.cure_type
+                    ));
+                    lines_available -= 1;
+                }
             }
         }
     }

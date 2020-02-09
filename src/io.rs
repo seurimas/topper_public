@@ -63,7 +63,6 @@ impl TopperResponse {
 
 pub struct Topper {
     pub timeline: Timeline,
-    pub me: String,
     pub target: Option<String>,
 }
 
@@ -76,7 +75,6 @@ impl Topper {
     pub fn new() -> Self {
         Topper {
             timeline: Timeline::new(),
-            me: "Seurimas".into(),
             target: None,
         }
     }

@@ -6,6 +6,7 @@ use crate::curatives::{
     PILL_DEFENCES, SALVE_CURE_ORDERS, SMOKE_CURE_ORDERS,
 };
 use crate::types::*;
+use regex::Regex;
 use serde::Deserialize;
 use std::collections::HashMap;
 
@@ -53,9 +54,15 @@ pub enum Observation {
     DiscernedAfflict(String),
     Gained(String, String),
     LostRebound(String),
+    LostShield(String),
+    LostFangBarrier(String),
     Stripped(String),
     Balance(String, f32),
     BalanceBack(String),
+    PurgeVenom(String, String),
+    LimbDamage(String, f32),
+    LimbHeal(String, f32),
+    LimbDone(String),
     Rebounds,
     Fangbarrier,
     Shield,
@@ -77,6 +84,7 @@ pub struct TimeSlice {
     pub observations: Vec<Observation>,
     pub prompt: Prompt,
     pub time: CType,
+    pub me: String,
 }
 
 #[derive(Debug)]
@@ -90,6 +98,7 @@ pub struct TimelineState {
     hints: HashMap<String, Hints>,
     free_hints: HashMap<String, String>,
     time: CType,
+    pub me: String,
 }
 
 impl TimelineState {
@@ -99,10 +108,12 @@ impl TimelineState {
             free_hints: HashMap::new(),
             hints: HashMap::new(),
             time: 0,
+            me: "".to_string(),
         }
     }
 
     pub fn add_player_hint(&mut self, name: &str, hint_type: &str, hint: String) {
+        println!("Hint: {}'s {} is now \"{}\"", name, hint_type, &hint);
         self.free_hints
             .insert(format!("{}_{}", name, hint_type), hint);
     }
@@ -118,6 +129,14 @@ impl TimelineState {
             .get_mut(name)
             .unwrap_or(&mut BASE_STATE.clone())
             .clone()
+    }
+
+    pub fn get_me(&mut self) -> AgentState {
+        self.get_agent(&self.me.clone())
+    }
+
+    pub fn get_my_hint(&self, hint_type: &String) -> Option<String> {
+        self.get_player_hint(&self.me, hint_type)
     }
 
     pub fn borrow_agent(&self, name: &String) -> AgentState {
@@ -143,9 +162,27 @@ impl TimelineState {
                 me.clear_relapses();
             }
             me.set_flag(aff_flag, val);
+        } else if let Ok((damage_type, damage_amount)) = get_damage_barrier(flag_name) {
+            // Do nothing...
         } else {
             return Err(format!("Failed to find flag {}", flag_name));
         }
+        self.set_agent(who, me);
+        Ok(())
+    }
+
+    fn adjust_agent_limb(&mut self, who: &String, what: &String, val: f32) -> Result<(), String> {
+        let mut me = self.get_agent(who);
+        let mut limb = get_limb_damage(what)?;
+        me.adjust_limb(limb, (val * 100.0) as CType);
+        self.set_agent(who, me);
+        Ok(())
+    }
+
+    fn finish_agent_restore(&mut self, who: &String, what: &String) -> Result<(), String> {
+        let mut me = self.get_agent(who);
+        let mut limb = get_limb_damage(what)?;
+        me.complete_restoration(limb);
         self.set_agent(who, me);
         Ok(())
     }
@@ -176,23 +213,38 @@ impl TimelineState {
                 self.set_flag_for_agent(who, affliction, false)?;
             }
             Observation::Cured(affliction) => {
-                self.set_flag_for_agent(&"Seurimas".into(), affliction, false)?;
+                self.set_flag_for_agent(&self.me.clone(), affliction, false)?;
             }
             Observation::Afflicted(affliction) => {
-                self.set_flag_for_agent(&"Seurimas".into(), affliction, true)?;
+                self.set_flag_for_agent(&self.me.clone(), affliction, true)?;
             }
             Observation::OtherAfflicted(who, affliction) => {
                 println!("{} {}", who, affliction);
                 self.set_flag_for_agent(who, affliction, true)?;
             }
             Observation::Stripped(defense) => {
-                self.set_flag_for_agent(&"Seurimas".into(), defense, false)?;
+                self.set_flag_for_agent(&self.me.clone(), defense, false)?;
             }
             Observation::LostRebound(who) => {
                 self.set_flag_for_agent(who, &"Rebounding".to_string(), false)?;
             }
+            Observation::LostShield(who) => {
+                self.set_flag_for_agent(who, &"Shield".to_string(), false)?;
+            }
+            Observation::LostFangBarrier(who) => {
+                self.set_flag_for_agent(who, &"HardenedSkin".to_string(), false)?;
+            }
             Observation::Gained(who, defence) => {
                 self.set_flag_for_agent(who, defence, true)?;
+            }
+            Observation::LimbDamage(what, much) => {
+                self.adjust_agent_limb(&self.me.clone(), what, *much)?;
+            }
+            Observation::LimbHeal(what, much) => {
+                self.adjust_agent_limb(&self.me.clone(), what, -much)?;
+            }
+            Observation::LimbDone(what) => {
+                self.finish_agent_restore(&self.me.clone(), what)?;
             }
             Observation::Relapse(who) => {
                 let mut you = self.get_agent(who);
@@ -205,6 +257,7 @@ impl TimelineState {
     }
 
     fn apply_time_slice(&mut self, slice: &TimeSlice) -> Result<(), String> {
+        self.me = slice.me.clone();
         if slice.time > self.time {
             self.wait(slice.time - self.time);
             self.time = slice.time;
@@ -242,6 +295,10 @@ impl Timeline {
         let result = self.state.apply_time_slice(&slice);
         self.slices.push(slice);
         result
+    }
+
+    pub fn who_am_i(&self) -> String {
+        self.state.me.clone()
     }
 }
 
@@ -321,18 +378,51 @@ pub fn apply_venom(who: &mut AgentState, venom: &String) -> Result<(), String> {
     Ok(())
 }
 
+lazy_static! {
+    static ref CALLED_VENOM: Regex = Regex::new(r"(\w+)").unwrap();
+}
+
+lazy_static! {
+    static ref CALLED_VENOMS_TWO: Regex = Regex::new(r"(\w+),? (\w+)").unwrap();
+}
+
 pub fn apply_weapon_hits(
     attacker: &mut AgentState,
     target: &mut AgentState,
     observations: &Vec<Observation>,
+    first_person: bool,
+    venom_hints: Option<String>,
 ) -> Result<(), String> {
-    for i in 0..observations.len() {
-        if let Some(Observation::Devenoms(venom)) = observations.get(i) {
-            if let Some(Observation::Rebounds) = observations.get(i + 1) {
-                apply_venom(attacker, venom)?;
-            } else {
-                apply_venom(target, venom)?;
+    if first_person {
+        for i in 0..observations.len() {
+            if let Some(Observation::Devenoms(venom)) = observations.get(i) {
+                if let Some(Observation::Rebounds) = observations.get(i + 1) {
+                    apply_venom(attacker, venom)?;
+                } else {
+                    if let Some(Observation::PurgeVenom(_, v2)) = observations.get(i + 1) {
+                    } else {
+                        apply_venom(target, venom)?;
+                    }
+                }
             }
+        }
+    } else if let Some(venom_hints) = venom_hints {
+        let mut venoms = Vec::new();
+        if let Some(captures) = CALLED_VENOMS_TWO.captures(&venom_hints) {
+            venoms.push(captures.get(1).unwrap().as_str().to_string());
+            venoms.push(captures.get(2).unwrap().as_str().to_string());
+        } else if let Some(captures) = CALLED_VENOM.captures(&venom_hints) {
+            venoms.push(captures.get(1).unwrap().as_str().to_string());
+        }
+        if (Some(&Observation::Dodges) == observations.get(0))
+            || (Some(&Observation::Dodges) == observations.get(1))
+        {
+            println!("Found dodge!");
+            venoms.pop();
+        }
+        println!("Caught {:?}", venoms);
+        for venom in venoms.iter() {
+            apply_venom(target, venom)?;
         }
     }
     Ok(())
@@ -411,6 +501,9 @@ pub fn apply_or_infer_cures(
             Observation::Cured(aff_name) => {
                 if let Some(aff) = FType::from_name(&aff_name) {
                     who.set_flag(aff, false);
+                    if aff == FType::ThinBlood {
+                        who.clear_relapses();
+                    }
                     found_cures.push(aff);
                 }
             }
@@ -478,6 +571,9 @@ pub fn apply_or_infer_cure(
                     }
                 } else if salve_name == "mass" {
                     who.set_flag(FType::Density, true);
+                } else if salve_name == "restoration" {
+                    let limb = get_limb_damage(salve_loc)?;
+                    who.set_restoring(limb);
                 } else if let Some(order) =
                     SALVE_CURE_ORDERS.get(&(salve_name.to_string(), salve_loc.to_string()))
                 {
@@ -489,6 +585,8 @@ pub fn apply_or_infer_cure(
             SimpleCure::Smoke(herb_name) => {
                 if let Some(order) = SMOKE_CURE_ORDERS.get(herb_name) {
                     remove_in_order(order.to_vec())(who);
+                } else if herb_name == "reishi" {
+                    who.set_balance(BType::Rebounding, 8.0);
                 } else {
                     return Err(format!("Could not find smoke {}", herb_name));
                 }

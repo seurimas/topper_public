@@ -27,6 +27,7 @@ pub enum BType {
     Hypnosis,
     Fangbarrier,
     Rebounding,
+    Restoration,
 
     UNKNOWN,
     SIZE,
@@ -53,6 +54,61 @@ pub enum SType {
     Shields,
 
     SIZE,
+}
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, TryFromPrimitive)]
+#[repr(u8)]
+pub enum LType {
+    HeadDamage,
+    TorsoDamage,
+    LeftArmDamage,
+    RightArmDamage,
+    LeftLegDamage,
+    RightLegDamage,
+
+    SIZE,
+}
+
+pub fn get_limb_damage(what: &String) -> Result<LType, String> {
+    match what.as_ref() {
+        "head" => Ok(LType::HeadDamage),
+        "torso" => Ok(LType::TorsoDamage),
+        "left arm" => Ok(LType::LeftArmDamage),
+        "right arm" => Ok(LType::RightArmDamage),
+        "left leg" => Ok(LType::LeftLegDamage),
+        "right leg" => Ok(LType::RightArmDamage),
+        _ => Err(format!("Could not find damage for {}", what)),
+    }
+}
+
+pub fn get_damage_limb(what: LType) -> Result<String, String> {
+    match what {
+        LType::HeadDamage => Ok("Head".to_string()),
+        LType::TorsoDamage => Ok("Torso".to_string()),
+        LType::LeftArmDamage => Ok("LeftArm".to_string()),
+        LType::RightArmDamage => Ok("RightArm".to_string()),
+        LType::LeftLegDamage => Ok("LeftLeg".to_string()),
+        LType::RightLegDamage => Ok("RightLeg".to_string()),
+        _ => Err(format!("SIZE? {:?}", what)),
+    }
+}
+
+pub fn get_damage_barrier(aff: &String) -> Result<(LType, CType), String> {
+    match aff.as_ref() {
+        "head_mangled" => Ok((LType::HeadDamage, 666)),
+        "head_damaged" => Ok((LType::HeadDamage, 333)),
+        "torso_mangled" => Ok((LType::TorsoDamage, 666)),
+        "torso_damaged" => Ok((LType::TorsoDamage, 333)),
+        "left_arm_mangled" => Ok((LType::LeftArmDamage, 666)),
+        "left_arm_damaged" => Ok((LType::LeftArmDamage, 333)),
+        "right_arm_mangled" => Ok((LType::RightArmDamage, 666)),
+        "right_arm_damaged" => Ok((LType::RightArmDamage, 333)),
+        "left_leg_mangled" => Ok((LType::LeftLegDamage, 666)),
+        "left_leg_damaged" => Ok((LType::LeftLegDamage, 333)),
+        "right_leg_mangled" => Ok((LType::RightLegDamage, 666)),
+        "right_leg_damaged" => Ok((LType::RightLegDamage, 333)),
+        _ => Err(format!("Could not find damage for {}", aff)),
+    }
 }
 
 // Flags
@@ -213,47 +269,47 @@ pub enum FType {
     Hypothermia,
 
     // Mending Head
-    CritBruiseHead,
+    HeadBruisedCritical,
     DestroyedThroat,
     CrippledThroat,
-    ModBruiseHead,
-    BruiseHead,
+    HeadBruisedModerate,
+    HeadBruised,
 
     // Mending Torso
-    CritBruiseTorso,
+    TorsoBruisedCritical,
     LightWound,
     Ablaze,
     CrackedRibs,
-    ModBruiseTorso,
-    BruiseTorso,
+    TorsoBruisedModerate,
+    TorsoBruised,
 
     // Mending Left Arm
-    CritBruiseLeftArm,
+    LeftArmBruisedCritical,
     LeftArmBroken,
-    ModBruiseLeftArm,
-    BruiseLeftArm,
-    DislocatedLeftArm,
+    LeftArmBruisedModerate,
+    LeftArmBruised,
+    LeftArmDislocated,
 
-    // Mending Left Arm
-    CritBruiseRightArm,
+    // Mending Right Arm
+    RightArmBruisedCritical,
     RightArmBroken,
-    ModBruiseRightArm,
-    BruiseRightArm,
-    DislocatedRightArm,
+    RightArmBruisedModerate,
+    RightArmBruised,
+    RightArmDislocated,
 
-    // Mending Left Arm
-    CritBruiseLeftLeg,
+    // Mending Left Leg
+    LeftLegBruisedCritical,
     LeftLegBroken,
-    ModBruiseLeftLeg,
-    BruiseLeftLeg,
-    DislocatedLeftLeg,
+    LeftLegBruisedModerate,
+    LeftLegBruised,
+    LeftLegDislocated,
 
-    // Mending Left Arm
-    CritBruiseRightLeg,
+    // Mending Right Leg
+    RightLegBruisedCritical,
     RightLegBroken,
-    ModBruiseRightLeg,
-    BruiseRightLeg,
-    DislocatedRightLeg,
+    RightLegBruisedModerate,
+    RightLegBruised,
+    RightLegDislocated,
 
     // Soothing
     Whiplash,   // Head
@@ -262,7 +318,7 @@ pub enum FType {
     Stiffness,
     SoreWrist, // Arms
     WeakGrip,
-    // Whiplash // Legs
+    SoreAnkle, // Legs
 
     // Caloric
     Frozen,
@@ -280,6 +336,12 @@ pub enum FType {
     Void,
     Weakvoid,
     Backstabbed,
+    NumbedSkin,
+    MentalFatigue,
+
+    // Special
+    Disrupted,
+    Fear,
 
     SIZE,
 }
@@ -404,14 +466,70 @@ pub enum Hypnosis {
     Action(String),
 }
 
+#[derive(Clone, Default)]
+pub struct LimbSet([CType; LType::SIZE as usize], Option<LType>);
+
 #[derive(Debug, Clone, Default)]
 pub struct AgentState {
     pub balances: [CType; BType::SIZE as usize],
     pub stats: [CType; SType::SIZE as usize],
     pub max_stats: [CType; SType::SIZE as usize],
     pub flags: FlagSet,
+    pub limb_damage: LimbSet,
     pub hypnosis_stack: Vec<Hypnosis>,
     pub relapses: Vec<String>,
+}
+
+impl fmt::Debug for LimbSet {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut wrote = false;
+        for idx in 0..(LType::SIZE as usize) {
+            if let Ok(damage) = LType::try_from(idx as u8) {
+                if wrote {
+                    write!(f, ", ")?;
+                }
+                if Some(damage) == self.1 {
+                    write!(f, "*")?;
+                }
+                write!(f, "{}", (self.0[idx] / 100))?;
+                wrote = true;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl fmt::Display for LimbSet {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut wrote = false;
+        for idx in 0..(LType::SIZE as usize) {
+            if let Ok(damage) = LType::try_from(idx as u8) {
+                if let Ok(limb) = get_damage_limb(damage) {
+                    if self.0[idx] > 3333 {
+                        if wrote {
+                            write!(f, ", ")?;
+                        }
+                        if Some(damage) == self.1 {
+                            write!(f, "*")?;
+                        }
+                        if self.0[idx] > 6666 {
+                            write!(f, "{}Mangled", limb)?;
+                        } else {
+                            write!(f, "{}Damaged", limb)?;
+                        }
+                        wrote = true;
+                    } else if Some(damage) == self.1 {
+                        if wrote {
+                            write!(f, ", ")?;
+                        }
+                        write!(f, "*Pre<{}>", limb)?;
+                        wrote = true;
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 impl PartialEq for AgentState {
@@ -464,12 +582,39 @@ impl AgentState {
         self.balances[balance as usize] <= 0
     }
 
+    pub fn next_balance(&self, balances: Vec<BType>) -> Option<BType> {
+        let mut earliest = balances.first();
+        for balance in balances.iter() {
+            if let Some(earliest_bal) = earliest {
+                if self.balances[*earliest_bal as usize] <= 0 {
+                    // Do nothing.
+                } else if self.balances[*balance as usize] < self.balances[*earliest_bal as usize] {
+                    earliest = Some(balance)
+                }
+            }
+        }
+        earliest.cloned()
+    }
+
     pub fn set_stat(&mut self, stat: SType, value: CType) {
         self.stats[stat as usize] = value;
     }
 
     pub fn get_stat(&self, stat: SType) -> CType {
         self.stats[stat as usize]
+    }
+
+    pub fn adjust_limb(&mut self, limb: LType, value: CType) {
+        self.limb_damage.0[limb as usize] += value;
+        if self.limb_damage.0[limb as usize] < 0 {
+            self.limb_damage.0[limb as usize] = 0;
+        } else if self.limb_damage.0[limb as usize] > 10000 {
+            self.limb_damage.0[limb as usize] = 10000;
+        }
+    }
+
+    pub fn adjust_stat(&mut self, stat: SType, value: CType) {
+        self.stats[stat as usize] += value;
     }
 
     pub fn initialize_stat(&mut self, stat: SType, value: CType) {
@@ -487,6 +632,27 @@ impl AgentState {
 
     pub fn can_salve(&self) -> bool {
         !self.is(FType::Slickness) && self.balanced(BType::Salve)
+    }
+
+    pub fn lock_duration(&self) -> Option<f32> {
+        let mut earliest_escape = None;
+        if self.is(FType::Asthma) && self.is(FType::Anorexia) && self.is(FType::Slickness) {
+            if !self.is(FType::Paralysis) && !self.is(FType::Paresis) {
+                earliest_escape = Some(self.balances[BType::Tree as usize]);
+            }
+            if !self.is(FType::Impatience) && !self.is(FType::Stupidity) {
+                let focus_time = self.balances[BType::Focus as usize];
+                earliest_escape = earliest_escape.map_or(Some(focus_time), |other| {
+                    if other < focus_time {
+                        Some(other)
+                    } else {
+                        Some(focus_time)
+                    }
+                });
+            }
+            earliest_escape = earliest_escape.or(Some((15.0 * BALANCE_SCALE) as CType))
+        }
+        earliest_escape.map(|escape| (escape as f32) / BALANCE_SCALE)
     }
 
     pub fn can_tree(&self) -> bool {
@@ -514,6 +680,15 @@ impl AgentState {
 
     pub fn clear_relapses(&mut self) {
         self.relapses = Vec::new();
+    }
+
+    pub fn set_restoring(&mut self, damage: LType) {
+        self.limb_damage.1 = Some(damage);
+        self.set_balance(BType::Restoration, 4.0);
+    }
+
+    pub fn complete_restoration(&mut self, damage: LType) {
+        self.limb_damage.1 = None;
     }
 }
 

@@ -10,6 +10,7 @@ mod battle_stats;
 mod classes;
 mod curatives;
 mod io;
+mod observables;
 mod timeline;
 mod types;
 use crate::actions::*;
@@ -17,6 +18,7 @@ use crate::alpha_beta::*;
 use crate::classes::syssin::get_offensive_actions;
 use crate::curatives::*;
 use crate::io::{echo_time_slice, provide_action};
+use crate::observables::*;
 use crate::timeline::*;
 use crate::types::*;
 

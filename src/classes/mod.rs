@@ -27,7 +27,30 @@ pub fn handle_combat_action(
         "Survival" => match combat_action.skill.as_ref() {
             "Focus" => {
                 let mut me = agent_states.get_agent(&combat_action.caster);
+                let duration = if me.is(FType::MentalFatigue) {
+                    10.0
+                } else {
+                    5.0
+                };
                 apply_or_infer_cures(&mut me, MENTAL_AFFLICTIONS.to_vec(), after)?;
+                apply_or_infer_balance(&mut me, (BType::Focus, duration), after);
+                agent_states.set_agent(&combat_action.caster, me);
+                Ok(())
+            }
+            _ => Ok(()),
+        },
+        "Tattoos" => match combat_action.skill.as_ref() {
+            "Shield" => {
+                let mut me = agent_states.get_agent(&combat_action.caster);
+                me.set_flag(FType::Shield, true);
+                apply_or_infer_balance(&mut me, (BType::Equil, 4.0), after);
+                agent_states.set_agent(&combat_action.caster, me);
+                Ok(())
+            }
+            "Tree" => {
+                let mut me = agent_states.get_agent(&combat_action.caster);
+                let duration = if me.is(FType::NumbedSkin) { 15.0 } else { 10.0 };
+                apply_or_infer_balance(&mut me, (BType::Tree, duration), after);
                 agent_states.set_agent(&combat_action.caster, me);
                 Ok(())
             }

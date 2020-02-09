@@ -28,6 +28,7 @@ mod timeline_tests {
             })],
             prompt: Prompt::Blackout,
             time: 0,
+            me: "Seurimas".into(),
         };
         timeline.push_time_slice(coag_slice);
         let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
@@ -58,6 +59,7 @@ mod timeline_tests {
             })],
             prompt: Prompt::Blackout,
             time: 0,
+            me: "Seurimas".into(),
         };
         timeline.push_time_slice(coag_slice);
         let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
@@ -514,63 +516,80 @@ lazy_static! {
 
 lazy_static! {
     static ref MENDING_HEAD_ORDER: Vec<FType> = vec![
-        FType::CritBruiseHead,
+        FType::HeadBruisedCritical,
         FType::DestroyedThroat,
         FType::CrippledThroat,
-        FType::ModBruiseHead,
-        FType::BruiseHead,
+        FType::HeadBruisedModerate,
+        FType::HeadBruised,
     ];
 }
 
 lazy_static! {
     static ref MENDING_TORSO_ORDER: Vec<FType> = vec![
-        FType::CritBruiseTorso,
+        FType::TorsoBruisedCritical,
         FType::LightWound,
         FType::Ablaze,
         FType::CrackedRibs,
-        FType::ModBruiseTorso,
-        FType::BruiseTorso,
+        FType::TorsoBruisedModerate,
+        FType::TorsoBruised,
     ];
 }
 
 lazy_static! {
     static ref MENDING_LEFT_ARM_ORDER: Vec<FType> = vec![
-        FType::CritBruiseLeftArm,
+        FType::LeftArmBruisedCritical,
         FType::LeftArmBroken,
-        FType::ModBruiseLeftArm,
-        FType::BruiseLeftArm,
-        FType::DislocatedLeftArm,
+        FType::LeftArmBruisedModerate,
+        FType::LeftArmBruised,
+        FType::LeftArmDislocated,
     ];
 }
 
 lazy_static! {
     static ref MENDING_RIGHT_ARM_ORDER: Vec<FType> = vec![
-        FType::CritBruiseRightArm,
+        FType::RightArmBruisedCritical,
         FType::RightArmBroken,
-        FType::ModBruiseRightArm,
-        FType::BruiseRightArm,
-        FType::DislocatedRightArm,
+        FType::RightArmBruisedModerate,
+        FType::RightArmBruised,
+        FType::RightArmDislocated,
     ];
 }
 
 lazy_static! {
     static ref MENDING_LEFT_LEG_ORDER: Vec<FType> = vec![
-        FType::CritBruiseLeftLeg,
+        FType::LeftLegBruisedCritical,
         FType::LeftLegBroken,
-        FType::ModBruiseLeftLeg,
-        FType::BruiseLeftLeg,
-        FType::DislocatedLeftLeg,
+        FType::LeftLegBruisedModerate,
+        FType::LeftLegBruised,
+        FType::LeftLegDislocated,
     ];
 }
 
 lazy_static! {
     static ref MENDING_RIGHT_LEG_ORDER: Vec<FType> = vec![
-        FType::CritBruiseRightLeg,
+        FType::RightLegBruisedCritical,
         FType::RightLegBroken,
-        FType::ModBruiseRightLeg,
-        FType::BruiseRightLeg,
-        FType::DislocatedRightLeg,
+        FType::RightLegBruisedModerate,
+        FType::RightLegBruised,
+        FType::RightLegDislocated,
     ];
+}
+
+lazy_static! {
+    static ref SOOTHING_HEAD_ORDER: Vec<FType> = vec![FType::Whiplash];
+}
+
+lazy_static! {
+    static ref SOOTHING_TORSO_ORDER: Vec<FType> =
+        vec![FType::Backstrain, FType::MuscleSpasms, FType::Stiffness];
+}
+
+lazy_static! {
+    static ref SOOTHING_LEGS_ORDER: Vec<FType> = vec![FType::SoreAnkle];
+}
+
+lazy_static! {
+    static ref SOOTHING_ARMS_ORDER: Vec<FType> = vec![FType::SoreWrist, FType::WeakGrip];
 }
 
 lazy_static! {
@@ -625,6 +644,26 @@ lazy_static! {
         val.insert(
             ("caloric".into(), "skin".into()),
             CALORIC_TORSO_ORDER.to_vec(),
+        );
+
+        val.insert(
+            ("soothing".into(), "head".into()),
+            SOOTHING_HEAD_ORDER.to_vec(),
+        );
+
+        val.insert(
+            ("soothing".into(), "torso".into()),
+            SOOTHING_TORSO_ORDER.to_vec(),
+        );
+
+        val.insert(
+            ("soothing".into(), "legs".into()),
+            SOOTHING_LEGS_ORDER.to_vec(),
+        );
+
+        val.insert(
+            ("soothing".into(), "arms".into()),
+            SOOTHING_ARMS_ORDER.to_vec(),
         );
         val
     };
@@ -703,14 +742,18 @@ pub fn mending_right_leg() -> StateAction {
 }
 
 pub fn soothing_head() -> StateAction {
-    salve_action("soothing".into(), "head".into(), vec![FType::Whiplash])
+    salve_action(
+        "soothing".into(),
+        "head".into(),
+        SOOTHING_HEAD_ORDER.to_vec(),
+    )
 }
 
 pub fn soothing_torso() -> StateAction {
     salve_action(
         "soothing".into(),
         "torso".into(),
-        vec![FType::Backstrain, FType::MuscleSpasms, FType::Stiffness],
+        SOOTHING_TORSO_ORDER.to_vec(),
     )
 }
 
@@ -718,7 +761,7 @@ pub fn soothing_arms() -> StateAction {
     salve_action(
         "soothing".into(),
         "arms".into(),
-        vec![FType::SoreWrist, FType::WeakGrip],
+        SOOTHING_ARMS_ORDER.to_vec(),
     )
 }
 
@@ -735,7 +778,11 @@ lazy_static! {
 }
 
 pub fn soothing_legs() -> StateAction {
-    salve_action("soothing".into(), "legs".into(), vec![FType::Whiplash])
+    salve_action(
+        "soothing".into(),
+        "legs".into(),
+        SOOTHING_LEGS_ORDER.to_vec(),
+    )
 }
 
 lazy_static! {
