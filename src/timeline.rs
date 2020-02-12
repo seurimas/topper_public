@@ -150,7 +150,7 @@ impl TimelineState {
         self.agent_states.insert(name.to_string(), state);
     }
 
-    fn set_flag_for_agent(
+    pub fn set_flag_for_agent(
         &mut self,
         who: &String,
         flag_name: &String,
@@ -503,6 +503,8 @@ pub fn apply_or_infer_cures(
                     who.set_flag(aff, false);
                     if aff == FType::ThinBlood {
                         who.clear_relapses();
+                    } else if aff == FType::Void {
+                        who.set_flag(FType::Weakvoid, true);
                     }
                     found_cures.push(aff);
                 }
@@ -528,12 +530,12 @@ pub fn apply_or_infer_cure(
     after: &Vec<Observation>,
 ) -> Result<Vec<FType>, String> {
     let mut found_cures = Vec::new();
-    if let Some(Observation::Cured(aff_name)) = after.get(0) {
+    if let Some(Observation::Cured(aff_name)) = after.get(1) {
         if let Some(aff) = FType::from_name(&aff_name) {
             who.set_flag(aff, false);
             found_cures.push(aff);
         }
-    } else if let Some(Observation::DiscernedCure(you, aff_name)) = after.get(0) {
+    } else if let Some(Observation::DiscernedCure(you, aff_name)) = after.get(1) {
         if let Some(aff) = FType::from_name(&aff_name) {
             who.set_flag(aff, false);
             if aff == FType::Void {
@@ -541,7 +543,7 @@ pub fn apply_or_infer_cure(
             }
             found_cures.push(aff);
         }
-    } else if let Some(Observation::Stripped(def_name)) = after.get(0) {
+    } else if let Some(Observation::Stripped(def_name)) = after.get(1) {
         if let Some(def) = FType::from_name(&def_name) {
             who.set_flag(def, false);
             found_cures.push(def);

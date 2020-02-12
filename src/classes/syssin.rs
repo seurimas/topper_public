@@ -1,6 +1,6 @@
 use crate::actions::*;
 use crate::alpha_beta::*;
-use crate::classes::{get_venoms, AFFLICT_VENOMS};
+use crate::classes::{get_venom, get_venoms, AFFLICT_VENOMS};
 use crate::curatives::*;
 use crate::io::*;
 use crate::observables::*;
@@ -102,6 +102,109 @@ mod timeline_tests {
         assert_eq!(bene_state.balanced(BType::Balance), true);
         assert_eq!(bene_state.get_flag(FType::Asthma), true);
         assert_eq!(bene_state.get_flag(FType::Anorexia), true);
+    }
+
+    #[test]
+    fn test_void_1p() {
+        let mut timeline = Timeline::new();
+        timeline
+            .state
+            .set_flag_for_agent(&"Seurimas".to_string(), &"void".to_string(), true);
+        timeline
+            .state
+            .set_flag_for_agent(&"Seurimas".to_string(), &"stupidity".to_string(), true);
+        let dstab_slice = TimeSlice {
+            observations: vec![
+                Observation::SimpleCureAction(SimpleCureAction {
+                    cure_type: SimpleCure::Pill("euphoriant".to_string()),
+                    caster: "Seurimas".to_string(),
+                }),
+                Observation::Cured("void".to_string()),
+                Observation::Afflicted("weakvoid".to_string()),
+            ],
+            prompt: Prompt::Blackout,
+            time: 0,
+            me: "Seurimas".into(),
+        };
+        let bene_state = timeline.state.get_agent(&"Seurimas".to_string());
+        assert_eq!(bene_state.balanced(BType::Pill), true);
+        assert_eq!(bene_state.get_flag(FType::Stupidity), true);
+        assert_eq!(bene_state.get_flag(FType::Void), true);
+        assert_eq!(bene_state.get_flag(FType::Weakvoid), false);
+        timeline.push_time_slice(dstab_slice);
+        let bene_state = timeline.state.get_agent(&"Seurimas".to_string());
+        assert_eq!(bene_state.balanced(BType::Pill), false);
+        assert_eq!(bene_state.get_flag(FType::Stupidity), true);
+        assert_eq!(bene_state.get_flag(FType::Void), false);
+        assert_eq!(bene_state.get_flag(FType::Weakvoid), true);
+    }
+
+    #[test]
+    fn test_void() {
+        let mut timeline = Timeline::new();
+        timeline
+            .state
+            .set_flag_for_agent(&"Benedicto".to_string(), &"void".to_string(), true);
+        timeline
+            .state
+            .set_flag_for_agent(&"Benedicto".to_string(), &"stupidity".to_string(), true);
+        let dstab_slice = TimeSlice {
+            observations: vec![
+                Observation::SimpleCureAction(SimpleCureAction {
+                    cure_type: SimpleCure::Pill("euphoriant".to_string()),
+                    caster: "Benedicto".to_string(),
+                }),
+                Observation::DiscernedCure("Benedicto".to_string(), "void".to_string()),
+            ],
+            prompt: Prompt::Blackout,
+            time: 0,
+            me: "Seurimas".into(),
+        };
+        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        assert_eq!(bene_state.balanced(BType::Pill), true);
+        assert_eq!(bene_state.get_flag(FType::Stupidity), true);
+        assert_eq!(bene_state.get_flag(FType::Void), true);
+        assert_eq!(bene_state.get_flag(FType::Weakvoid), false);
+        timeline.push_time_slice(dstab_slice);
+        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        assert_eq!(bene_state.balanced(BType::Pill), false);
+        assert_eq!(bene_state.get_flag(FType::Stupidity), true);
+        assert_eq!(bene_state.get_flag(FType::Void), false);
+        assert_eq!(bene_state.get_flag(FType::Weakvoid), true);
+    }
+
+    #[test]
+    fn test_weakvoid() {
+        let mut timeline = Timeline::new();
+        timeline
+            .state
+            .set_flag_for_agent(&"Benedicto".to_string(), &"weakvoid".to_string(), true);
+        timeline
+            .state
+            .set_flag_for_agent(&"Benedicto".to_string(), &"stupidity".to_string(), true);
+        let dstab_slice = TimeSlice {
+            observations: vec![
+                Observation::SimpleCureAction(SimpleCureAction {
+                    cure_type: SimpleCure::Pill("euphoriant".to_string()),
+                    caster: "Benedicto".to_string(),
+                }),
+                Observation::DiscernedCure("Benedicto".to_string(), "weakvoid".to_string()),
+            ],
+            prompt: Prompt::Blackout,
+            time: 0,
+            me: "Seurimas".into(),
+        };
+        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        assert_eq!(bene_state.balanced(BType::Pill), true);
+        assert_eq!(bene_state.get_flag(FType::Stupidity), true);
+        assert_eq!(bene_state.get_flag(FType::Void), false);
+        assert_eq!(bene_state.get_flag(FType::Weakvoid), true);
+        timeline.push_time_slice(dstab_slice);
+        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        assert_eq!(bene_state.balanced(BType::Pill), false);
+        assert_eq!(bene_state.get_flag(FType::Stupidity), true);
+        assert_eq!(bene_state.get_flag(FType::Void), false);
+        assert_eq!(bene_state.get_flag(FType::Weakvoid), false);
     }
 
     #[test]
@@ -559,13 +662,30 @@ lazy_static! {
 
 lazy_static! {
     static ref PHYS_STACK: Vec<FType> = vec![
+        FType::Stupidity,
+        FType::Clumsiness,
+        FType::Asthma,
         FType::Paresis,
+        FType::Allergies,
+        FType::Dizziness,
+        FType::Vomiting,
+        FType::LeftLegBroken,
+        FType::RightLegBroken,
+    ];
+}
+
+lazy_static! {
+    static ref WAYF_STACK: Vec<FType> = vec![
+        FType::Stupidity,
         FType::Clumsiness,
         FType::Weariness,
-        FType::Allergies,
-        FType::Stupidity,
+        FType::Paresis,
         FType::Asthma,
+        FType::Allergies,
+        FType::Dizziness,
         FType::Vomiting,
+        FType::LeftLegBroken,
+        FType::RightLegBroken,
     ];
 }
 
@@ -612,6 +732,10 @@ lazy_static! {
 }
 
 lazy_static! {
+    static ref SOFT_BUFFER: Vec<FType> = vec![FType::Clumsiness, FType::Stupidity];
+}
+
+lazy_static! {
     static ref THIN_BUFFER_STACK: Vec<FType> = vec![FType::Allergies, FType::Vomiting];
 }
 
@@ -623,6 +747,7 @@ lazy_static! {
         val.insert("fire".into(), FIRE_STACK.to_vec());
         val.insert("aggro".into(), AGGRO_STACK.to_vec());
         val.insert("salve".into(), SALVE_STACK.to_vec());
+        val.insert("wayf".into(), WAYF_STACK.to_vec());
         val
     };
 }
@@ -677,22 +802,25 @@ pub fn get_top_hypno(name: &String, target: &AgentState, hypnos: &Vec<Hypnosis>)
     }
 }
 
-fn use_one_rag(topper: &Topper) -> bool {
+fn check_config(topper: &Topper, value: &String) -> bool {
     topper
         .timeline
         .state
-        .get_my_hint(&"ONE_RAG".to_string())
+        .get_my_hint(value)
         .unwrap_or("false".to_string())
         .eq(&"true")
 }
 
+fn use_one_rag(topper: &Topper) -> bool {
+    check_config(topper, &"ONE_RAG".to_string())
+}
+
 fn should_call_venoms(topper: &Topper) -> bool {
-    topper
-        .timeline
-        .state
-        .get_my_hint(&"VENOM_CALLING".to_string())
-        .unwrap_or("false".to_string())
-        .eq(&"true")
+    check_config(topper, &"VENOM_CALLING".to_string())
+}
+
+fn should_void(topper: &Topper) -> bool {
+    !check_config(topper, &"NO_VOID".to_string())
 }
 
 fn go_for_thin_blood(topper: &Topper, you: &AgentState, strategy: &String) -> bool {
@@ -712,7 +840,7 @@ fn go_for_thin_blood(topper: &Topper, you: &AgentState, strategy: &String) -> bo
 
 fn should_lock(you: &AgentState, lockers: &Vec<&str>) -> bool {
     (you.is(FType::Impatience) || you.is(FType::Stupidity) || !you.balanced(BType::Focus))
-        && (you.is(FType::Paresis) || !you.balanced(BType::Tree))
+        && (you.is(FType::Paresis) || you.is(FType::Paralysis) || !you.balanced(BType::Tree))
         && lockers.len() < 3
 }
 
@@ -795,6 +923,12 @@ pub fn get_balance_attack(topper: &Topper, target: &String, strategy: &String) -
                 } else if lockers.len() == 2 {
                     venoms = lockers;
                 }
+            } else if lockers.len() == 0 {
+                if you.is(FType::Loneliness) && !you.is(FType::Recklessness) {
+                    if let Some(venom) = get_venom(FType::Recklessness) {
+                        venoms.push(venom);
+                    }
+                }
             }
             let buffer = get_venoms(THIN_BUFFER_STACK.to_vec(), 2, &you);
             if you.is(FType::ThinBlood) && buffer.len() > 0 {
@@ -848,7 +982,8 @@ pub fn get_shadow_attack(topper: &Topper, target: &String, strategy: &String) ->
     } else {
         if !strategy.eq("salve") {
             let you = topper.timeline.state.borrow_agent(target);
-            if you.get_flag(FType::Void)
+            if !should_void(topper)
+                || you.get_flag(FType::Void)
                 || you.get_flag(FType::Weakvoid)
                 || you.get_flag(FType::Snapped)
             {

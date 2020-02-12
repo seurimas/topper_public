@@ -494,6 +494,20 @@ lazy_static! {
 }
 
 lazy_static! {
+    static ref EPIDERMAL_SKIN_ORDER: Vec<FType> = vec![
+        FType::Indifference,
+        FType::Stuttering,
+        FType::BlurryVision,
+        FType::BurntEyes,
+        FType::Gloom,
+        FType::Anorexia,
+        FType::Gorged,
+        FType::EffusedBlood,
+        FType::Hypothermia,
+    ];
+}
+
+lazy_static! {
     pub static ref CALORIC_TORSO_ORDER: Vec<FType> = vec![FType::Frozen, FType::Shivering,];
 }
 
@@ -527,7 +541,7 @@ lazy_static! {
 lazy_static! {
     static ref MENDING_TORSO_ORDER: Vec<FType> = vec![
         FType::TorsoBruisedCritical,
-        FType::LightWound,
+        FType::Lightwound,
         FType::Ablaze,
         FType::CrackedRibs,
         FType::TorsoBruisedModerate,
@@ -593,11 +607,27 @@ lazy_static! {
 }
 
 lazy_static! {
+    static ref SOOTHING_SKIN_ORDER: Vec<FType> = vec![
+        FType::Whiplash,
+        FType::Backstrain,
+        FType::MuscleSpasms,
+        FType::Stiffness,
+        FType::SoreAnkle,
+        FType::SoreWrist,
+        FType::WeakGrip
+    ];
+}
+
+lazy_static! {
     pub static ref SALVE_CURE_ORDERS: HashMap<(String, String), Vec<FType>> = {
         let mut val = HashMap::new();
         val.insert(
             ("mending".into(), "skin".into()),
             MENDING_SKIN_ORDER.to_vec(),
+        );
+        val.insert(
+            ("mending".into(), "head".into()),
+            MENDING_HEAD_ORDER.to_vec(),
         );
         val.insert(
             ("mending".into(), "torso".into()),
@@ -636,6 +666,10 @@ lazy_static! {
             ("epidermal".into(), "head".into()),
             EPIDERMAL_HEAD_ORDER.to_vec(),
         );
+        val.insert(
+            ("epidermal".into(), "skin".into()),
+            EPIDERMAL_SKIN_ORDER.to_vec(),
+        );
 
         val.insert(
             ("caloric".into(), "torso".into()),
@@ -647,20 +681,21 @@ lazy_static! {
         );
 
         val.insert(
+            ("soothing".into(), "skin".into()),
+            SOOTHING_SKIN_ORDER.to_vec(),
+        );
+        val.insert(
             ("soothing".into(), "head".into()),
             SOOTHING_HEAD_ORDER.to_vec(),
         );
-
         val.insert(
             ("soothing".into(), "torso".into()),
             SOOTHING_TORSO_ORDER.to_vec(),
         );
-
         val.insert(
             ("soothing".into(), "legs".into()),
             SOOTHING_LEGS_ORDER.to_vec(),
         );
-
         val.insert(
             ("soothing".into(), "arms".into()),
             SOOTHING_ARMS_ORDER.to_vec(),

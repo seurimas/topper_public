@@ -32,6 +32,22 @@ fn format_target_state(state: &AgentState) -> String {
     )
 }
 
+fn format_target_balances(state: &AgentState) -> String {
+    format!(
+        "<magenta>Tree: {} <magenta>- Focus: {}",
+        if state.balanced(BType::Tree) {
+            "<green>Ready".to_string()
+        } else {
+            format!("{}", state.get_balance(BType::Tree))
+        },
+        if state.balanced(BType::Focus) {
+            "<blue>Ready".to_string()
+        } else {
+            format!("{}", state.get_balance(BType::Focus))
+        },
+    )
+}
+
 fn format_self_limbs(state: &AgentState) -> String {
     format!("<green>My Limbs: [{:?}]", state.limb_damage)
 }
@@ -52,14 +68,15 @@ pub fn get_battle_stats(topper: &mut Topper) -> BattleStats {
     let mut lines = Vec::new();
     let mut lines_available = 16;
     lines.push(format_self_state(&topper.timeline.state.get_me()));
+    lines.push(format_self_limbs(&topper.timeline.state.get_me()));
     if let Some(target) = &topper.target {
         lines.push(format_target_state(
             &topper.timeline.state.get_agent(target),
         ));
-    }
-    lines.push(format_self_limbs(&topper.timeline.state.get_me()));
-    if let Some(target) = &topper.target {
         lines.push(format_target_limbs(
+            &topper.timeline.state.get_agent(target),
+        ));
+        lines.push(format_target_balances(
             &topper.timeline.state.get_agent(target),
         ));
     }

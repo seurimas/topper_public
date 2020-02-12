@@ -76,7 +76,7 @@ pub fn get_limb_damage(what: &String) -> Result<LType, String> {
         "left arm" => Ok(LType::LeftArmDamage),
         "right arm" => Ok(LType::RightArmDamage),
         "left leg" => Ok(LType::LeftLegDamage),
-        "right leg" => Ok(LType::RightArmDamage),
+        "right leg" => Ok(LType::RightLegDamage),
         _ => Err(format!("Could not find damage for {}", what)),
     }
 }
@@ -277,7 +277,7 @@ pub enum FType {
 
     // Mending Torso
     TorsoBruisedCritical,
-    LightWound,
+    Lightwound,
     Ablaze,
     CrackedRibs,
     TorsoBruisedModerate,
@@ -311,6 +311,18 @@ pub enum FType {
     RightLegBruised,
     RightLegDislocated,
 
+    // Restoration Head
+    Voidgaze,
+    MauledFace,
+
+    // Restoration Torso
+    CollapsedLung,
+    SpinalRip,
+    BurntSkin,
+    CrushedChest,
+    Heatspear,
+    Deepwound,
+
     // Soothing
     Whiplash,   // Head
     Backstrain, // Torso
@@ -332,12 +344,16 @@ pub enum FType {
     Stun,
     Asleep,
 
-    // Uncurable
+    // Syssin Uncurable
     Void,
     Weakvoid,
     Backstabbed,
     NumbedSkin,
     MentalFatigue,
+
+    // Zealot Uncurable
+    InfernalSeal,
+    InfernalShroud,
 
     // Special
     Disrupted,
@@ -469,17 +485,6 @@ pub enum Hypnosis {
 #[derive(Clone, Default)]
 pub struct LimbSet([CType; LType::SIZE as usize], Option<LType>);
 
-#[derive(Debug, Clone, Default)]
-pub struct AgentState {
-    pub balances: [CType; BType::SIZE as usize],
-    pub stats: [CType; SType::SIZE as usize],
-    pub max_stats: [CType; SType::SIZE as usize],
-    pub flags: FlagSet,
-    pub limb_damage: LimbSet,
-    pub hypnosis_stack: Vec<Hypnosis>,
-    pub relapses: Vec<String>,
-}
-
 impl fmt::Debug for LimbSet {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut wrote = false;
@@ -532,6 +537,37 @@ impl fmt::Display for LimbSet {
     }
 }
 
+impl LimbSet {
+    pub fn rotate(&mut self, counter: bool) {
+        let left_arm = self.0[LType::LeftArmDamage as usize];
+        let right_arm = self.0[LType::RightArmDamage as usize];
+        let left_leg = self.0[LType::LeftLegDamage as usize];
+        let right_leg = self.0[LType::RightLegDamage as usize];
+        if counter {
+            self.0[LType::LeftArmDamage as usize] = right_arm;
+            self.0[LType::RightArmDamage as usize] = right_leg;
+            self.0[LType::RightLegDamage as usize] = left_leg;
+            self.0[LType::LeftLegDamage as usize] = left_arm;
+        } else {
+            self.0[LType::LeftArmDamage as usize] = left_leg;
+            self.0[LType::RightArmDamage as usize] = left_arm;
+            self.0[LType::RightLegDamage as usize] = right_arm;
+            self.0[LType::LeftLegDamage as usize] = right_leg;
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct AgentState {
+    pub balances: [CType; BType::SIZE as usize],
+    pub stats: [CType; SType::SIZE as usize],
+    pub max_stats: [CType; SType::SIZE as usize],
+    pub flags: FlagSet,
+    pub limb_damage: LimbSet,
+    pub hypnosis_stack: Vec<Hypnosis>,
+    pub relapses: Vec<String>,
+}
+
 impl PartialEq for AgentState {
     fn eq(&self, other: &Self) -> bool {
         let mut different = false;
@@ -576,6 +612,10 @@ impl AgentState {
 
     pub fn set_balance(&mut self, balance: BType, value: f32) {
         self.balances[balance as usize] = (value * BALANCE_SCALE) as CType;
+    }
+
+    pub fn get_balance(&self, balance: BType) -> f32 {
+        (self.balances[balance as usize] as f32) / (BALANCE_SCALE as f32)
     }
 
     pub fn balanced(&self, balance: BType) -> bool {
@@ -689,6 +729,10 @@ impl AgentState {
 
     pub fn complete_restoration(&mut self, damage: LType) {
         self.limb_damage.1 = None;
+    }
+
+    pub fn rotate_limbs(&mut self, counter: bool) {
+        self.limb_damage.rotate(counter);
     }
 }
 

@@ -6,6 +6,7 @@ use crate::types::*;
 use std::collections::HashMap;
 pub mod carnifex;
 pub mod syssin;
+pub mod zealot;
 
 pub fn handle_sent(command: &String, agent_states: &mut TimelineState) {
     syssin::handle_sent(command, agent_states);
@@ -23,6 +24,9 @@ pub fn handle_combat_action(
         }
         "Savagery" | "Deathlore" | "Warhound" => {
             carnifex::handle_combat_action(combat_action, agent_states, before, after)
+        }
+        "Purification" | "Zeal" | "Psionics" => {
+            zealot::handle_combat_action(combat_action, agent_states, before, after)
         }
         "Survival" => match combat_action.skill.as_ref() {
             "Focus" => {
@@ -125,10 +129,20 @@ lazy_static! {
     };
 }
 
+pub fn get_venom(affliction: FType) -> Option<&'static str> {
+    if let Some(venom) = AFFLICT_VENOMS.get(&affliction) {
+        Some(*venom)
+    } else {
+        None
+    }
+}
+
 pub fn get_venoms(afflictions: Vec<FType>, count: usize, target: &AgentState) -> Vec<&'static str> {
     let mut venoms = Vec::new();
     for affliction in afflictions.iter() {
-        if !target.is(*affliction) {
+        if !target.is(*affliction)
+            & !(*affliction == FType::Paresis && !target.is(FType::Paralysis))
+        {
             if let Some(venom) = AFFLICT_VENOMS.get(affliction) {
                 venoms.push(*venom);
             }
