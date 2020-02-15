@@ -295,10 +295,10 @@ mod timeline_tests {
                     target: "Benedicto".to_string(),
                     annotation: "".to_string(),
                 }),
+                Observation::Rebounds,
                 Observation::Devenoms("slike".into()),
                 Observation::Rebounds,
                 Observation::Devenoms("kalmia".into()),
-                Observation::Rebounds,
             ],
             prompt: Prompt::Blackout,
             time: 0,
@@ -397,7 +397,7 @@ mod timeline_tests {
 }
 
 lazy_static! {
-    static ref SUGGESTION: Regex = Regex::new(r"suggest (\w+) (.*)").unwrap();
+    static ref SUGGESTION: Regex = Regex::new(r"suggest (\w+) ([^;%]+)").unwrap();
 }
 
 lazy_static! {
@@ -671,12 +671,18 @@ lazy_static! {
 lazy_static! {
     static ref FIRE_STACK: Vec<FType> = vec![
         FType::Paresis,
-        FType::Shyness,
         FType::Clumsiness,
         FType::Asthma,
+        FType::Shyness,
         FType::Stupidity,
         FType::Allergies,
         FType::Vomiting,
+        FType::LeftLegBroken,
+        FType::LeftArmBroken,
+        FType::RightLegBroken,
+        FType::RightArmBroken,
+        FType::Voyria,
+        FType::Stuttering,
     ];
 }
 
@@ -780,12 +786,12 @@ lazy_static! {
 
 lazy_static! {
     static ref HARD_HYPNO: Vec<Hypnosis> = vec![
-        Hypnosis::Aff(FType::Lethargy),
-        Hypnosis::Aff(FType::Lethargy),
-        Hypnosis::Aff(FType::Impatience),
+        Hypnosis::Aff(FType::Hypochondria),
         Hypnosis::Aff(FType::Impatience),
         Hypnosis::Aff(FType::Loneliness),
-        Hypnosis::Aff(FType::Loneliness),
+        Hypnosis::Aff(FType::Hypochondria),
+        Hypnosis::Aff(FType::Impatience),
+        Hypnosis::Aff(FType::Vertigo),
         Hypnosis::Aff(FType::Impatience),
         Hypnosis::Aff(FType::Loneliness),
     ];
@@ -1023,7 +1029,11 @@ pub fn get_shadow_attack(topper: &Topper, target: &String, strategy: &String) ->
                 || you.get_flag(FType::Weakvoid)
                 || you.get_flag(FType::Snapped)
             {
-                format!(";;shadow sleight dissipate {}", target)
+                if you.lock_duration().is_some() {
+                    format!(";;shadow sleight blank {}", target)
+                } else {
+                    format!(";;shadow sleight dissipate {}", target)
+                }
             } else {
                 format!("%%qs shadow sleight void {}", target)
             }

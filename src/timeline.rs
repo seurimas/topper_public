@@ -247,9 +247,9 @@ impl TimelineState {
                 self.finish_agent_restore(&self.me.clone(), what)?;
             }
             Observation::Relapse(who) => {
-                let mut you = self.get_agent(who);
-                apply_or_infer_relapse(&mut you, after)?;
-                self.set_agent(who, you);
+                //let mut you = self.get_agent(who);
+                //apply_or_infer_relapse(&mut you, after)?;
+                //self.set_agent(who, you);
             }
             _ => {}
         }
@@ -396,7 +396,7 @@ pub fn apply_weapon_hits(
     if first_person {
         for i in 0..observations.len() {
             if let Some(Observation::Devenoms(venom)) = observations.get(i) {
-                if let Some(Observation::Rebounds) = observations.get(i + 1) {
+                if let Some(Observation::Rebounds) = observations.get(i - 1) {
                     apply_venom(attacker, venom)?;
                 } else {
                     if let Some(Observation::PurgeVenom(_, v2)) = observations.get(i + 1) {
