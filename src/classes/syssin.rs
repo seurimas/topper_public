@@ -1,6 +1,6 @@
 use crate::actions::*;
 use crate::alpha_beta::*;
-use crate::classes::{get_venom, get_venoms, AFFLICT_VENOMS};
+use crate::classes::{add_buffers, get_venom, get_venoms, AFFLICT_VENOMS};
 use crate::curatives::*;
 use crate::io::*;
 use crate::observables::*;
@@ -502,6 +502,11 @@ pub fn handle_combat_action(
             agent_states.set_agent(&combat_action.caster, me);
             agent_states.set_agent(&combat_action.target, you);
         }
+        "Shrugging" => {
+            let mut me = agent_states.get_agent(&combat_action.caster);
+            apply_or_infer_balance(&mut me, (BType::ClassCure1, 20.0), after);
+            agent_states.set_agent(&combat_action.caster, me);
+        }
         "Bite" => {
             let mut me = agent_states.get_agent(&combat_action.caster);
             let mut you = agent_states.get_agent(&combat_action.target);
@@ -649,6 +654,21 @@ lazy_static! {
 }
 
 lazy_static! {
+    static ref DEC_STACK: Vec<FType> = vec![
+        FType::Clumsiness,
+        FType::Weariness,
+        FType::Asthma,
+        FType::Stupidity,
+        FType::Paresis,
+        FType::Allergies,
+        FType::Vomiting,
+        FType::LeftLegBroken,
+        FType::LeftArmBroken,
+        FType::Shyness,
+    ];
+}
+
+lazy_static! {
     static ref FIRE_STACK: Vec<FType> = vec![
         FType::Paresis,
         FType::Shyness,
@@ -662,10 +682,10 @@ lazy_static! {
 
 lazy_static! {
     static ref PHYS_STACK: Vec<FType> = vec![
-        FType::Stupidity,
+        FType::Paresis,
         FType::Clumsiness,
         FType::Asthma,
-        FType::Paresis,
+        FType::Stupidity,
         FType::Allergies,
         FType::Dizziness,
         FType::Vomiting,
@@ -740,9 +760,15 @@ lazy_static! {
 }
 
 lazy_static! {
+    static ref LOCK_BUFFER_STACK: Vec<FType> =
+        vec![FType::Clumsiness, FType::Stupidity, FType::Paresis];
+}
+
+lazy_static! {
     static ref STACKING_STRATEGIES: HashMap<String, Vec<FType>> = {
         let mut val = HashMap::new();
         val.insert("coag".into(), COAG_STACK.to_vec());
+        val.insert("dec".into(), DEC_STACK.to_vec());
         val.insert("phys".into(), PHYS_STACK.to_vec());
         val.insert("fire".into(), FIRE_STACK.to_vec());
         val.insert("aggro".into(), AGGRO_STACK.to_vec());
@@ -823,6 +849,19 @@ fn should_void(topper: &Topper) -> bool {
     !check_config(topper, &"NO_VOID".to_string())
 }
 
+fn needs_shrugging(topper: &Topper) -> bool {
+    let me = topper
+        .timeline
+        .state
+        .borrow_agent(&topper.timeline.who_am_i());
+    me.balanced(BType::ClassCure1)
+        && me.is(FType::Asthma)
+        && me.is(FType::Anorexia)
+        && me.is(FType::Slickness)
+        && (!me.balanced(BType::Tree) || me.is(FType::Paresis) || me.is(FType::Paralysis))
+        && (!me.balanced(BType::Focus) || me.is(FType::Impatience) || me.is(FType::Stupidity))
+}
+
 fn go_for_thin_blood(topper: &Topper, you: &AgentState, strategy: &String) -> bool {
     let mut buffer_count = 0;
     if you.is(FType::Lethargy) {
@@ -839,9 +878,10 @@ fn go_for_thin_blood(topper: &Topper, you: &AgentState, strategy: &String) -> bo
 }
 
 fn should_lock(you: &AgentState, lockers: &Vec<&str>) -> bool {
-    (you.is(FType::Impatience) || you.is(FType::Stupidity) || !you.balanced(BType::Focus))
-        && (you.is(FType::Paresis) || you.is(FType::Paralysis) || !you.balanced(BType::Tree))
+    (!you.can_focus(true) || you.is(FType::Stupidity) || you.get_balance(BType::Focus) > 2.5)
+        && (!you.can_tree(true) || you.get_balance(BType::Tree) > 2.5)
         && lockers.len() < 3
+        && lockers.len() > 0
 }
 
 pub fn call_venom(target: &String, v1: &String) -> String {
@@ -889,7 +929,9 @@ pub fn get_slit_action(topper: &Topper, target: &String, v1: String) -> String {
 pub fn get_balance_attack(topper: &Topper, target: &String, strategy: &String) -> String {
     if let Some(stack) = STACKING_STRATEGIES.get(strategy) {
         let you = topper.timeline.state.borrow_agent(target);
-        if get_equil_attack(topper, target, strategy).starts_with("seal") {
+        if needs_shrugging(&topper) {
+            return "shrug asthma".to_string();
+        } else if get_equil_attack(topper, target, strategy).starts_with("seal") {
             "".into()
         } else if you.is(FType::Shield) || you.is(FType::Rebounding) {
             let defense = if you.is(FType::Shield) {
@@ -905,40 +947,34 @@ pub fn get_balance_attack(topper: &Topper, target: &String, strategy: &String) -
         } else {
             println!("{}", you.flags);
             let mut venoms = get_venoms(stack.to_vec(), 2, &you);
-            if go_for_thin_blood(topper, &you, strategy) {
-                println!("Thinning!");
-                if you.is(FType::HardenedSkin) {
-                    return format!("flay {} fangbarrier", target);
-                } else {
-                    return format!("bite {} scytherus", target);
-                }
-            }
             let lockers = get_venoms(SOFT_STACK.to_vec(), 3, &you);
+            let mut priority_buffer = false;
             if should_lock(&you, &lockers) {
                 println!("Locking!");
-                if lockers.len() == 1 && venoms.first() != lockers.first() {
-                    if let Some(vl) = lockers.first() {
-                        venoms.push(vl);
-                    }
-                } else if lockers.len() == 2 {
-                    venoms = lockers;
-                }
+                add_buffers(&mut venoms, &lockers);
+                priority_buffer = true;
             } else if lockers.len() == 0 {
-                if you.is(FType::Loneliness) && !you.is(FType::Recklessness) {
-                    if let Some(venom) = get_venom(FType::Recklessness) {
-                        venoms.push(venom);
+                let buffer = get_venoms(LOCK_BUFFER_STACK.to_vec(), 2, &you);
+                println!("Lock Buffering! {:?} {:?}", venoms, buffer);
+                add_buffers(&mut venoms, &buffer);
+                priority_buffer = buffer.len() > 0;
+            }
+            if !priority_buffer {
+                if go_for_thin_blood(topper, &you, strategy) {
+                    println!("Thinning!");
+                    if you.is(FType::HardenedSkin) {
+                        return format!("flay {} fangbarrier", target);
+                    } else {
+                        return format!("bite {} scytherus", target);
                     }
                 }
-            }
-            let buffer = get_venoms(THIN_BUFFER_STACK.to_vec(), 2, &you);
-            if you.is(FType::ThinBlood) && buffer.len() > 0 {
-                println!("Buffering! {:?}", venoms);
-                if buffer.len() == 1 && venoms.first() != buffer.first() {
-                    if let Some(vb) = buffer.first() {
-                        venoms.push(vb);
-                    }
-                } else if buffer.len() == 2 {
-                    venoms = buffer;
+                let mut buffer = get_venoms(THIN_BUFFER_STACK.to_vec(), 2, &you);
+                if you.lock_duration().map_or(false, |dur| dur > 10.0) && !you.is(FType::Voyria) {
+                    buffer.insert(buffer.len(), "voyria");
+                }
+                if you.is(FType::ThinBlood) && buffer.len() > 0 {
+                    println!("Buffering! {:?} {:?}", venoms, buffer);
+                    add_buffers(&mut venoms, &buffer);
                 }
             }
             let v1 = venoms.pop();
@@ -987,12 +1023,12 @@ pub fn get_shadow_attack(topper: &Topper, target: &String, strategy: &String) ->
                 || you.get_flag(FType::Weakvoid)
                 || you.get_flag(FType::Snapped)
             {
-                format!("shadow sleight dissipate {}", target)
+                format!(";;shadow sleight dissipate {}", target)
             } else {
-                format!("shadow sleight void {}", target)
+                format!("%%qs shadow sleight void {}", target)
             }
         } else {
-            format!("shadow sleight abrasion {}", target)
+            format!(";;shadow sleight abrasion {}", target)
         }
     }
 }
@@ -1027,7 +1063,7 @@ pub fn get_attack(topper: &Topper, target: &String, strategy: &String) -> String
         attack = format!("{};;{}", attack, equil);
     }
     if shadow != "" {
-        attack = format!("{}%%qs {}", attack, shadow);
+        attack = format!("{}{}", attack, shadow);
     }
     attack
 }

@@ -964,9 +964,9 @@ impl FirstAid {
         // if let Some(elixir) = AFFLICTION_ELIXIRS.get(aff) {
         //     format!("sip {}", elixir)
         // }
-        if self.use_focus && MENTAL_AFFLICTIONS.to_vec().contains(aff) && state.can_focus() {
+        if self.use_focus && MENTAL_AFFLICTIONS.to_vec().contains(aff) && state.can_focus(false) {
             Some(format!("focus"))
-        } else if self.use_tree && state.can_tree() {
+        } else if self.use_tree && state.can_tree(false) {
             Some(format!("touch tree"))
         } else {
             None

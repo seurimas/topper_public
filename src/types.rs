@@ -22,6 +22,10 @@ pub enum BType {
     Smoke,
     Focus,
     Tree,
+    Renew,
+
+    // Misc
+    ClassCure1,
 
     // Timers
     Hypnosis,
@@ -359,6 +363,22 @@ pub enum FType {
     Disrupted,
     Fear,
 
+    // Writhes
+    WritheArmpitlock,
+    WritheBind,
+    WritheGrappled,
+    WritheGunk,
+    WritheHoist,
+    WritheImpaled,
+    WritheLure,
+    WritheNecklock,
+    WritheRopes,
+    WritheStasis,
+    WritheThighlock,
+    WritheTransfix,
+    WritheVines,
+    WritheWeb,
+
     SIZE,
 }
 
@@ -695,15 +715,15 @@ impl AgentState {
         earliest_escape.map(|escape| (escape as f32) / BALANCE_SCALE)
     }
 
-    pub fn can_tree(&self) -> bool {
+    pub fn can_tree(&self, ignore_bal: bool) -> bool {
         !self.is(FType::Paresis)
             && !self.is(FType::Paralysis)
             && !(self.is(FType::LeftArmBroken) && self.is(FType::RightArmBroken))
-            && self.balanced(BType::Tree)
+            && (ignore_bal || self.balanced(BType::Tree))
     }
 
-    pub fn can_focus(&self) -> bool {
-        !self.is(FType::Impatience) && self.balanced(BType::Focus)
+    pub fn can_focus(&self, ignore_bal: bool) -> bool {
+        !self.is(FType::Impatience) && (ignore_bal || self.balanced(BType::Focus))
     }
 
     pub fn push_toxin(&mut self, venom: String) {

@@ -16,6 +16,7 @@ pub fn handle_combat_action(
         "Fitness" => {
             let mut me = agent_states.get_agent(&combat_action.caster);
             apply_or_infer_cures(&mut me, vec![FType::Asthma], after)?;
+            apply_or_infer_balance(&mut me, (BType::ClassCure1, 12.0), after);
             agent_states.set_agent(&combat_action.caster, me);
         }
         _ => {}

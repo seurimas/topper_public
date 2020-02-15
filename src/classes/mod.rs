@@ -123,7 +123,7 @@ lazy_static! {
         val.insert("selarnia".into(), FType::Squelched);
         val.insert("gecko".into(), FType::Slickness);
         val.insert("scytherus".into(), FType::ThinBlood);
-        val.insert("ouabain".into(), FType::Pacifism);
+        val.insert("ouabain".into(), FType::Peace);
         val.insert("aconite".into(), FType::Stupidity);
         val
     };
@@ -140,8 +140,7 @@ pub fn get_venom(affliction: FType) -> Option<&'static str> {
 pub fn get_venoms(afflictions: Vec<FType>, count: usize, target: &AgentState) -> Vec<&'static str> {
     let mut venoms = Vec::new();
     for affliction in afflictions.iter() {
-        if !target.is(*affliction)
-            & !(*affliction == FType::Paresis && !target.is(FType::Paralysis))
+        if !target.is(*affliction) & !(*affliction == FType::Paresis && target.is(FType::Paralysis))
         {
             if let Some(venom) = AFFLICT_VENOMS.get(affliction) {
                 venoms.push(*venom);
@@ -152,6 +151,21 @@ pub fn get_venoms(afflictions: Vec<FType>, count: usize, target: &AgentState) ->
         }
     }
     venoms
+}
+
+pub fn add_buffers<'s>(ready: &mut Vec<&'s str>, buffers: &Vec<&'s str>) {
+    for buffer in buffers.iter() {
+        let mut found = false;
+        for venom in ready.iter() {
+            if venom == buffer {
+                found = true;
+                break;
+            }
+        }
+        if !found {
+            ready.push(buffer);
+        }
+    }
 }
 
 pub fn get_attack(topper: &Topper, target: &String, strategy: &String) -> String {
