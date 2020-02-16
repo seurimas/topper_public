@@ -60,6 +60,22 @@ pub fn handle_combat_action(
             }
             _ => Ok(()),
         },
+        "Hunting" => match combat_action.skill.as_ref() {
+            "Regenerate" => {
+                let mut me = agent_states.get_agent(&combat_action.caster);
+                me.regenerate();
+                apply_or_infer_balance(&mut me, (BType::Regenerate, 15.0), after);
+                agent_states.set_agent(&combat_action.caster, me);
+                Ok(())
+            }
+            "Renew" => {
+                let mut me = agent_states.get_agent(&combat_action.caster);
+                apply_or_infer_balance(&mut me, (BType::Renew, 20.0), after);
+                agent_states.set_agent(&combat_action.caster, me);
+                Ok(())
+            }
+            _ => Ok(()),
+        },
         _ => Ok(()),
     }
 }

@@ -17,6 +17,7 @@ pub struct PromptStats {
     pub equilibrium: bool,
     pub balance: bool,
     pub shadow: bool,
+    pub prone: bool,
 }
 
 #[derive(Debug, Deserialize, PartialEq, Clone)]
@@ -232,7 +233,7 @@ impl TimelineState {
                 self.set_flag_for_agent(who, &"Shield".to_string(), false)?;
             }
             Observation::LostFangBarrier(who) => {
-                self.set_flag_for_agent(who, &"HardenedSkin".to_string(), false)?;
+                self.set_flag_for_agent(who, &"Fangbarrier".to_string(), false)?;
             }
             Observation::Gained(who, defence) => {
                 self.set_flag_for_agent(who, defence, true)?;
@@ -247,9 +248,9 @@ impl TimelineState {
                 self.finish_agent_restore(&self.me.clone(), what)?;
             }
             Observation::Relapse(who) => {
-                //let mut you = self.get_agent(who);
-                //apply_or_infer_relapse(&mut you, after)?;
-                //self.set_agent(who, you);
+                let mut you = self.get_agent(who);
+                apply_or_infer_relapse(&mut you, after)?;
+                self.set_agent(who, you);
             }
             _ => {}
         }
@@ -270,6 +271,9 @@ impl TimelineState {
                 let next = after.remove(0);
                 before.push(next);
             }
+        }
+        if let Prompt::Stats(prompt) = &slice.prompt {
+            self.set_flag_for_agent(&self.me.clone(), &"prone".to_string(), prompt.prone)?;
         }
         Ok(())
     }
@@ -317,7 +321,7 @@ lazy_static! {
         val.set_flag(FType::Vigor, true);
         val.set_flag(FType::Rebounding, true);
         val.set_flag(FType::Insomnia, true);
-        val.set_flag(FType::HardenedSkin, true);
+        val.set_flag(FType::Fangbarrier, true);
         val.set_flag(FType::Energetic, true);
         val
     };

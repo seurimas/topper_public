@@ -572,10 +572,10 @@ pub fn handle_combat_action(
                     you.set_flag(FType::Rebounding, false);
                 }
                 "fangbarrier" => {
-                    you.set_flag(FType::HardenedSkin, false);
+                    you.set_flag(FType::Fangbarrier, false);
                 }
                 "failure-fangbarrier" => {
-                    you.set_flag(FType::HardenedSkin, false);
+                    you.set_flag(FType::Fangbarrier, false);
                 }
                 "shield" => {
                     you.set_flag(FType::Shield, false);
@@ -767,7 +767,7 @@ lazy_static! {
 
 lazy_static! {
     static ref LOCK_BUFFER_STACK: Vec<FType> =
-        vec![FType::Clumsiness, FType::Stupidity, FType::Paresis];
+        vec![FType::Paresis, FType::Stupidity, FType::Clumsiness];
 }
 
 lazy_static! {
@@ -855,6 +855,34 @@ fn should_void(topper: &Topper) -> bool {
     !check_config(topper, &"NO_VOID".to_string())
 }
 
+fn should_bedazzle(topper: &Topper) -> bool {
+    let me = topper
+        .timeline
+        .state
+        .borrow_agent(&topper.timeline.who_am_i());
+    me.is(FType::LeftArmBroken) && !me.is(FType::RightArmBroken)
+}
+
+fn should_regenerate(topper: &Topper) -> bool {
+    let me = topper
+        .timeline
+        .state
+        .borrow_agent(&topper.timeline.who_am_i());
+    if let Some((_limb, damage, regenerating)) = me.get_restoring() {
+        !regenerating && damage > 4000
+    } else {
+        false
+    }
+}
+
+fn needs_restore(topper: &Topper) -> bool {
+    let me = topper
+        .timeline
+        .state
+        .borrow_agent(&topper.timeline.who_am_i());
+    me.restore_count() < 3 && me.is(FType::Prone) && me.get_balance(BType::Salve) > 1.5
+}
+
 fn needs_shrugging(topper: &Topper) -> bool {
     let me = topper
         .timeline
@@ -879,7 +907,7 @@ fn go_for_thin_blood(topper: &Topper, you: &AgentState, strategy: &String) -> bo
     if you.is(FType::Allergies) {
         buffer_count = buffer_count + 1;
     }
-    (buffer_count >= 2 || (buffer_count >= 1 && !you.is(FType::HardenedSkin)))
+    (buffer_count >= 2 || (buffer_count >= 1 && !you.is(FType::Fangbarrier)))
         && !you.is(FType::ThinBlood)
 }
 
@@ -937,6 +965,8 @@ pub fn get_balance_attack(topper: &Topper, target: &String, strategy: &String) -
         let you = topper.timeline.state.borrow_agent(target);
         if needs_shrugging(&topper) {
             return "shrug asthma".to_string();
+        } else if needs_restore(&topper) {
+            return "restore".to_string();
         } else if get_equil_attack(topper, target, strategy).starts_with("seal") {
             "".into()
         } else if you.is(FType::Shield) || you.is(FType::Rebounding) {
@@ -968,7 +998,7 @@ pub fn get_balance_attack(topper: &Topper, target: &String, strategy: &String) -
             if !priority_buffer {
                 if go_for_thin_blood(topper, &you, strategy) {
                     println!("Thinning!");
-                    if you.is(FType::HardenedSkin) {
+                    if you.is(FType::Fangbarrier) {
                         return format!("flay {} fangbarrier", target);
                     } else {
                         return format!("bite {} scytherus", target);
@@ -985,7 +1015,10 @@ pub fn get_balance_attack(topper: &Topper, target: &String, strategy: &String) -
             }
             let v1 = venoms.pop();
             let v2 = venoms.pop();
-            if you.is(FType::Hypersomnia) && !you.is(FType::Asleep) {
+            if should_bedazzle(&topper) {
+                println!("Bedazzling!");
+                return format!("bedazzle {}", target);
+            } else if you.is(FType::Hypersomnia) && !you.is(FType::Asleep) {
                 return get_dstab_action(
                     topper,
                     target,
@@ -994,7 +1027,7 @@ pub fn get_balance_attack(topper: &Topper, target: &String, strategy: &String) -
                 );
             } else if let (Some(v1), Some(v2)) = (v1, v2) {
                 return get_dstab_action(topper, target, &v1.to_string(), &v2.to_string());
-            } else if you.is(FType::HardenedSkin) {
+            } else if you.is(FType::Fangbarrier) {
                 return format!("flay {} fangbarrier", target);
             } else {
                 return format!("bite {} camus", target);
@@ -1002,7 +1035,7 @@ pub fn get_balance_attack(topper: &Topper, target: &String, strategy: &String) -
         }
     } else if strategy == "damage" {
         let you = topper.timeline.state.borrow_agent(target);
-        if you.is(FType::HardenedSkin) {
+        if you.is(FType::Fangbarrier) {
             return format!("flay {} fangbarrier", target);
         } else {
             return format!("bite {} camus", target);
@@ -1057,7 +1090,10 @@ pub fn get_snap(topper: &Topper, target: &String, strategy: &String) -> bool {
 }
 
 pub fn get_attack(topper: &Topper, target: &String, strategy: &String) -> String {
-    let balance = get_balance_attack(topper, target, strategy);
+    let mut balance = get_balance_attack(topper, target, strategy);
+    if should_regenerate(&topper) {
+        balance = format!("regenerate;;{}", balance);
+    }
     let equil = get_equil_attack(topper, target, strategy);
     let shadow = get_shadow_attack(topper, target, strategy);
     let should_snap = get_snap(topper, target, strategy);
@@ -1247,7 +1283,7 @@ pub fn bite_one(affliction: FType) -> StateAction {
         initial: vec![
             alive(),
             target(alive()),
-            target(lacks(FType::HardenedSkin)),
+            target(lacks(FType::Fangbarrier)),
             target(lacks(FType::Shield)),
             has(BType::Balance),
             has(BType::Equil),
@@ -1275,7 +1311,7 @@ pub fn flay_one(defense: FType) -> StateAction {
 }
 
 pub fn flay_action() -> StateAction {
-    let flayable = vec![FType::Shield, FType::Rebounding, FType::HardenedSkin];
+    let flayable = vec![FType::Shield, FType::Rebounding, FType::Fangbarrier];
     StateAction {
         name: "flay".into(),
         changes: vec![

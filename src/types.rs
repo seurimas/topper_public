@@ -23,6 +23,7 @@ pub enum BType {
     Focus,
     Tree,
     Renew,
+    Regenerate,
 
     // Misc
     ClassCure1,
@@ -139,7 +140,7 @@ pub enum FType {
     Blindness,
     Thirdeye,
     Daydreams,
-    HardenedSkin,
+    Fangbarrier,
     Waterbreathing,
     // Reishi
     Rebounding,
@@ -348,6 +349,9 @@ pub enum FType {
     Stun,
     Asleep,
 
+    // Monk Uncurable
+    NumbArms,
+
     // Syssin Uncurable
     Void,
     Weakvoid,
@@ -362,6 +366,7 @@ pub enum FType {
     // Special
     Disrupted,
     Fear,
+    Prone,
 
     // Writhes
     WritheArmpitlock,
@@ -503,7 +508,7 @@ pub enum Hypnosis {
 }
 
 #[derive(Clone, Default)]
-pub struct LimbSet([CType; LType::SIZE as usize], Option<LType>);
+pub struct LimbSet([CType; LType::SIZE as usize], Option<LType>, bool);
 
 impl fmt::Debug for LimbSet {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -557,6 +562,15 @@ impl fmt::Display for LimbSet {
     }
 }
 
+lazy_static! {
+    static ref BROKEN_LIMBS: Vec<FType> = vec![
+        FType::LeftLegBroken,
+        FType::RightLegBroken,
+        FType::LeftArmBroken,
+        FType::RightArmBroken,
+    ];
+}
+
 impl LimbSet {
     pub fn rotate(&mut self, counter: bool) {
         let left_arm = self.0[LType::LeftArmDamage as usize];
@@ -573,6 +587,16 @@ impl LimbSet {
             self.0[LType::RightArmDamage as usize] = left_arm;
             self.0[LType::RightLegDamage as usize] = right_arm;
             self.0[LType::LeftLegDamage as usize] = right_leg;
+        }
+    }
+
+    pub fn damaged(&self, broken: FType) -> bool {
+        match broken {
+            FType::LeftArmBroken => self.0[LType::LeftArmDamage as usize] > 3333,
+            FType::RightArmBroken => self.0[LType::RightArmDamage as usize] > 3333,
+            FType::LeftLegBroken => self.0[LType::LeftLegDamage as usize] > 3333,
+            FType::RightLegBroken => self.0[LType::RightLegDamage as usize] > 3333,
+            _ => false,
         }
     }
 }
@@ -719,6 +743,7 @@ impl AgentState {
         !self.is(FType::Paresis)
             && !self.is(FType::Paralysis)
             && !(self.is(FType::LeftArmBroken) && self.is(FType::RightArmBroken))
+            && !self.is(FType::NumbArms)
             && (ignore_bal || self.balanced(BType::Tree))
     }
 
@@ -747,12 +772,35 @@ impl AgentState {
         self.set_balance(BType::Restoration, 4.0);
     }
 
+    pub fn get_restoring(&self) -> Option<(LType, CType, bool)> {
+        if let Some(limb) = self.limb_damage.1 {
+            Some((limb, self.limb_damage.0[limb as usize], self.limb_damage.2))
+        } else {
+            None
+        }
+    }
+
     pub fn complete_restoration(&mut self, damage: LType) {
         self.limb_damage.1 = None;
+        self.limb_damage.2 = false;
+    }
+
+    pub fn regenerate(&mut self) {
+        self.limb_damage.2 = true;
     }
 
     pub fn rotate_limbs(&mut self, counter: bool) {
         self.limb_damage.rotate(counter);
+    }
+
+    pub fn restore_count(&self) -> CType {
+        let mut count = 0;
+        for limb in BROKEN_LIMBS.to_vec() {
+            if self.is(limb) && !self.limb_damage.damaged(limb) {
+                count += 1;
+            }
+        }
+        count
     }
 }
 

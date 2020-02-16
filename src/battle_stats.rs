@@ -64,6 +64,27 @@ fn format_combat_action(combat_action: &CombatAction) -> Vec<String> {
     lines
 }
 
+fn push_warnings(lines: &mut Vec<String>, state: &AgentState) {
+    if let Some(duration) = state.lock_duration() {
+        lines.push(format!("<magenta>YOU ARE LOCKED: {} seconds!", duration));
+    }
+    if state.is(FType::Paralysis) {
+        lines.push(format!("<yellow>You are paralyzed!"));
+    }
+    if state.is(FType::LeftArmBroken) && state.is(FType::RightArmBroken) {
+        lines.push(format!("<red>Your arms are broken!"));
+    } else if state.is(FType::LeftArmBroken) {
+        lines.push(format!("<red>Your left arm is broken!"));
+    }
+    if state.is(FType::Prone)
+        && (state.is(FType::LeftLegBroken)
+            || state.is(FType::RightLegBroken)
+            || state.is(FType::Paralysis))
+    {
+        lines.push(format!("<magenta>YOU ARE FLOORED!"));
+    }
+}
+
 pub fn get_battle_stats(topper: &mut Topper) -> BattleStats {
     let mut lines = Vec::new();
     let mut lines_available = 16;
@@ -80,6 +101,7 @@ pub fn get_battle_stats(topper: &mut Topper) -> BattleStats {
             &topper.timeline.state.get_agent(target),
         ));
     }
+    push_warnings(&mut lines, &topper.timeline.state.get_me());
     for timeslice in topper.timeline.slices.iter().rev() {
         for observation in timeslice.observations.iter().rev() {
             if lines_available <= 0 {
