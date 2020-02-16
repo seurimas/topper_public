@@ -57,7 +57,7 @@ fn format_target_limbs(state: &AgentState) -> String {
 }
 
 fn format_combat_action(combat_action: &CombatAction) -> Vec<String> {
-    let mut lines = vec![format!(
+    let lines = vec![format!(
         "{} ={}= @ {}",
         combat_action.caster, combat_action.skill, combat_action.target
     )];
@@ -116,7 +116,7 @@ pub fn get_battle_stats(topper: &mut Topper) -> BattleStats {
                         continue;
                     }
                 }
-                let mut new_lines = format_combat_action(combat_action);
+                let new_lines = format_combat_action(combat_action);
                 for line in new_lines.iter().rev() {
                     if lines_available > 0 {
                         lines.push(line.to_string());

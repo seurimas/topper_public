@@ -1,4 +1,3 @@
-use crate::actions::*;
 use crate::timeline::*;
 use crate::types::*;
 use std::collections::HashMap;
@@ -70,36 +69,6 @@ mod timeline_tests {
         assert_eq!(bene_state.get_flag(FType::LeftArmBroken), false);
     }
 }
-pub fn heal_action(name: String, heal: CType) -> StateAction {
-    StateAction {
-        name,
-        changes: vec![
-            heal_change(heal),
-            balance_change(BType::Elixir, 6.0),
-            tick(SType::Sips),
-        ],
-        initial: vec![alive(), target(alive()), has(BType::Elixir)],
-    }
-}
-
-pub fn shield_action(name: String) -> StateAction {
-    StateAction {
-        name,
-        changes: vec![
-            balance_change(BType::Equil, 4.0),
-            flag_me(FType::Shield, true),
-            tick(SType::Shields),
-        ],
-        initial: vec![
-            alive(),
-            target(alive()),
-            lacks(FType::Shield),
-            has(BType::Balance),
-            has(BType::Equil),
-        ],
-    }
-}
-
 fn noop() -> Box<Fn(&mut AgentState)> {
     Box::new(|_me| {})
 }
@@ -118,7 +87,7 @@ pub fn top_aff(who: &AgentState, afflictions: Vec<FType>) -> Option<FType> {
     top
 }
 
-pub fn add_in_order(
+/*pub fn add_in_order(
     afflictions: Vec<FType>,
 ) -> Box<Fn(&mut AgentState) -> Box<Fn(&mut AgentState)>> {
     Box::new(move |me| {
@@ -132,7 +101,7 @@ pub fn add_in_order(
         }
         revert
     })
-}
+}*/
 
 pub fn remove_in_order(
     afflictions: Vec<FType>,
@@ -148,18 +117,6 @@ pub fn remove_in_order(
         }
         revert
     })
-}
-
-pub fn cure_in_order(afflictions: Vec<FType>) -> StateChange {
-    apply_me(remove_in_order(afflictions))
-}
-
-pub fn strip_in_order(defenses: Vec<FType>) -> StateChange {
-    apply_you(remove_in_order(defenses))
-}
-
-pub fn afflict_in_order(afflictions: Vec<FType>) -> StateChange {
-    apply_you(add_in_order(afflictions))
 }
 
 lazy_static! {
@@ -199,90 +156,6 @@ lazy_static! {
 
 lazy_static! {
     static ref AFFLICTIONS: Vec<FType> = vec![];
-}
-
-pub fn focus() -> StateAction {
-    StateAction {
-        name: "focus".into(),
-        changes: vec![
-            cure_in_order(MENTAL_AFFLICTIONS.to_vec()),
-            balance_change(BType::Focus, 5.0),
-        ],
-        initial: vec![
-            alive(),
-            target(alive()),
-            has(BType::Focus),
-            lacks(FType::Impatience),
-            some(MENTAL_AFFLICTIONS.to_vec()),
-        ],
-    }
-}
-
-pub fn tree() -> StateAction {
-    StateAction {
-        name: "touch tree".into(),
-        changes: vec![
-            balance_change(BType::Tree, 11.0),
-            cure_in_order(AFFLICTIONS.to_vec()),
-        ],
-        initial: vec![
-            alive(),
-            target(alive()),
-            has(BType::Tree),
-            lacks(FType::Paralysis),
-        ],
-    }
-}
-
-pub fn herb_action(name: String, afflictions: Vec<FType>) -> StateAction {
-    StateAction {
-        name: format!("eat {}", name),
-        changes: vec![
-            cure_in_order(afflictions.clone()),
-            balance_change(BType::Pill, 2.0),
-        ],
-        initial: vec![
-            alive(),
-            target(alive()),
-            has(BType::Pill),
-            lacks(FType::Anorexia),
-            some(afflictions),
-        ],
-    }
-}
-
-pub fn salve_action(name: String, location: String, afflictions: Vec<FType>) -> StateAction {
-    StateAction {
-        name: format!("apply {} to {}", name, location),
-        changes: vec![
-            cure_in_order(afflictions.clone()),
-            balance_change(BType::Salve, 2.0),
-        ],
-        initial: vec![
-            alive(),
-            target(alive()),
-            has(BType::Salve),
-            lacks(FType::Slickness),
-            some(afflictions),
-        ],
-    }
-}
-
-pub fn smoke_action(name: String, afflictions: Vec<FType>) -> StateAction {
-    StateAction {
-        name: format!("smoke {}", name),
-        changes: vec![
-            cure_in_order(afflictions.clone()),
-            balance_change(BType::Smoke, 2.0),
-        ],
-        initial: vec![
-            alive(),
-            target(alive()),
-            has(BType::Smoke),
-            lacks(FType::Asthma),
-            some(afflictions),
-        ],
-    }
 }
 
 lazy_static! {
@@ -444,34 +317,6 @@ lazy_static! {
         }
         val
     };
-}
-
-pub fn antipsychotic() -> StateAction {
-    herb_action("antipsychotic".into(), ANTIPSYCHOTIC_ORDER.to_vec())
-}
-
-pub fn euphoriant() -> StateAction {
-    herb_action("euphoriant".into(), EUPHORIANT_ORDER.to_vec())
-}
-
-pub fn decongestant() -> StateAction {
-    herb_action("decongestant".into(), DECONGESTANT_ORDER.to_vec())
-}
-
-pub fn depressant() -> StateAction {
-    herb_action("depressant".into(), DEPRESSANT_ORDER.to_vec())
-}
-
-pub fn coagulation() -> StateAction {
-    herb_action("coagulation".into(), COAGULATION_ORDER.to_vec())
-}
-
-pub fn steroid() -> StateAction {
-    herb_action("steroid".into(), STEROID_ORDER.to_vec())
-}
-
-pub fn opiate() -> StateAction {
-    herb_action("opiate".into(), OPIATE_ORDER.to_vec())
 }
 
 lazy_static! {
@@ -704,102 +549,6 @@ lazy_static! {
     };
 }
 
-pub fn epidermal_head() -> StateAction {
-    salve_action(
-        "epidermal".into(),
-        "head".into(),
-        EPIDERMAL_HEAD_ORDER.to_vec(),
-    )
-}
-
-pub fn epidermal_torso() -> StateAction {
-    salve_action(
-        "epidermal".into(),
-        "torso".into(),
-        EPIDERMAL_TORSO_ORDER.to_vec(),
-    )
-}
-
-pub fn mending_skin() -> StateAction {
-    salve_action("mending".into(), "skin".into(), MENDING_SKIN_ORDER.to_vec())
-}
-
-pub fn mending_legs() -> StateAction {
-    salve_action("mending".into(), "legs".into(), MENDING_LEGS_ORDER.to_vec())
-}
-
-pub fn mending_arms() -> StateAction {
-    salve_action("mending".into(), "arms".into(), MENDING_ARMS_ORDER.to_vec())
-}
-
-pub fn mending_head() -> StateAction {
-    salve_action("mending".into(), "head".into(), MENDING_HEAD_ORDER.to_vec())
-}
-
-pub fn mending_torso() -> StateAction {
-    salve_action(
-        "mending".into(),
-        "torso".into(),
-        MENDING_TORSO_ORDER.to_vec(),
-    )
-}
-
-pub fn mending_left_arm() -> StateAction {
-    salve_action(
-        "mending".into(),
-        "left arm".into(),
-        MENDING_LEFT_ARM_ORDER.to_vec(),
-    )
-}
-
-pub fn mending_right_arm() -> StateAction {
-    salve_action(
-        "mending".into(),
-        "right arm".into(),
-        MENDING_RIGHT_ARM_ORDER.to_vec(),
-    )
-}
-
-pub fn mending_left_leg() -> StateAction {
-    salve_action(
-        "mending".into(),
-        "left leg".into(),
-        MENDING_LEFT_LEG_ORDER.to_vec(),
-    )
-}
-
-pub fn mending_right_leg() -> StateAction {
-    salve_action(
-        "mending".into(),
-        "right leg".into(),
-        MENDING_RIGHT_LEG_ORDER.to_vec(),
-    )
-}
-
-pub fn soothing_head() -> StateAction {
-    salve_action(
-        "soothing".into(),
-        "head".into(),
-        SOOTHING_HEAD_ORDER.to_vec(),
-    )
-}
-
-pub fn soothing_torso() -> StateAction {
-    salve_action(
-        "soothing".into(),
-        "torso".into(),
-        SOOTHING_TORSO_ORDER.to_vec(),
-    )
-}
-
-pub fn soothing_arms() -> StateAction {
-    salve_action(
-        "soothing".into(),
-        "arms".into(),
-        SOOTHING_ARMS_ORDER.to_vec(),
-    )
-}
-
 lazy_static! {
     static ref AFFLICTION_SALVES: HashMap<FType, (String, String)> = {
         let mut val = HashMap::new();
@@ -810,14 +559,6 @@ lazy_static! {
         }
         val
     };
-}
-
-pub fn soothing_legs() -> StateAction {
-    salve_action(
-        "soothing".into(),
-        "legs".into(),
-        SOOTHING_LEGS_ORDER.to_vec(),
-    )
 }
 
 lazy_static! {
@@ -855,41 +596,7 @@ lazy_static! {
         val
     };
 }
-
-pub fn willow() -> StateAction {
-    smoke_action("willow".into(), WILLOW_ORDER.to_vec())
-}
-
-pub fn yarrow() -> StateAction {
-    smoke_action("yarrow".into(), YARROW_ORDER.to_vec())
-}
-
-pub fn get_curative_actions() -> Vec<StateAction> {
-    vec![
-        //antipsychotic(),
-        //euphoriant(),
-        decongestant(),
-        //depressant(),
-        //coagulation(),
-        opiate(),
-        //steroid(),
-        //mending_head(),
-        mending_left_arm(),
-        mending_right_arm(),
-        mending_left_leg(),
-        mending_right_leg(),
-        //mending_torso(),
-        //epidermal_head(),
-        epidermal_torso(),
-        //soothing_arms(),
-        //soothing_legs(),
-        //soothing_head(),
-        //soothing_torso(),
-        willow(),
-        yarrow(),
-    ]
-}
-
+/*
 pub struct FirstAid {
     simple_priorities: HashMap<FType, u32>,
     use_tree: bool,
@@ -996,11 +703,12 @@ impl FirstAid {
         top_priority.map(|(aff, _, cure)| (aff, cure))
     }
 }
+ */
 
 pub fn handle_simple_cure_action(
     simple_cure: &SimpleCureAction,
     agent_states: &mut TimelineState,
-    before: &Vec<Observation>,
+    _before: &Vec<Observation>,
     after: &Vec<Observation>,
 ) -> Result<(), String> {
     let mut me = agent_states.get_agent(&simple_cure.caster);
@@ -1010,7 +718,7 @@ pub fn handle_simple_cure_action(
             apply_or_infer_cure(&mut me, &simple_cure.cure_type, after)?;
             Ok(())
         }
-        SimpleCure::Salve(salve_name, salve_loc) => {
+        SimpleCure::Salve(_salve_name, _salve_loc) => {
             apply_or_infer_balance(&mut me, (BType::Salve, 2.0), after);
             apply_or_infer_cure(&mut me, &simple_cure.cure_type, after)?;
             Ok(())
@@ -1020,7 +728,7 @@ pub fn handle_simple_cure_action(
             apply_or_infer_cure(&mut me, &simple_cure.cure_type, after)?;
             Ok(())
         }
-        _ => Ok(()),
+        // _ => Ok(()),
     };
     agent_states.set_agent(&simple_cure.caster, me);
     results

@@ -1,14 +1,10 @@
-use crate::actions::*;
-use crate::alpha_beta::*;
-use crate::curatives::*;
-use crate::io::*;
 use crate::timeline::*;
 use crate::types::*;
 
 pub fn handle_combat_action(
     combat_action: &CombatAction,
     agent_states: &mut TimelineState,
-    before: &Vec<Observation>,
+    _before: &Vec<Observation>,
     after: &Vec<Observation>,
 ) -> Result<(), String> {
     match combat_action.skill.as_ref() {

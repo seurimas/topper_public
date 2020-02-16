@@ -2,10 +2,8 @@ use crate::battle_stats::*;
 use crate::classes::get_attack;
 use crate::timeline::*;
 use serde::{Deserialize, Serialize};
-use serde_json::{from_str, Result as JsonResult};
-use std::collections::HashMap;
+use serde_json::from_str;
 use std::io;
-use std::panic;
 
 #[derive(Deserialize)]
 enum TopperRequest {
@@ -26,36 +24,36 @@ enum TopperMessage {
 #[derive(Serialize)]
 pub struct TopperResponse {
     pub qeb: Option<String>,
-    pub battleStats: Option<BattleStats>,
+    pub battle_stats: Option<BattleStats>,
     pub error: Option<String>,
 }
 
 impl TopperResponse {
-    pub fn battleStats(battleStats: BattleStats) -> Self {
+    pub fn battle_stats(battle_stats: BattleStats) -> Self {
         TopperResponse {
             qeb: None,
-            battleStats: Some(battleStats),
+            battle_stats: Some(battle_stats),
             error: None,
         }
     }
     pub fn silent() -> Self {
         TopperResponse {
             qeb: None,
-            battleStats: None,
+            battle_stats: None,
             error: None,
         }
     }
     pub fn error(message: String) -> TopperResponse {
         TopperResponse {
             qeb: None,
-            battleStats: None,
+            battle_stats: None,
             error: Some(message),
         }
     }
     pub fn qeb(action: String) -> TopperResponse {
         TopperResponse {
             qeb: Some(action),
-            battleStats: None,
+            battle_stats: None,
             error: None,
         }
     }
@@ -64,11 +62,6 @@ impl TopperResponse {
 pub struct Topper {
     pub timeline: Timeline,
     pub target: Option<String>,
-}
-
-pub fn parse_time_slice(line: &String) -> JsonResult<TimeSlice> {
-    let slice: TimeSlice = from_str(line)?;
-    Ok(slice)
 }
 
 impl Topper {
@@ -85,12 +78,12 @@ impl Topper {
             Ok(topper_msg) => match topper_msg {
                 TopperMessage::Event(timeslice) => {
                     self.timeline.push_time_slice(timeslice)?;
-                    Ok(TopperResponse::battleStats(get_battle_stats(self)))
+                    Ok(TopperResponse::battle_stats(get_battle_stats(self)))
                 }
                 TopperMessage::Request(request) => match request {
                     TopperRequest::Target(target) => {
                         self.target = Some(target);
-                        Ok(TopperResponse::battleStats(get_battle_stats(self)))
+                        Ok(TopperResponse::battle_stats(get_battle_stats(self)))
                     }
                     TopperRequest::Hint(who, hint, value) => {
                         self.timeline.state.add_player_hint(&who, &hint, value);
@@ -118,7 +111,7 @@ impl Topper {
 
 pub fn provide_action() {
     let mut topper = Topper::new();
-    while true {
+    loop {
         let mut input = String::new();
         match io::stdin().read_line(&mut input) {
             Ok(n) => {
@@ -139,27 +132,5 @@ pub fn provide_action() {
                 serde_json::to_string(&TopperResponse::error(error.to_string())).unwrap()
             ),
         }
-    }
-}
-
-pub fn echo_time_slice() {
-    let mut iterations = 100;
-    while iterations > 0 {
-        let mut input = String::new();
-        match io::stdin().read_line(&mut input) {
-            Ok(n) => {
-                if input == "" {
-                    break;
-                }
-                let without_newline = &input[..input.len() - 1];
-                println!(
-                    "{} {:?}",
-                    without_newline,
-                    parse_time_slice(&without_newline.to_string())
-                );
-            }
-            Err(error) => println!("error: {}", error),
-        }
-        iterations -= 1;
     }
 }

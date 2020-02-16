@@ -1,5 +1,4 @@
 use crate::timeline::{Observation, Prompt, TimelineState};
-use crate::types::*;
 
 // A list of states and their relative weights.
 pub type VariableState = Vec<(TimelineState, u32)>;

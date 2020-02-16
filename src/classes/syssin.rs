@@ -1,7 +1,4 @@
-use crate::actions::*;
-use crate::alpha_beta::*;
-use crate::classes::{add_buffers, get_venom, get_venoms, AFFLICT_VENOMS};
-use crate::curatives::*;
+use crate::classes::{add_buffers, get_venoms};
 use crate::io::*;
 use crate::observables::*;
 use crate::timeline::*;
@@ -448,11 +445,11 @@ pub struct DoublestabAction {
 
 impl ActiveTransition for DoublestabAction {
     fn read(
-        now: &TimelineState,
+        _now: &TimelineState,
         observation: &Observation,
-        before: &Vec<Observation>,
-        after: &Vec<Observation>,
-        prompt: &Prompt,
+        _before: &Vec<Observation>,
+        _after: &Vec<Observation>,
+        _prompt: &Prompt,
     ) -> Self {
         if let Observation::CombatAction(combat_action) = observation {
             let caster = combat_action.caster.clone();
@@ -472,11 +469,11 @@ impl ActiveTransition for DoublestabAction {
         }
     }
 
-    fn simulate(&self, now: TimelineState) -> VariableState {
+    fn simulate(&self, _now: TimelineState) -> VariableState {
         Vec::new()
     }
 
-    fn act(&self, now: TimelineState) -> ActivateResult {
+    fn act(&self, _now: TimelineState) -> ActivateResult {
         Ok("".to_string())
     }
 }
@@ -484,7 +481,7 @@ impl ActiveTransition for DoublestabAction {
 pub fn handle_combat_action(
     combat_action: &CombatAction,
     agent_states: &mut TimelineState,
-    before: &Vec<Observation>,
+    _before: &Vec<Observation>,
     after: &Vec<Observation>,
 ) -> Result<(), String> {
     match combat_action.skill.as_ref() {
@@ -593,6 +590,11 @@ pub fn handle_combat_action(
             you.set_flag(FType::Hypnotized, true);
             agent_states.set_agent(&combat_action.target, you);
         }
+        "Desway" => {
+            let mut you = agent_states.get_agent(&combat_action.target);
+            you.set_flag(FType::Hypnotized, false);
+            agent_states.set_agent(&combat_action.target, you);
+        }
         "Seal" => {
             let mut me = agent_states.get_agent(&combat_action.caster);
             let mut you = agent_states.get_agent(&combat_action.target);
@@ -612,6 +614,11 @@ pub fn handle_combat_action(
             agent_states.set_agent(&combat_action.caster, me);
             agent_states.set_agent(&combat_action.target, you);
         }
+        "Fizzle" => {
+            let mut me = agent_states.get_agent(&combat_action.caster);
+            pop_suggestion(&mut me);
+            agent_states.set_agent(&combat_action.caster, me);
+        }
         "Snap" => {
             if let Some(target) =
                 agent_states.get_player_hint(&combat_action.caster, &"snap".into())
@@ -625,13 +632,13 @@ pub fn handle_combat_action(
             let mut me = agent_states.get_agent(&combat_action.caster);
             let mut you = agent_states.get_agent(&combat_action.target);
             apply_or_infer_balance(&mut me, (BType::Balance, 2.25), after);
-            apply_or_infer_random_afflictions(&mut you, after);
+            apply_or_infer_random_afflictions(&mut you, after)?;
             agent_states.set_agent(&combat_action.caster, me);
             agent_states.set_agent(&combat_action.target, you);
         }
         "Fire" => {
             let mut you = agent_states.get_agent(&combat_action.target);
-            apply_or_infer_random_afflictions(&mut you, after);
+            apply_or_infer_suggestion(&mut you, after)?;
             agent_states.set_agent(&combat_action.target, you)
         }
         _ => {}
@@ -896,7 +903,7 @@ fn needs_shrugging(topper: &Topper) -> bool {
         && (!me.balanced(BType::Focus) || me.is(FType::Impatience) || me.is(FType::Stupidity))
 }
 
-fn go_for_thin_blood(topper: &Topper, you: &AgentState, strategy: &String) -> bool {
+fn go_for_thin_blood(_topper: &Topper, you: &AgentState, _strategy: &String) -> bool {
     let mut buffer_count = 0;
     if you.is(FType::Lethargy) {
         buffer_count = buffer_count + 1;
@@ -952,6 +959,7 @@ pub fn get_dstab_action(topper: &Topper, target: &String, v1: &String, v2: &Stri
     }
 }
 
+/*
 pub fn get_slit_action(topper: &Topper, target: &String, v1: String) -> String {
     if use_one_rag(topper) {
         format!("hr {};;slit {}", v1, target)
@@ -959,6 +967,7 @@ pub fn get_slit_action(topper: &Topper, target: &String, v1: String) -> String {
         format!("slit {} {}", target, v1)
     }
 }
+*/
 
 pub fn get_balance_attack(topper: &Topper, target: &String, strategy: &String) -> String {
     if let Some(stack) = STACKING_STRATEGIES.get(strategy) {
@@ -1045,7 +1054,7 @@ pub fn get_balance_attack(topper: &Topper, target: &String, strategy: &String) -
     }
 }
 
-pub fn get_equil_attack(topper: &Topper, target: &String, strategy: &String) -> String {
+pub fn get_equil_attack(topper: &Topper, target: &String, _strategy: &String) -> String {
     let you = topper.timeline.state.borrow_agent(target);
     let hypno_action = get_top_hypno(target, &you, &HARD_HYPNO.to_vec());
     hypno_action.unwrap_or("".into())
@@ -1076,7 +1085,7 @@ pub fn get_shadow_attack(topper: &Topper, target: &String, strategy: &String) ->
     }
 }
 
-pub fn get_snap(topper: &Topper, target: &String, strategy: &String) -> bool {
+pub fn get_snap(topper: &Topper, target: &String, _strategy: &String) -> bool {
     let you = topper.timeline.state.borrow_agent(target);
     if get_top_hypno(target, &you, &HARD_HYPNO.to_vec()) == None
         && !you.get_flag(FType::Snapped)
@@ -1112,237 +1121,4 @@ pub fn get_attack(topper: &Topper, target: &String, strategy: &String) -> String
         attack = format!("{}{}", attack, shadow);
     }
     attack
-}
-
-pub fn get_offensive_actions() -> Vec<StateAction> {
-    let mut actions = vec![];
-    // Aggro Stack
-    actions.push(dstab_stack(vec![
-        FType::Paresis,
-        FType::Asthma,
-        FType::ThinBlood,
-        FType::Stupidity,
-        FType::Vomiting,
-        FType::Allergies,
-        FType::Anorexia,
-        FType::Slickness,
-    ]));
-    // Coag Stack
-    actions.push(dstab_stack(COAG_STACK.to_vec()));
-    // Salve Stack
-    actions.push(dstab_stack(vec![
-        FType::LeftLegBroken,
-        FType::RightLegBroken,
-        FType::LeftArmBroken,
-        FType::RightArmBroken,
-        FType::Anorexia,
-        FType::Slickness,
-        FType::Asthma,
-    ]));
-    actions
-}
-
-#[cfg(test)]
-mod simulation_tests {
-    use super::*;
-
-    #[test]
-    fn test_dstab_stack() {
-        let salve_stack = dstab_stack(vec![
-            FType::LeftLegBroken,
-            FType::RightLegBroken,
-            FType::LeftArmBroken,
-            FType::RightArmBroken,
-            FType::Anorexia,
-        ]);
-        let mut simulation = SimulationState::new(&vec![BASE_STATE.clone(), BASE_STATE.clone()]);
-        simulation.apply_action(&salve_stack, 0, 1);
-        assert_eq!(simulation.states[1].is(FType::LeftLegBroken), true);
-        assert_eq!(simulation.states[1].is(FType::RightLegBroken), true);
-        assert_eq!(simulation.states[1].is(FType::LeftArmBroken), false);
-        assert_eq!(simulation.states[1].is(FType::RightArmBroken), false);
-        assert_eq!(simulation.states[1].is(FType::Anorexia), false);
-        simulation.apply_action(&salve_stack, 0, 1);
-        assert_eq!(simulation.states[1].is(FType::LeftLegBroken), true);
-        assert_eq!(simulation.states[1].is(FType::RightLegBroken), true);
-        assert_eq!(simulation.states[1].is(FType::LeftArmBroken), true);
-        assert_eq!(simulation.states[1].is(FType::RightArmBroken), true);
-        assert_eq!(simulation.states[1].is(FType::Anorexia), false);
-        simulation.apply_action(&salve_stack, 0, 1);
-        assert_eq!(simulation.states[1].is(FType::LeftLegBroken), true);
-        assert_eq!(simulation.states[1].is(FType::RightLegBroken), true);
-        assert_eq!(simulation.states[1].is(FType::LeftArmBroken), true);
-        assert_eq!(simulation.states[1].is(FType::RightArmBroken), true);
-        assert_eq!(simulation.states[1].is(FType::Anorexia), true);
-    }
-
-    #[test]
-    fn test_flay_stack() {
-        let salve_stack = flay_stack(vec![
-            FType::LeftLegBroken,
-            FType::RightLegBroken,
-            FType::LeftArmBroken,
-            FType::RightArmBroken,
-            FType::Anorexia,
-        ]);
-        let mut simulation = SimulationState::new(&vec![BASE_STATE.clone(), BASE_STATE.clone()]);
-        simulation.states[1].set_flag(FType::Shield, true);
-        simulation.states[1].set_flag(FType::Rebounding, true);
-        simulation.apply_action(&salve_stack, 0, 1);
-        assert_eq!(simulation.states[1].is(FType::LeftLegBroken), true);
-        assert_eq!(simulation.states[1].is(FType::RightLegBroken), false);
-        assert_eq!(simulation.states[1].is(FType::LeftArmBroken), false);
-        assert_eq!(simulation.states[1].is(FType::RightArmBroken), false);
-        assert_eq!(simulation.states[1].is(FType::Anorexia), false);
-        assert_eq!(simulation.states[1].is(FType::Shield), false);
-        assert_eq!(simulation.states[1].is(FType::Rebounding), true);
-        simulation.apply_action(&salve_stack, 0, 1);
-        assert_eq!(simulation.states[1].is(FType::LeftLegBroken), true);
-        assert_eq!(simulation.states[1].is(FType::RightLegBroken), true);
-        assert_eq!(simulation.states[1].is(FType::LeftArmBroken), false);
-        assert_eq!(simulation.states[1].is(FType::RightArmBroken), false);
-        assert_eq!(simulation.states[1].is(FType::Anorexia), false);
-        assert_eq!(simulation.states[1].is(FType::Shield), false);
-        assert_eq!(simulation.states[1].is(FType::Rebounding), false);
-    }
-}
-
-pub fn dstab_stack(afflictions: Vec<FType>) -> StateAction {
-    StateAction {
-        name: format!("dstab {:?}", afflictions),
-        changes: vec![
-            balance_change(BType::Balance, 2.8),
-            afflict_in_order(afflictions.clone()),
-            afflict_in_order(afflictions.clone()),
-        ],
-        initial: vec![
-            alive(),
-            target(alive()),
-            target(lacks(FType::Rebounding)),
-            target(lacks(FType::Shield)),
-            has(BType::Balance),
-            has(BType::Equil),
-            target(lacks_some(afflictions)),
-        ],
-    }
-}
-
-pub fn flay_stack(afflictions: Vec<FType>) -> StateAction {
-    let flayable = vec![FType::Shield, FType::Rebounding];
-    StateAction {
-        name: "flay".into(),
-        changes: vec![
-            balance_change(BType::Balance, 2.5),
-            flag_me(FType::Shield, false),
-            strip_in_order(flayable.clone()),
-            afflict_in_order(afflictions.clone()),
-        ],
-        initial: vec![
-            alive(),
-            target(alive()),
-            has(BType::Balance),
-            has(BType::Equil),
-            target(some(flayable)),
-        ],
-    }
-}
-
-pub fn dstab_action(
-    (venom1, affliction1): (String, FType),
-    (venom2, affliction2): (String, FType),
-) -> StateAction {
-    StateAction {
-        name: format!("dstab {} {}", venom1, venom2),
-        changes: vec![
-            balance_change(BType::Balance, 2.8),
-            flag_me(FType::Shield, false),
-            afflict(affliction1),
-            afflict(affliction2),
-        ],
-        initial: vec![
-            alive(),
-            target(alive()),
-            target(lacks(FType::Rebounding)),
-            target(lacks(FType::Shield)),
-            has(BType::Balance),
-            has(BType::Equil),
-            target(lacks(affliction1)),
-            target(lacks(affliction2)),
-        ],
-    }
-}
-
-pub fn bite_one(affliction: FType) -> StateAction {
-    StateAction {
-        name: "bite".into(),
-        changes: vec![
-            balance_change(BType::Balance, 1.9),
-            flag_me(FType::Shield, false),
-            afflict(affliction),
-        ],
-        initial: vec![
-            alive(),
-            target(alive()),
-            target(lacks(FType::Fangbarrier)),
-            target(lacks(FType::Shield)),
-            has(BType::Balance),
-            has(BType::Equil),
-            target(lacks(affliction)),
-        ],
-    }
-}
-
-pub fn flay_one(defense: FType) -> StateAction {
-    StateAction {
-        name: "flay".into(),
-        changes: vec![
-            balance_change(BType::Balance, 2.5),
-            flag_me(FType::Shield, false),
-            strip_in_order(vec![defense]),
-        ],
-        initial: vec![
-            alive(),
-            target(alive()),
-            has(BType::Balance),
-            has(BType::Equil),
-            target(some(vec![defense])),
-        ],
-    }
-}
-
-pub fn flay_action() -> StateAction {
-    let flayable = vec![FType::Shield, FType::Rebounding, FType::Fangbarrier];
-    StateAction {
-        name: "flay".into(),
-        changes: vec![
-            balance_change(BType::Balance, 2.5),
-            flag_me(FType::Shield, false),
-            strip_in_order(flayable.clone()),
-        ],
-        initial: vec![
-            alive(),
-            target(alive()),
-            has(BType::Balance),
-            has(BType::Equil),
-            target(some(flayable)),
-        ],
-    }
-}
-
-pub fn snipe_action(affliction: FType) -> StateAction {
-    StateAction {
-        name: "snipe".into(),
-        changes: vec![
-            attack_change(900),
-            balance_change(BType::Balance, 3.25),
-            afflict(affliction),
-        ],
-        initial: vec![
-            alive(),
-            target(alive()),
-            has(BType::Balance),
-            has(BType::Equil),
-            target(lacks(affliction)),
-        ],
-    }
 }

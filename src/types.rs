@@ -408,12 +408,6 @@ impl FType {
     }
 }
 
-pub type StateRevert = Box<Fn(&mut AgentState, &mut AgentState)>;
-
-pub type StateChange = Box<Fn(&mut AgentState, &mut AgentState) -> StateRevert>;
-
-pub type StateMatcher = Box<Fn(&AgentState, &AgentState) -> bool>;
-
 pub struct FlagSet([bool; FType::SIZE as usize]);
 
 impl fmt::Debug for FlagSet {
@@ -452,7 +446,7 @@ impl fmt::Display for FlagSet {
         Ok(())
     }
 }
-
+/*
 pub struct FlagSetIterator<'s> {
     index: usize,
     set: &'s FlagSet,
@@ -487,7 +481,7 @@ impl FlagSet {
         FlagSetIterator::new(self, true)
     }
 }
-
+*/
 impl Default for FlagSet {
     fn default() -> Self {
         FlagSet([false; FType::SIZE as usize])
@@ -636,6 +630,15 @@ impl AgentState {
         self.flags.0[flag as usize]
     }
 
+    pub fn some(&self, afflictions: Vec<FType>) -> bool {
+        for affliction in afflictions.iter() {
+            if self.is(*affliction) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     pub fn set_flag(&mut self, flag: FType, value: bool) {
         self.flags.0[flag as usize] = value;
     }
@@ -643,17 +646,17 @@ impl AgentState {
     pub fn get_flag(&self, flag: FType) -> bool {
         self.flags.0[flag as usize]
     }
-
-    pub fn affliction_count(&self) -> i32 {
-        let mut count = 0;
-        for i in 0..(FType::SIZE as usize) {
-            if i >= FType::Sadness as usize && i < FType::SIZE as usize {
-                count += 1;
+    /*
+        pub fn affliction_count(&self) -> i32 {
+            let mut count = 0;
+            for i in 0..(FType::SIZE as usize) {
+                if i >= FType::Sadness as usize && i < FType::SIZE as usize {
+                    count += 1;
+                }
             }
+            count
         }
-        count
-    }
-
+    */
     pub fn set_balance(&mut self, balance: BType, value: f32) {
         self.balances[balance as usize] = (value * BALANCE_SCALE) as CType;
     }
@@ -666,19 +669,21 @@ impl AgentState {
         self.balances[balance as usize] <= 0
     }
 
-    pub fn next_balance(&self, balances: Vec<BType>) -> Option<BType> {
-        let mut earliest = balances.first();
-        for balance in balances.iter() {
-            if let Some(earliest_bal) = earliest {
-                if self.balances[*earliest_bal as usize] <= 0 {
-                    // Do nothing.
-                } else if self.balances[*balance as usize] < self.balances[*earliest_bal as usize] {
-                    earliest = Some(balance)
+    /*
+        pub fn next_balance(&self, balances: Vec<BType>) -> Option<BType> {
+            let mut earliest = balances.first();
+            for balance in balances.iter() {
+                if let Some(earliest_bal) = earliest {
+                    if self.balances[*earliest_bal as usize] <= 0 {
+                        // Do nothing.
+                    } else if self.balances[*balance as usize] < self.balances[*earliest_bal as usize] {
+                        earliest = Some(balance)
+                    }
                 }
             }
+            earliest.cloned()
         }
-        earliest.cloned()
-    }
+    */
 
     pub fn set_stat(&mut self, stat: SType, value: CType) {
         self.stats[stat as usize] = value;
@@ -697,27 +702,29 @@ impl AgentState {
         }
     }
 
-    pub fn adjust_stat(&mut self, stat: SType, value: CType) {
-        self.stats[stat as usize] += value;
-    }
+    /*
+        pub fn adjust_stat(&mut self, stat: SType, value: CType) {
+            self.stats[stat as usize] += value;
+        }
+    */
 
     pub fn initialize_stat(&mut self, stat: SType, value: CType) {
         self.max_stats[stat as usize] = value;
         self.stats[stat as usize] = value;
     }
+    /*
+        pub fn can_smoke(&self) -> bool {
+            !self.is(FType::Asthma) && self.balanced(BType::Smoke)
+        }
 
-    pub fn can_smoke(&self) -> bool {
-        !self.is(FType::Asthma) && self.balanced(BType::Smoke)
-    }
+        pub fn can_pill(&self) -> bool {
+            !self.is(FType::Anorexia) && self.balanced(BType::Pill)
+        }
 
-    pub fn can_pill(&self) -> bool {
-        !self.is(FType::Anorexia) && self.balanced(BType::Pill)
-    }
-
-    pub fn can_salve(&self) -> bool {
-        !self.is(FType::Slickness) && self.balanced(BType::Salve)
-    }
-
+        pub fn can_salve(&self) -> bool {
+            !self.is(FType::Slickness) && self.balanced(BType::Salve)
+        }
+    */
     pub fn lock_duration(&self) -> Option<f32> {
         let mut earliest_escape = None;
         if self.is(FType::Asthma) && self.is(FType::Anorexia) && self.is(FType::Slickness) {
@@ -756,7 +763,7 @@ impl AgentState {
     }
 
     pub fn relapse(&mut self) -> Option<String> {
-        if let Some(aff) = self.relapses.first() {
+        if let Some(_aff) = self.relapses.first() {
             Some(self.relapses.remove(0))
         } else {
             None
@@ -780,7 +787,7 @@ impl AgentState {
         }
     }
 
-    pub fn complete_restoration(&mut self, damage: LType) {
+    pub fn complete_restoration(&mut self, _damage: LType) {
         self.limb_damage.1 = None;
         self.limb_damage.2 = false;
     }
@@ -802,45 +809,4 @@ impl AgentState {
         }
         count
     }
-}
-
-pub fn target(matcher: StateMatcher) -> StateMatcher {
-    Box::new(move |_me, them| matcher(them, _me))
-}
-
-pub fn has(balance: BType) -> StateMatcher {
-    Box::new(move |me, _them| me.balances[balance as usize] <= 0)
-}
-
-pub fn is(flag: FType) -> StateMatcher {
-    Box::new(move |me, _them| me.is(flag))
-}
-
-pub fn lacks(flag: FType) -> StateMatcher {
-    Box::new(move |me, _them| !me.is(flag))
-}
-pub fn lacks_some(afflictions: Vec<FType>) -> StateMatcher {
-    Box::new(move |me, _them| {
-        for affliction in afflictions.iter() {
-            if !me.is(*affliction) {
-                return true;
-            }
-        }
-        return false;
-    })
-}
-
-pub fn some(afflictions: Vec<FType>) -> StateMatcher {
-    Box::new(move |me, _them| {
-        for affliction in afflictions.iter() {
-            if me.is(*affliction) {
-                return true;
-            }
-        }
-        return false;
-    })
-}
-
-pub fn alive() -> StateMatcher {
-    lacks(FType::Dead)
 }

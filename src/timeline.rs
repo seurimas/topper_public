@@ -1,5 +1,3 @@
-use crate::actions::*;
-use crate::alpha_beta::*;
 use crate::classes::{handle_combat_action, handle_sent, VENOM_AFFLICTS};
 use crate::curatives::{
     handle_simple_cure_action, remove_in_order, top_aff, CALORIC_TORSO_ORDER, PILL_CURE_ORDERS,
@@ -88,15 +86,8 @@ pub struct TimeSlice {
     pub me: String,
 }
 
-#[derive(Debug)]
-pub struct Hints {
-    pub strategy: String,
-    pub class: String,
-}
-
 pub struct TimelineState {
     agent_states: HashMap<String, AgentState>,
-    hints: HashMap<String, Hints>,
     free_hints: HashMap<String, String>,
     time: CType,
     pub me: String,
@@ -107,7 +98,6 @@ impl TimelineState {
         TimelineState {
             agent_states: HashMap::new(),
             free_hints: HashMap::new(),
-            hints: HashMap::new(),
             time: 0,
             me: "".to_string(),
         }
@@ -163,7 +153,7 @@ impl TimelineState {
                 me.clear_relapses();
             }
             me.set_flag(aff_flag, val);
-        } else if let Ok((damage_type, damage_amount)) = get_damage_barrier(flag_name) {
+        } else if let Ok((_damage_type, _damage_amount)) = get_damage_barrier(flag_name) {
             // Do nothing...
         } else {
             return Err(format!("Failed to find flag {}", flag_name));
@@ -174,7 +164,7 @@ impl TimelineState {
 
     fn adjust_agent_limb(&mut self, who: &String, what: &String, val: f32) -> Result<(), String> {
         let mut me = self.get_agent(who);
-        let mut limb = get_limb_damage(what)?;
+        let limb = get_limb_damage(what)?;
         me.adjust_limb(limb, (val * 100.0) as CType);
         self.set_agent(who, me);
         Ok(())
@@ -182,7 +172,7 @@ impl TimelineState {
 
     fn finish_agent_restore(&mut self, who: &String, what: &String) -> Result<(), String> {
         let mut me = self.get_agent(who);
-        let mut limb = get_limb_damage(what)?;
+        let limb = get_limb_damage(what)?;
         me.complete_restoration(limb);
         self.set_agent(who, me);
         Ok(())
@@ -339,9 +329,9 @@ pub fn apply_or_infer_suggestion(
     who: &mut AgentState,
     after: &Vec<Observation>,
 ) -> Result<(), String> {
-    if let Some(Observation::DiscernedAfflict(affliction)) = after.get(0) {
+    if let Some(Observation::DiscernedAfflict(_affliction)) = after.get(0) {
         // This is fine. Discerned afflict will be applied independently.
-    } else if let Some(Hypnosis::Aff(affliction)) = who.hypnosis_stack.get(0) {
+    } else if let Some(Hypnosis::Aff(_affliction)) = who.hypnosis_stack.get(0) {
         // Discernment is off??? Might be out of sync, don't assume.
         // who.set_flag(*affliction, true);
     }
@@ -403,7 +393,7 @@ pub fn apply_weapon_hits(
                 if let Some(Observation::Rebounds) = observations.get(i - 1) {
                     apply_venom(attacker, venom)?;
                 } else {
-                    if let Some(Observation::PurgeVenom(_, v2)) = observations.get(i + 1) {
+                    if let Some(Observation::PurgeVenom(_, _v2)) = observations.get(i + 1) {
                     } else {
                         apply_venom(target, venom)?;
                     }
@@ -432,24 +422,9 @@ pub fn apply_weapon_hits(
     Ok(())
 }
 
-pub fn apply_observed_venoms(
-    who: &mut AgentState,
-    observations: &Vec<Observation>,
-) -> Result<(), String> {
-    for observation in observations.iter() {
-        match observation {
-            Observation::Devenoms(venom) => {
-                apply_venom(who, venom)?;
-            }
-            _ => {}
-        }
-    }
-    Ok(())
-}
-
 pub fn apply_or_infer_relapse(
     who: &mut AgentState,
-    observations: &Vec<Observation>,
+    _observations: &Vec<Observation>,
 ) -> Result<(), String> {
     if let Some(venom) = who.relapse() {
         println!("Relapse: {}", venom);
@@ -539,7 +514,7 @@ pub fn apply_or_infer_cure(
             who.set_flag(aff, false);
             found_cures.push(aff);
         }
-    } else if let Some(Observation::DiscernedCure(you, aff_name)) = after.get(1) {
+    } else if let Some(Observation::DiscernedCure(_you, aff_name)) = after.get(1) {
         if let Some(aff) = FType::from_name(&aff_name) {
             who.set_flag(aff, false);
             if aff == FType::Void {
@@ -570,7 +545,7 @@ pub fn apply_or_infer_cure(
             }
             SimpleCure::Salve(salve_name, salve_loc) => {
                 if salve_name == "caloric" {
-                    if some(CALORIC_TORSO_ORDER.to_vec())(who, who) {
+                    if who.some(CALORIC_TORSO_ORDER.to_vec()) {
                         remove_in_order(CALORIC_TORSO_ORDER.to_vec())(who);
                     } else {
                         who.set_flag(FType::Insulation, true);
@@ -596,8 +571,7 @@ pub fn apply_or_infer_cure(
                 } else {
                     return Err(format!("Could not find smoke {}", herb_name));
                 }
-            }
-            _ => {}
+            } // _ => {}
         }
     }
     Ok(found_cures)

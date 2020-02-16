@@ -1,4 +1,3 @@
-use crate::actions::*;
 use crate::curatives::MENTAL_AFFLICTIONS;
 use crate::io::*;
 use crate::timeline::*;
@@ -145,6 +144,7 @@ lazy_static! {
     };
 }
 
+/*
 pub fn get_venom(affliction: FType) -> Option<&'static str> {
     if let Some(venom) = AFFLICT_VENOMS.get(&affliction) {
         Some(*venom)
@@ -152,6 +152,7 @@ pub fn get_venom(affliction: FType) -> Option<&'static str> {
         None
     }
 }
+*/
 
 pub fn get_venoms(afflictions: Vec<FType>, count: usize, target: &AgentState) -> Vec<&'static str> {
     let mut venoms = Vec::new();
