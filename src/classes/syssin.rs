@@ -337,6 +337,35 @@ mod timeline_tests {
     }
 
     #[test]
+    fn test_bite_parry() {
+        let mut timeline = Timeline::new();
+        let dstab_slice = TimeSlice {
+            observations: vec![
+                Observation::CombatAction(CombatAction {
+                    caster: "Seurimas".to_string(),
+                    category: "Assassination".to_string(),
+                    skill: "Bite".to_string(),
+                    target: "Benedicto".to_string(),
+                    annotation: "scytherus".to_string(),
+                }),
+                Observation::Parry("Benedicto".to_string(), "head".to_string()),
+            ],
+            prompt: Prompt::Blackout,
+            time: 0,
+            me: "Seurimas".into(),
+        };
+        timeline.push_time_slice(dstab_slice);
+        let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
+        assert_eq!(seur_state.balanced(BType::Balance), false);
+        assert_eq!(seur_state.get_flag(FType::ThinBlood), false);
+        assert_eq!(seur_state.get_parrying(), None);
+        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        assert_eq!(bene_state.balanced(BType::Balance), true);
+        assert_eq!(bene_state.get_flag(FType::ThinBlood), false);
+        assert_eq!(bene_state.get_parrying(), Some(LType::HeadDamage));
+    }
+
+    #[test]
     fn test_suggest() {
         let mut timeline = Timeline::new();
         let suggest_slice = TimeSlice {
@@ -508,7 +537,13 @@ pub fn handle_combat_action(
             let mut me = agent_states.get_agent(&combat_action.caster);
             let mut you = agent_states.get_agent(&combat_action.target);
             me.set_balance(BType::Balance, 1.9);
-            apply_venom(&mut you, &combat_action.annotation)?;
+            if let Some(Observation::Parry(who, _what)) = after.get(1) {
+                if !who.eq(&combat_action.target) {
+                    apply_venom(&mut you, &combat_action.annotation)?;
+                }
+            } else {
+                apply_venom(&mut you, &combat_action.annotation)?;
+            }
             apply_or_infer_balance(&mut me, (BType::Balance, 1.9), after);
             agent_states.set_agent(&combat_action.caster, me);
             agent_states.set_agent(&combat_action.target, you);
@@ -575,10 +610,10 @@ pub fn handle_combat_action(
                     you.set_flag(FType::Fangbarrier, false);
                 }
                 "shield" => {
-                    you.set_flag(FType::Shield, false);
+                    you.set_flag(FType::Shielded, false);
                 }
                 "failure-shield" => {
-                    you.set_flag(FType::Shield, false);
+                    you.set_flag(FType::Shielded, false);
                 }
                 _ => {}
             }
@@ -607,17 +642,14 @@ pub fn handle_combat_action(
             let mut me = agent_states.get_agent(&combat_action.caster);
             let mut you = agent_states.get_agent(&combat_action.target);
             apply_or_infer_balance(&mut me, (BType::Equil, 2.25), after);
-            push_suggestion(
-                &mut you,
-                infer_suggestion(&combat_action.target, agent_states),
-            );
+            you.push_suggestion(infer_suggestion(&combat_action.target, agent_states));
             agent_states.set_agent(&combat_action.caster, me);
             agent_states.set_agent(&combat_action.target, you);
         }
         "Fizzle" => {
-            let mut me = agent_states.get_agent(&combat_action.caster);
-            pop_suggestion(&mut me);
-            agent_states.set_agent(&combat_action.caster, me);
+            let mut me = agent_states.get_agent(&combat_action.target);
+            me.pop_suggestion();
+            agent_states.set_agent(&combat_action.target, me);
         }
         "Snap" => {
             if let Some(target) =
@@ -708,6 +740,21 @@ lazy_static! {
 }
 
 lazy_static! {
+    static ref PEACE_STACK: Vec<FType> = vec![
+        FType::Stupidity,
+        FType::Peace,
+        FType::Paresis,
+        FType::Clumsiness,
+        FType::Asthma,
+        FType::Allergies,
+        FType::LeftLegBroken,
+        FType::LeftArmBroken,
+        FType::Dizziness,
+        FType::Dizziness,
+    ];
+}
+
+lazy_static! {
     static ref WAYF_STACK: Vec<FType> = vec![
         FType::Stupidity,
         FType::Clumsiness,
@@ -724,10 +771,10 @@ lazy_static! {
 
 lazy_static! {
     static ref AGGRO_STACK: Vec<FType> = vec![
-        FType::Stupidity,
+        FType::Paresis,
         FType::Asthma,
         FType::Clumsiness,
-        FType::Paresis,
+        FType::Stupidity,
         FType::Allergies,
         FType::Dizziness,
         FType::Vomiting,
@@ -786,6 +833,7 @@ lazy_static! {
         val.insert("fire".into(), FIRE_STACK.to_vec());
         val.insert("aggro".into(), AGGRO_STACK.to_vec());
         val.insert("salve".into(), SALVE_STACK.to_vec());
+        val.insert("peace".into(), PEACE_STACK.to_vec());
         val.insert("wayf".into(), WAYF_STACK.to_vec());
         val
     };
@@ -887,7 +935,10 @@ fn needs_restore(topper: &Topper) -> bool {
         .timeline
         .state
         .borrow_agent(&topper.timeline.who_am_i());
-    me.restore_count() < 3 && me.is(FType::Prone) && me.get_balance(BType::Salve) > 1.5
+    me.restore_count() > 0
+        && me.restore_count() < 3
+        && me.is(FType::Prone)
+        && me.get_balance(BType::Salve) > 2.5
 }
 
 fn needs_shrugging(topper: &Topper) -> bool {
@@ -978,8 +1029,8 @@ pub fn get_balance_attack(topper: &Topper, target: &String, strategy: &String) -
             return "restore".to_string();
         } else if get_equil_attack(topper, target, strategy).starts_with("seal") {
             "".into()
-        } else if you.is(FType::Shield) || you.is(FType::Rebounding) {
-            let defense = if you.is(FType::Shield) {
+        } else if you.is(FType::Shielded) || you.is(FType::Rebounding) {
+            let defense = if you.is(FType::Shielded) {
                 "shield"
             } else {
                 "rebounding"

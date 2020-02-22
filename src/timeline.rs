@@ -62,6 +62,7 @@ pub enum Observation {
     LimbDamage(String, f32),
     LimbHeal(String, f32),
     LimbDone(String),
+    Parry(String, String),
     Rebounds,
     Fangbarrier,
     Shield,
@@ -220,7 +221,7 @@ impl TimelineState {
                 self.set_flag_for_agent(who, &"Rebounding".to_string(), false)?;
             }
             Observation::LostShield(who) => {
-                self.set_flag_for_agent(who, &"Shield".to_string(), false)?;
+                self.set_flag_for_agent(who, &"Shielded".to_string(), false)?;
             }
             Observation::LostFangBarrier(who) => {
                 self.set_flag_for_agent(who, &"Fangbarrier".to_string(), false)?;
@@ -237,10 +238,16 @@ impl TimelineState {
             Observation::LimbDone(what) => {
                 self.finish_agent_restore(&self.me.clone(), what)?;
             }
+            Observation::Parry(who, what) => {
+                let mut me = self.get_agent(who);
+                let limb = get_limb_damage(what)?;
+                me.set_parrying(limb);
+                self.set_agent(who, me);
+            }
             Observation::Relapse(who) => {
-                let mut you = self.get_agent(who);
-                apply_or_infer_relapse(&mut you, after)?;
-                self.set_agent(who, you);
+                //let mut you = self.get_agent(who);
+                //apply_or_infer_relapse(&mut you, after)?;
+                //self.set_agent(who, you);
             }
             _ => {}
         }
@@ -256,7 +263,10 @@ impl TimelineState {
         let mut before = Vec::new();
         let mut after = slice.observations.clone();
         for observation in slice.observations.iter() {
-            self.apply_observation(observation, &before, &after)?;
+            let obs_results = self.apply_observation(observation, &before, &after);
+            if let Err(error) = obs_results {
+                println!("Bad observation: {:?} ({})", observation, error);
+            }
             if after.len() > 0 {
                 let next = after.remove(0);
                 before.push(next);
@@ -304,25 +314,17 @@ lazy_static! {
         val.set_flag(FType::Player, true);
         val.set_flag(FType::Blindness, true);
         val.set_flag(FType::Deafness, true);
-        val.set_flag(FType::Frost, true);
+        val.set_flag(FType::Temperance, true);
         val.set_flag(FType::Levitation, true);
         val.set_flag(FType::Speed, true);
-        val.set_flag(FType::Frost, true);
+        val.set_flag(FType::Temperance, true);
         val.set_flag(FType::Vigor, true);
         val.set_flag(FType::Rebounding, true);
         val.set_flag(FType::Insomnia, true);
         val.set_flag(FType::Fangbarrier, true);
-        val.set_flag(FType::Energetic, true);
+        val.set_flag(FType::Instawake, true);
         val
     };
-}
-
-pub fn pop_suggestion(who: &mut AgentState) {
-    who.hypnosis_stack.pop();
-}
-
-pub fn push_suggestion(who: &mut AgentState, suggestion: Hypnosis) {
-    who.hypnosis_stack.push(suggestion);
 }
 
 pub fn apply_or_infer_suggestion(
@@ -335,7 +337,7 @@ pub fn apply_or_infer_suggestion(
         // Discernment is off??? Might be out of sync, don't assume.
         // who.set_flag(*affliction, true);
     }
-    who.hypnosis_stack.remove(0);
+    who.pop_suggestion();
     if who.hypnosis_stack.len() == 0 {
         who.set_flag(FType::Snapped, false);
     }
@@ -346,8 +348,8 @@ pub fn apply_venom(who: &mut AgentState, venom: &String) -> Result<(), String> {
     if who.is(FType::ThinBlood) {
         who.push_toxin(venom.clone());
     }
-    if let Some(affliction) = VENOM_AFFLICTS.get(venom) {
-        who.set_flag(*affliction, true);
+    if venom == "prefarar" && who.is(FType::Deafness) {
+        who.set_flag(FType::Deafness, false);
     } else if venom == "epseth" {
         if who.is(FType::LeftLegBroken) {
             who.set_flag(FType::RightLegBroken, true);
@@ -360,6 +362,8 @@ pub fn apply_venom(who: &mut AgentState, venom: &String) -> Result<(), String> {
         } else {
             who.set_flag(FType::LeftArmBroken, true);
         }
+    } else if let Some(affliction) = VENOM_AFFLICTS.get(venom) {
+        who.set_flag(*affliction, true);
     } else if venom == "camus" {
         who.set_stat(SType::Health, who.get_stat(SType::Health) - 1000);
     } else if venom == "delphinium" && who.is(FType::Insomnia) {

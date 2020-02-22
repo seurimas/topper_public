@@ -45,7 +45,7 @@ pub fn handle_combat_action(
         "Tattoos" => match combat_action.skill.as_ref() {
             "Shield" => {
                 let mut me = agent_states.get_agent(&combat_action.caster);
-                me.set_flag(FType::Shield, true);
+                me.set_flag(FType::Shielded, true);
                 apply_or_infer_balance(&mut me, (BType::Equil, 4.0), after);
                 agent_states.set_agent(&combat_action.caster, me);
                 Ok(())
@@ -108,7 +108,7 @@ lazy_static! {
         val.insert(FType::Squelched, "selarnia");
         val.insert(FType::Slickness, "gecko");
         val.insert(FType::ThinBlood, "scytherus");
-        val.insert(FType::Pacifism, "ouabain");
+        val.insert(FType::Peace, "ouabain");
         val.insert(FType::Stupidity, "aconite");
         val
     };

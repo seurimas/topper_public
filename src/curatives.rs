@@ -281,7 +281,7 @@ lazy_static! {
     pub static ref PILL_DEFENCES: HashMap<String, FType> = {
         let mut val = HashMap::new();
         val.insert("thanatonin".into(), FType::Deathsight);
-        val.insert("stimulant".into(), FType::Energetic);
+        val.insert("stimulant".into(), FType::Instawake);
         val.insert("kawhe".into(), FType::Insomnia);
         val.insert("ototoxin".into(), FType::Deafness);
         val.insert("amaurosis".into(), FType::Blindness);

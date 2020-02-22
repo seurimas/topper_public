@@ -132,27 +132,39 @@ pub enum FType {
     Snapped,
 
     // Defences
-    Shield,
+    Shielded,
     Deathsight,
-    Energetic,
     Insomnia,
+    Instawake,
     Deafness,
     Blindness,
     Thirdeye,
     Daydreams,
     Fangbarrier,
     Waterbreathing,
+    Waterwalking,
     // Reishi
     Rebounding,
     // Elixirs
     Levitation,
-    Antivenin,
+    VenomResistance,
     Speed,
-    Frost,
+    Temperance,
     Vigor,
     // Salves
     Insulation,
     Density,
+    // Tattoos
+    Flame,
+    Cloak,
+
+    // Syssin defences
+    Shroud,
+    Ghosted,
+    Shadowslip,
+    Weaving,
+    Hiding,
+    Shadowsight,
 
     // Antipsychotic
     Sadness,
@@ -394,7 +406,7 @@ impl FType {
 
     pub fn from_name(aff_name: &String) -> Option<FType> {
         let pretty = aff_name
-            .split("_")
+            .split(|c| c == '_' || c == '-')
             .map(|word| {
                 let mut c = word.chars();
                 match c.next() {
@@ -604,6 +616,7 @@ pub struct AgentState {
     pub limb_damage: LimbSet,
     pub hypnosis_stack: Vec<Hypnosis>,
     pub relapses: Vec<String>,
+    pub parrying: Option<LType>,
 }
 
 impl PartialEq for AgentState {
@@ -700,6 +713,18 @@ impl AgentState {
         } else if self.limb_damage.0[limb as usize] > 10000 {
             self.limb_damage.0[limb as usize] = 10000;
         }
+    }
+
+    pub fn clear_parrying(&mut self) {
+        self.parrying = None;
+    }
+
+    pub fn get_parrying(&self) -> Option<LType> {
+        self.parrying
+    }
+
+    pub fn set_parrying(&mut self, limb: LType) {
+        self.parrying = Some(limb);
     }
 
     /*
@@ -808,5 +833,17 @@ impl AgentState {
             }
         }
         count
+    }
+
+    pub fn pop_suggestion(&mut self) -> Option<Hypnosis> {
+        if self.hypnosis_stack.len() > 0 {
+            self.hypnosis_stack.pop()
+        } else {
+            None
+        }
+    }
+
+    pub fn push_suggestion(&mut self, suggestion: Hypnosis) {
+        self.hypnosis_stack.push(suggestion);
     }
 }

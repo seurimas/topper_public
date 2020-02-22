@@ -4,6 +4,8 @@ use crate::timeline::*;
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
 use std::io;
+use std::sync::mpsc::Sender;
+use std::thread;
 
 #[derive(Deserialize)]
 enum TopperRequest {
@@ -16,6 +18,8 @@ enum TopperRequest {
 
 #[derive(Deserialize)]
 enum TopperMessage {
+    Kill,
+    Line(String),
     Event(TimeSlice),
     Request(TopperRequest),
     Target(String),
@@ -26,6 +30,7 @@ pub struct TopperResponse {
     pub qeb: Option<String>,
     pub battle_stats: Option<BattleStats>,
     pub error: Option<String>,
+    pub die: bool,
 }
 
 impl TopperResponse {
@@ -34,6 +39,7 @@ impl TopperResponse {
             qeb: None,
             battle_stats: Some(battle_stats),
             error: None,
+            die: false,
         }
     }
     pub fn silent() -> Self {
@@ -41,6 +47,7 @@ impl TopperResponse {
             qeb: None,
             battle_stats: None,
             error: None,
+            die: false,
         }
     }
     pub fn error(message: String) -> TopperResponse {
@@ -48,6 +55,7 @@ impl TopperResponse {
             qeb: None,
             battle_stats: None,
             error: Some(message),
+            die: false,
         }
     }
     pub fn qeb(action: String) -> TopperResponse {
@@ -55,6 +63,15 @@ impl TopperResponse {
             qeb: Some(action),
             battle_stats: None,
             error: None,
+            die: false,
+        }
+    }
+    pub fn die() -> TopperResponse {
+        TopperResponse {
+            qeb: None,
+            battle_stats: None,
+            error: None,
+            die: true,
         }
     }
 }
@@ -62,13 +79,15 @@ impl TopperResponse {
 pub struct Topper {
     pub timeline: Timeline,
     pub target: Option<String>,
+    send_lines: Sender<String>,
 }
 
 impl Topper {
-    pub fn new() -> Self {
+    pub fn new(send_lines: Sender<String>) -> Self {
         Topper {
             timeline: Timeline::new(),
             target: None,
+            send_lines,
         }
     }
 
@@ -76,6 +95,11 @@ impl Topper {
         let parsed = from_str(line);
         match parsed {
             Ok(topper_msg) => match topper_msg {
+                TopperMessage::Kill => Ok(TopperResponse::die()),
+                TopperMessage::Line(line) => {
+                    self.send_lines.send(line);
+                    Ok(TopperResponse::silent())
+                }
                 TopperMessage::Event(timeslice) => {
                     self.timeline.push_time_slice(timeslice)?;
                     Ok(TopperResponse::battle_stats(get_battle_stats(self)))
@@ -109,8 +133,15 @@ impl Topper {
     }
 }
 
-pub fn provide_action() {
-    let mut topper = Topper::new();
+pub fn send_response(response: &TopperResponse) {
+    println!(
+        "{}",
+        serde_json::to_string(response).unwrap_or("{err: \"JSON Error\"}".into())
+    );
+}
+
+pub fn provide_action(send_lines: Sender<String>) {
+    let mut topper = Topper::new(send_lines);
     loop {
         let mut input = String::new();
         match io::stdin().read_line(&mut input) {
@@ -122,15 +153,16 @@ pub fn provide_action() {
                 let response = &topper
                     .parse_request_or_event(&without_newline.to_string())
                     .unwrap_or_else(|err| TopperResponse::error(err.to_string()));
-                println!(
-                    "{}",
-                    serde_json::to_string(response).unwrap_or("{err: \"JSON Error\"}".into())
-                );
+                send_response(&response);
+                if response.die {
+                    break;
+                }
             }
             Err(error) => println!(
                 "{}",
                 serde_json::to_string(&TopperResponse::error(error.to_string())).unwrap()
             ),
         }
+        thread::yield_now();
     }
 }
