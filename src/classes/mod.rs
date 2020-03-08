@@ -6,9 +6,69 @@ use std::collections::HashMap;
 pub mod carnifex;
 pub mod syssin;
 pub mod zealot;
+use serde::Serialize;
+
+#[derive(Debug, Serialize, Clone)]
+pub enum Class {
+    Carnifex,
+    Indorani,
+    Praenomen,
+    Teradrim,
+    Monk,
+    Sentinel,
+    Shaman,
+    Ascendril,
+    Luminary,
+    Templar,
+    Zealot,
+    Archivists,
+    Sciomancer,
+    Syssin,
+    Shapeshifter,
+    Wayfarerer,
+}
+
+pub fn get_skill_class(category: &String) -> Option<Class> {
+    match category.as_ref() {
+        // Bloodloch
+        "Savagery" | "Deathlore" | "Warhounds" => Some(Class::Carnifex),
+        "Necromancy" | "Tarot" | "Domination" => Some(Class::Indorani),
+        "Corpus" | "Mentis" | "Sanguis" => Some(Class::Praenomen),
+        "Terramancy" | "Animation" | "Desiccation" => Some(Class::Teradrim),
+        // Duiran
+        "Tekura" | "Kaido" | "Telepathy" => Some(Class::Monk),
+        "Dhuriv" | "Woodlore" | "Tracking" => Some(Class::Sentinel),
+        "Primality" | "Shamanism" | "Naturalism" => Some(Class::Shaman),
+        // Enorian
+        "Elemancy" | "Arcanism" | "Thaumaturgy" => Some(Class::Ascendril),
+        "Spirituality" | "Devotion" | "Illumination" => Some(Class::Luminary),
+        "Battlefury" | "Righteousness" | "Bladefire" => Some(Class::Templar),
+        "Zeal" | "Purification" | "Psionics" => Some(Class::Zealot),
+        // Spinesreach
+        "Geometrics" | "Numerology" | "Bioessence" => Some(Class::Archivists),
+        "Sciomancy" | "Sorcery" | "Gravitation" => Some(Class::Sciomancer),
+        "Assassination" | "Subterfuge" | "Hypnosis" => Some(Class::Syssin),
+        // Unaffiliated
+        "Ferality" | "Shapeshifting" | "Vocalizing" => Some(Class::Shapeshifter),
+        "Tenacity" | "Wayfaring" | "Fury" => Some(Class::Wayfarerer),
+        _ => None,
+    }
+}
 
 pub fn handle_sent(command: &String, agent_states: &mut TimelineState) {
     syssin::handle_sent(command, agent_states);
+}
+
+pub fn get_attack(topper: &Topper, target: &String, strategy: &String) -> String {
+    if let Some(class) = topper.timeline.get_my_class() {
+        match class {
+            Class::Zealot => zealot::get_attack(topper, target, strategy),
+            Class::Syssin => syssin::get_attack(topper, target, strategy),
+            _ => syssin::get_attack(topper, target, strategy),
+        }
+    } else {
+        syssin::get_attack(topper, target, strategy)
+    }
 }
 
 pub fn handle_combat_action(
@@ -183,8 +243,4 @@ pub fn add_buffers<'s>(ready: &mut Vec<&'s str>, buffers: &Vec<&'s str>) {
             ready.push(buffer);
         }
     }
-}
-
-pub fn get_attack(topper: &Topper, target: &String, strategy: &String) -> String {
-    syssin::get_attack(topper, target, strategy)
 }

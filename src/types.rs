@@ -846,4 +846,15 @@ impl AgentState {
     pub fn push_suggestion(&mut self, suggestion: Hypnosis) {
         self.hypnosis_stack.push(suggestion);
     }
+
+    pub fn get_next_hypno_aff(&self) -> Option<FType> {
+        if !self.is(FType::Snapped) {
+            return None;
+        }
+        if let Some(Hypnosis::Aff(aff)) = self.hypnosis_stack.get(0) {
+            Some(*aff)
+        } else {
+            None
+        }
+    }
 }

@@ -1,6 +1,7 @@
 use crate::battle_stats::*;
 use crate::classes::get_attack;
 use crate::timeline::*;
+use log::info;
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
 use std::io;
@@ -19,7 +20,6 @@ enum TopperRequest {
 #[derive(Deserialize)]
 enum TopperMessage {
     Kill,
-    Line(String),
     Event(TimeSlice),
     Request(TopperRequest),
     Target(String),
@@ -92,15 +92,20 @@ impl Topper {
     }
 
     pub fn parse_request_or_event(&mut self, line: &String) -> Result<TopperResponse, String> {
+        info!("{}", line);
         let parsed = from_str(line);
         match parsed {
             Ok(topper_msg) => match topper_msg {
                 TopperMessage::Kill => Ok(TopperResponse::die()),
-                TopperMessage::Line(line) => {
-                    self.send_lines.send(line);
-                    Ok(TopperResponse::silent())
-                }
                 TopperMessage::Event(timeslice) => {
+                    for (line, _line_number) in timeslice.lines.iter() {
+                        match self.send_lines.send(line.to_string()) {
+                            Ok(()) => {}
+                            Err(err) => {
+                                println!("Line: {:?}", err);
+                            }
+                        };
+                    }
                     self.timeline.push_time_slice(timeslice)?;
                     Ok(TopperResponse::battle_stats(get_battle_stats(self)))
                 }

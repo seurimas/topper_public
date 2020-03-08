@@ -1,3 +1,4 @@
+use crate::io::*;
 use crate::timeline::*;
 use crate::types::*;
 
@@ -19,4 +20,27 @@ pub fn handle_combat_action(
         _ => {}
     }
     Ok(())
+}
+
+pub fn get_balance_attack(topper: &Topper, target: &String, strategy: &String) -> String {
+    if strategy == "damage" {
+        let you = topper.timeline.state.borrow_agent(target);
+        if you.parrying == Some(LType::HeadDamage) {
+            return format!("flow {} clawtwist clawtwist", target);
+        } else {
+            return format!("flow {} sunkick uprise;;psi shock {}", target, target);
+        }
+    } else {
+        "".into()
+    }
+}
+
+pub fn get_attack(topper: &Topper, target: &String, strategy: &String) -> String {
+    let mut balance = get_balance_attack(topper, target, strategy);
+    let mut attack = "".to_string();
+    if balance != "" {
+        attack = format!("qeb {}", balance);
+    }
+
+    attack
 }

@@ -1,9 +1,10 @@
-use crate::classes::{handle_combat_action, handle_sent, VENOM_AFFLICTS};
+use crate::classes::{get_skill_class, handle_combat_action, handle_sent, Class, VENOM_AFFLICTS};
 use crate::curatives::{
     handle_simple_cure_action, remove_in_order, top_aff, CALORIC_TORSO_ORDER, PILL_CURE_ORDERS,
     PILL_DEFENCES, SALVE_CURE_ORDERS, SMOKE_CURE_ORDERS,
 };
 use crate::types::*;
+use log::warn;
 use regex::Regex;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -82,6 +83,7 @@ pub enum Prompt {
 #[derive(Debug, Deserialize)]
 pub struct TimeSlice {
     pub observations: Vec<Observation>,
+    pub lines: Vec<(String, u32)>,
     pub prompt: Prompt,
     pub time: CType,
     pub me: String,
@@ -90,6 +92,7 @@ pub struct TimeSlice {
 pub struct TimelineState {
     agent_states: HashMap<String, AgentState>,
     free_hints: HashMap<String, String>,
+    classes: HashMap<String, Class>,
     time: CType,
     pub me: String,
 }
@@ -99,13 +102,13 @@ impl TimelineState {
         TimelineState {
             agent_states: HashMap::new(),
             free_hints: HashMap::new(),
+            classes: HashMap::new(),
             time: 0,
             me: "".to_string(),
         }
     }
 
     pub fn add_player_hint(&mut self, name: &str, hint_type: &str, hint: String) {
-        println!("Hint: {}'s {} is now \"{}\"", name, hint_type, &hint);
         self.free_hints
             .insert(format!("{}_{}", name, hint_type), hint);
     }
@@ -196,6 +199,10 @@ impl TimelineState {
                 handle_sent(command, self);
             }
             Observation::CombatAction(combat_action) => {
+                if let Some(known_class) = get_skill_class(&combat_action.category) {
+                    self.classes
+                        .insert(combat_action.caster.clone(), known_class);
+                }
                 handle_combat_action(combat_action, self, before, after)?;
             }
             Observation::SimpleCureAction(simple_cure) => {
@@ -304,6 +311,10 @@ impl Timeline {
     pub fn who_am_i(&self) -> String {
         self.state.me.clone()
     }
+
+    pub fn get_my_class(&self) -> Option<Class> {
+        self.state.classes.get(&self.state.me).cloned()
+    }
 }
 
 lazy_static! {
@@ -332,12 +343,15 @@ pub fn apply_or_infer_suggestion(
     after: &Vec<Observation>,
 ) -> Result<(), String> {
     if let Some(Observation::DiscernedAfflict(_affliction)) = after.get(0) {
-        // This is fine. Discerned afflict will be applied independently.
+        println!("Discerned correct!");
+    // This is fine. Discerned afflict will be applied independently.
     } else if let Some(Hypnosis::Aff(_affliction)) = who.hypnosis_stack.get(0) {
         // Discernment is off??? Might be out of sync, don't assume.
         // who.set_flag(*affliction, true);
     }
-    who.pop_suggestion();
+    if who.hypnosis_stack.len() > 0 {
+        who.hypnosis_stack.remove(0);
+    }
     if who.hypnosis_stack.len() == 0 {
         who.set_flag(FType::Snapped, false);
     }
@@ -349,6 +363,8 @@ pub fn apply_venom(who: &mut AgentState, venom: &String) -> Result<(), String> {
         who.push_toxin(venom.clone());
     }
     if venom == "prefarar" && who.is(FType::Deafness) {
+        who.set_flag(FType::Deafness, false);
+    } else if venom == "oculus" && who.is(FType::Blindness) {
         who.set_flag(FType::Deafness, false);
     } else if venom == "epseth" {
         if who.is(FType::LeftLegBroken) {
@@ -534,6 +550,10 @@ pub fn apply_or_infer_cure(
     } else {
         match cure {
             SimpleCure::Pill(pill_name) => {
+                if who.is(FType::Anorexia) {
+                    who.set_flag(FType::Anorexia, false);
+                    warn!("Missed Anorexia cure!");
+                }
                 if pill_name == "anabiotic" {
                 } else if let Some(order) = PILL_CURE_ORDERS.get(pill_name) {
                     let cured = top_aff(who, order.to_vec());
@@ -548,6 +568,10 @@ pub fn apply_or_infer_cure(
                 }
             }
             SimpleCure::Salve(salve_name, salve_loc) => {
+                if who.is(FType::Slickness) {
+                    who.set_flag(FType::Slickness, false);
+                    warn!("Missed Slickness cure!");
+                }
                 if salve_name == "caloric" {
                     if who.some(CALORIC_TORSO_ORDER.to_vec()) {
                         remove_in_order(CALORIC_TORSO_ORDER.to_vec())(who);
@@ -568,6 +592,10 @@ pub fn apply_or_infer_cure(
                 }
             }
             SimpleCure::Smoke(herb_name) => {
+                if who.is(FType::Asthma) {
+                    who.set_flag(FType::Asthma, false);
+                    warn!("Missed Asthma cure!");
+                }
                 if let Some(order) = SMOKE_CURE_ORDERS.get(herb_name) {
                     remove_in_order(order.to_vec())(who);
                 } else if herb_name == "reishi" {

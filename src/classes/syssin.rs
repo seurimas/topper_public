@@ -24,6 +24,7 @@ mod timeline_tests {
                 target: "Benedicto".to_string(),
                 annotation: "".to_string(),
             })],
+            lines: vec![],
             prompt: Prompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
@@ -56,6 +57,7 @@ mod timeline_tests {
                 }),
                 Observation::Dodges,
             ],
+            lines: vec![],
             prompt: Prompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
@@ -86,6 +88,7 @@ mod timeline_tests {
                 Observation::Devenoms("slike".into()),
                 Observation::Devenoms("kalmia".into()),
             ],
+            lines: vec![],
             prompt: Prompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
@@ -119,6 +122,7 @@ mod timeline_tests {
                 Observation::Cured("void".to_string()),
                 Observation::Afflicted("weakvoid".to_string()),
             ],
+            lines: vec![],
             prompt: Prompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
@@ -153,6 +157,7 @@ mod timeline_tests {
                 }),
                 Observation::DiscernedCure("Benedicto".to_string(), "void".to_string()),
             ],
+            lines: vec![],
             prompt: Prompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
@@ -187,6 +192,7 @@ mod timeline_tests {
                 }),
                 Observation::DiscernedCure("Benedicto".to_string(), "weakvoid".to_string()),
             ],
+            lines: vec![],
             prompt: Prompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
@@ -220,6 +226,7 @@ mod timeline_tests {
                 Observation::Devenoms("kalmia".into()),
                 Observation::PurgeVenom("Benedicto".into(), "kalmia".into()),
             ],
+            lines: vec![],
             prompt: Prompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
@@ -246,6 +253,7 @@ mod timeline_tests {
                 target: "Benedicto".to_string(),
                 annotation: "scytherus".to_string(),
             })],
+            lines: vec![],
             prompt: Prompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
@@ -262,6 +270,7 @@ mod timeline_tests {
                 Observation::Devenoms("slike".into()),
                 Observation::Devenoms("kalmia".into()),
             ],
+            lines: vec![],
             prompt: Prompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
@@ -297,6 +306,7 @@ mod timeline_tests {
                 Observation::Rebounds,
                 Observation::Devenoms("kalmia".into()),
             ],
+            lines: vec![],
             prompt: Prompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
@@ -323,6 +333,7 @@ mod timeline_tests {
                 target: "Benedicto".to_string(),
                 annotation: "scytherus".to_string(),
             })],
+            lines: vec![],
             prompt: Prompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
@@ -350,6 +361,7 @@ mod timeline_tests {
                 }),
                 Observation::Parry("Benedicto".to_string(), "head".to_string()),
             ],
+            lines: vec![],
             prompt: Prompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
@@ -379,6 +391,7 @@ mod timeline_tests {
                     annotation: "".to_string(),
                 }),
             ],
+            lines: vec![],
             prompt: Prompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
@@ -409,6 +422,7 @@ mod timeline_tests {
                     annotation: "".to_string(),
                 }),
             ],
+            lines: vec![],
             prompt: Prompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
@@ -658,6 +672,10 @@ pub fn handle_combat_action(
                 let mut you = agent_states.get_agent(&target);
                 start_hypnosis(&mut you);
                 agent_states.set_agent(&target, you);
+            } else if !combat_action.target.eq(&"".to_string()) {
+                let mut you = agent_states.get_agent(&combat_action.target);
+                start_hypnosis(&mut you);
+                agent_states.set_agent(&combat_action.target, you);
             }
         }
         "Bedazzle" => {
@@ -1071,6 +1089,26 @@ pub fn get_balance_attack(topper: &Topper, target: &String, strategy: &String) -
                 if you.is(FType::ThinBlood) && buffer.len() > 0 {
                     println!("Buffering! {:?} {:?}", venoms, buffer);
                     add_buffers(&mut venoms, &buffer);
+                } else {
+                    let mut hypno_buffers = vec![];
+                    if you.is(FType::Impatience)
+                        || you.get_next_hypno_aff() == Some(FType::Impatience)
+                    {
+                        hypno_buffers.push(FType::Shyness);
+                    }
+                    if you.is(FType::Loneliness)
+                        || you.get_next_hypno_aff() == Some(FType::Loneliness)
+                    {
+                        hypno_buffers.push(FType::Recklessness);
+                    }
+                    if you.is(FType::Generosity)
+                        || you.get_next_hypno_aff() == Some(FType::Generosity)
+                    {
+                        hypno_buffers.push(FType::Peace);
+                        hypno_buffers.push(FType::Stupidity);
+                    }
+                    let hypno_buffers = get_venoms(hypno_buffers, 1, &you);
+                    add_buffers(&mut venoms, &hypno_buffers);
                 }
             }
             let v1 = venoms.pop();
@@ -1105,7 +1143,10 @@ pub fn get_balance_attack(topper: &Topper, target: &String, strategy: &String) -
     }
 }
 
-pub fn get_equil_attack(topper: &Topper, target: &String, _strategy: &String) -> String {
+pub fn get_equil_attack(topper: &Topper, target: &String, strategy: &String) -> String {
+    if strategy.eq("damage") {
+        return "".to_string();
+    }
     let you = topper.timeline.state.borrow_agent(target);
     let hypno_action = get_top_hypno(target, &you, &HARD_HYPNO.to_vec());
     hypno_action.unwrap_or("".into())

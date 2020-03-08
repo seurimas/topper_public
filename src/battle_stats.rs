@@ -91,15 +91,23 @@ pub fn get_battle_stats(topper: &mut Topper) -> BattleStats {
     lines.push(format_self_state(&topper.timeline.state.get_me()));
     lines.push(format_self_limbs(&topper.timeline.state.get_me()));
     if let Some(target) = &topper.target {
-        lines.push(format_target_state(
-            &topper.timeline.state.get_agent(target),
-        ));
-        lines.push(format_target_limbs(
-            &topper.timeline.state.get_agent(target),
-        ));
-        lines.push(format_target_balances(
-            &topper.timeline.state.get_agent(target),
-        ));
+        let target = topper.timeline.state.get_agent(target);
+        lines.push(format_target_state(&target));
+        lines.push(format_target_limbs(&target));
+        lines.push(format_target_balances(&target));
+        if let Some(aff) = target.get_next_hypno_aff() {
+            lines.push(format!("<magenta>Next aff: <red>{:?}", aff));
+        } else if target.hypnosis_stack.len() > 0 {
+            lines.push(format!(
+                "<magenta>Stack size: <red>{} {}",
+                target.hypnosis_stack.len(),
+                if !target.is(FType::Hypnotized) {
+                    "SEALED"
+                } else {
+                    ""
+                },
+            ));
+        }
     }
     push_warnings(&mut lines, &topper.timeline.state.get_me());
     for timeslice in topper.timeline.slices.iter().rev() {

@@ -9,7 +9,7 @@ use std::time::Duration;
 
 pub fn proxy(receive_lines: Receiver<String>) {
     println!("Starting proxy!");
-    let listener = TcpListener::bind("0.0.0.0:2323").unwrap();
+    let listener = TcpListener::bind("0.0.0.0:12323").unwrap();
 
     for stream in listener.incoming() {
         let stream = stream.unwrap();
@@ -60,7 +60,16 @@ fn handle_connection(mut stream: TcpStream, receive_lines: &Receiver<String>) ->
     loop {
         while let Ok(line) = receive_lines.try_recv() {
             inactive = 0;
-            stream.write(&line.as_bytes())?;
+            match stream.write(&line.as_bytes()) {
+                Ok(_) => {}
+                Err(err) => match err.kind() {
+                    ErrorKind::WouldBlock => {}
+                    other => {
+                        println!("{:?}", other);
+                        break;
+                    }
+                },
+            }
         }
         match stream.read(&mut buffer) {
             Ok(size) => {
