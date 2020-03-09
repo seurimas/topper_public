@@ -607,6 +607,24 @@ impl LimbSet {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum WieldState {
+    Normal {
+        left: Option<String>,
+        right: Option<String>,
+    },
+    TwoHanded(String),
+}
+
+impl Default for WieldState {
+    fn default() -> Self {
+        WieldState::Normal {
+            left: None,
+            right: None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct AgentState {
     pub balances: [CType; BType::SIZE as usize],
@@ -617,6 +635,7 @@ pub struct AgentState {
     pub hypnosis_stack: Vec<Hypnosis>,
     pub relapses: Vec<String>,
     pub parrying: Option<LType>,
+    pub wield_state: WieldState,
 }
 
 impl PartialEq for AgentState {
@@ -856,5 +875,38 @@ impl AgentState {
         } else {
             None
         }
+    }
+
+    pub fn wield_multi(&mut self, left: Option<String>, right: Option<String>) {
+        self.wield_state = match &self.wield_state {
+            WieldState::Normal {
+                left: old_left,
+                right: old_right,
+            } => WieldState::Normal {
+                left: left.or(old_left.clone()),
+                right: right.or(old_right.clone()),
+            },
+            WieldState::TwoHanded(_what) => WieldState::Normal { left, right },
+        };
+    }
+
+    pub fn unwield_multi(&mut self, left: bool, right: bool) {
+        self.wield_state = match &self.wield_state {
+            WieldState::Normal {
+                left: old_left,
+                right: old_right,
+            } => WieldState::Normal {
+                left: if left { None } else { old_left.clone() },
+                right: if right { None } else { old_right.clone() },
+            },
+            WieldState::TwoHanded(_what) => WieldState::Normal {
+                left: None,
+                right: None,
+            },
+        }
+    }
+
+    pub fn wield_two_hands(&mut self, what: String) {
+        self.wield_state = WieldState::TwoHanded(what);
     }
 }

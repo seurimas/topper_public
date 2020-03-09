@@ -43,33 +43,55 @@ pub struct SimpleCureAction {
 
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub enum Observation {
+    // Basic actions
     CombatAction(CombatAction),
     SimpleCureAction(SimpleCureAction),
+    DualWield {
+        who: String,
+        left: String,
+        right: String,
+    },
+    Wield {
+        who: String,
+        what: String,
+        hand: String,
+    },
+    Unwield {
+        who: String,
+        what: String,
+        hand: String,
+    },
+    TwoHandedWield(String, String),
+    // Action-related
     Connects(String),
     Devenoms(String),
-    Afflicted(String),
-    OtherAfflicted(String, String),
-    Cured(String),
-    DiscernedCure(String, String),
+    Parry(String, String),
+    Absorbed(String, String),
     DiscernedAfflict(String),
-    Gained(String, String),
+    Rebounds,
+    Diverts,
+    Dodges,
+    OtherAfflicted(String, String),
+    DiscernedCure(String, String),
     LostRebound(String),
     LostShield(String),
     LostFangBarrier(String),
+    PurgeVenom(String, String),
+    Fangbarrier,
+    Shield,
+    // First-Aid simples
+    Afflicted(String),
+    Cured(String),
+    Gained(String, String),
     Stripped(String),
+    // Specific case, non-action
+    Relapse(String),
+    // General messages
     Balance(String, f32),
     BalanceBack(String),
-    PurgeVenom(String, String),
     LimbDamage(String, f32),
     LimbHeal(String, f32),
     LimbDone(String),
-    Parry(String, String),
-    Rebounds,
-    Fangbarrier,
-    Shield,
-    Diverts,
-    Dodges,
-    Relapse(String),
     Sent(String),
 }
 
@@ -249,6 +271,38 @@ impl TimelineState {
                 let mut me = self.get_agent(who);
                 let limb = get_limb_damage(what)?;
                 me.set_parrying(limb);
+                self.set_agent(who, me);
+            }
+            Observation::Wield { who, what, hand } => {
+                let left = if hand.eq("left") {
+                    Some(what.clone())
+                } else {
+                    None
+                };
+                let right = if hand.eq("right") {
+                    Some(what.clone())
+                } else {
+                    None
+                };
+                let mut me = self.get_agent(who);
+                me.wield_multi(left, right);
+                self.set_agent(who, me);
+            }
+            Observation::Unwield { who, what: _, hand } => {
+                let left = hand.eq("left");
+                let right = hand.eq("right");
+                let mut me = self.get_agent(who);
+                me.unwield_multi(left, right);
+                self.set_agent(who, me);
+            }
+            Observation::DualWield { who, left, right } => {
+                let mut me = self.get_agent(who);
+                me.wield_multi(Some(left.clone()), Some(right.clone()));
+                self.set_agent(who, me);
+            }
+            Observation::TwoHandedWield(who, what) => {
+                let mut me = self.get_agent(who);
+                me.wield_two_hands(what.clone());
                 self.set_agent(who, me);
             }
             Observation::Relapse(who) => {
