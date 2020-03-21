@@ -458,10 +458,11 @@ impl fmt::Display for FlagSet {
         Ok(())
     }
 }
-/*
+
 pub struct FlagSetIterator<'s> {
     index: usize,
     set: &'s FlagSet,
+    predicate: &'s Fn(FType) -> bool,
 }
 
 impl<'s> Iterator for FlagSetIterator<'s> {
@@ -472,7 +473,12 @@ impl<'s> Iterator for FlagSetIterator<'s> {
         }
         if self.index < self.set.0.len() {
             self.index += 1;
-            Some(FType::try_from((self.index - 1) as u16).unwrap())
+            let ftype = FType::try_from((self.index - 1) as u16).unwrap();
+            if (self.predicate)(ftype) {
+                Some(ftype)
+            } else {
+                self.next()
+            }
         } else {
             None
         }
@@ -480,20 +486,21 @@ impl<'s> Iterator for FlagSetIterator<'s> {
 }
 
 impl<'s> FlagSetIterator<'s> {
-    fn new(flagset: &'s FlagSet, affs: bool) -> Self {
+    fn new(flagset: &'s FlagSet, predicate: &'s Fn(FType) -> bool) -> Self {
         FlagSetIterator {
-            index: if affs { FType::Sadness as usize } else { 0 },
+            index: 0,
             set: flagset,
+            predicate,
         }
     }
 }
 
 impl FlagSet {
     pub fn aff_iter<'s>(&'s self) -> FlagSetIterator<'s> {
-        FlagSetIterator::new(self, true)
+        FlagSetIterator::new(self, &|ftype: FType| ftype.is_affliction())
     }
 }
-*/
+
 impl Default for FlagSet {
     fn default() -> Self {
         FlagSet([false; FType::SIZE as usize])

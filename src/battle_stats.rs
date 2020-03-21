@@ -2,50 +2,74 @@ use crate::io::Topper;
 use crate::timeline::*;
 use crate::types::*;
 use serde::Serialize;
+use std::collections::HashMap;
+
+#[derive(Serialize)]
+pub struct PlayerStats {
+    afflictions: Vec<String>,
+    balances: HashMap<String, f32>,
+    warnings: Vec<String>,
+    lock_duration: Option<f32>,
+}
+
+fn get_hypno_warning(state: &AgentState) -> Option<String> {
+    if let Some(aff) = state.get_next_hypno_aff() {
+        Some(format!("<magenta>Next aff: <red>{:?}", aff))
+    } else if state.hypnosis_stack.len() > 0 {
+        Some(format!(
+            "<magenta>Stack size: <red>{} {}",
+            state.hypnosis_stack.len(),
+            if !state.is(FType::Hypnotized) {
+                "SEALED"
+            } else {
+                ""
+            },
+        ))
+    } else {
+        None
+    }
+}
+
+impl PlayerStats {
+    pub fn new() -> Self {
+        PlayerStats {
+            afflictions: Vec::new(),
+            warnings: Vec::new(),
+            balances: HashMap::new(),
+            lock_duration: None,
+        }
+    }
+    pub fn for_player(state: &AgentState) -> Self {
+        let mut afflictions = Vec::new();
+        for aff in state.flags.aff_iter() {
+            afflictions.push(format!("{:?}", aff));
+        }
+        let mut warnings = Vec::new();
+        if let Some(warning) = get_hypno_warning(&state) {
+            warnings.push(warning);
+        }
+        let mut balances = HashMap::new();
+        balances.insert("Tree".to_string(), state.get_balance(BType::Tree));
+        balances.insert("Focus".to_string(), state.get_balance(BType::Focus));
+        balances.insert(
+            "Rebounding".to_string(),
+            state.get_balance(BType::Rebounding),
+        );
+        let lock_duration = state.lock_duration();
+        PlayerStats {
+            afflictions,
+            warnings,
+            balances,
+            lock_duration,
+        }
+    }
+}
 
 #[derive(Serialize)]
 pub struct BattleStats {
-    pub lines: Vec<String>,
-}
-
-fn format_self_state(state: &AgentState) -> String {
-    let locked = if let Some(duration) = state.lock_duration() {
-        format!("<magenta>[LOCKED FOR {}] <green>", duration)
-    } else {
-        "".into()
-    };
-    format!(
-        "<green>My Afflictions: {}{} {}",
-        locked, state.flags, state.limb_damage
-    )
-}
-
-fn format_target_state(state: &AgentState) -> String {
-    let locked = if let Some(duration) = state.lock_duration() {
-        format!("<magenta>[LOCKED FOR {}] <red>", duration)
-    } else {
-        "".into()
-    };
-    format!(
-        "<red>Target Afflictions: {}{} {}",
-        locked, state.flags, state.limb_damage
-    )
-}
-
-fn format_target_balances(state: &AgentState) -> String {
-    format!(
-        "<magenta>Tree: {} <magenta>- Focus: {}",
-        if state.balanced(BType::Tree) {
-            "<green>Ready".to_string()
-        } else {
-            format!("{}", state.get_balance(BType::Tree))
-        },
-        if state.balanced(BType::Focus) {
-            "<blue>Ready".to_string()
-        } else {
-            format!("{}", state.get_balance(BType::Focus))
-        },
-    )
+    pub feed: Vec<String>,
+    pub my_stats: PlayerStats,
+    pub target_stats: Option<PlayerStats>,
 }
 
 fn format_self_limbs(state: &AgentState) -> String {
@@ -64,52 +88,22 @@ fn format_combat_action(combat_action: &CombatAction) -> Vec<String> {
     lines
 }
 
-fn push_warnings(lines: &mut Vec<String>, state: &AgentState) {
-    if let Some(duration) = state.lock_duration() {
-        lines.push(format!("<magenta>YOU ARE LOCKED: {} seconds!", duration));
-    }
-    if state.is(FType::Paralysis) {
-        lines.push(format!("<yellow>You are paralyzed!"));
-    }
-    if state.is(FType::LeftArmBroken) && state.is(FType::RightArmBroken) {
-        lines.push(format!("<red>Your arms are broken!"));
-    } else if state.is(FType::LeftArmBroken) {
-        lines.push(format!("<red>Your left arm is broken!"));
-    }
-    if state.is(FType::Prone)
-        && (state.is(FType::LeftLegBroken)
-            || state.is(FType::RightLegBroken)
-            || state.is(FType::Paralysis))
-    {
-        lines.push(format!("<magenta>YOU ARE FLOORED!"));
-    }
-}
-
 pub fn get_battle_stats(topper: &mut Topper) -> BattleStats {
     let mut lines = Vec::new();
+    let my_stats = PlayerStats::for_player(&topper.timeline.state.get_me());
+    let target_stats = if let Some(target) = &topper.target {
+        Some(PlayerStats::for_player(
+            &topper.timeline.state.get_agent(target),
+        ))
+    } else {
+        None
+    };
     let mut lines_available = 16;
-    lines.push(format_self_state(&topper.timeline.state.get_me()));
     lines.push(format_self_limbs(&topper.timeline.state.get_me()));
     if let Some(target) = &topper.target {
         let target = topper.timeline.state.get_agent(target);
-        lines.push(format_target_state(&target));
         lines.push(format_target_limbs(&target));
-        lines.push(format_target_balances(&target));
-        if let Some(aff) = target.get_next_hypno_aff() {
-            lines.push(format!("<magenta>Next aff: <red>{:?}", aff));
-        } else if target.hypnosis_stack.len() > 0 {
-            lines.push(format!(
-                "<magenta>Stack size: <red>{} {}",
-                target.hypnosis_stack.len(),
-                if !target.is(FType::Hypnotized) {
-                    "SEALED"
-                } else {
-                    ""
-                },
-            ));
-        }
     }
-    push_warnings(&mut lines, &topper.timeline.state.get_me());
     for timeslice in topper.timeline.slices.iter().rev() {
         for observation in timeslice.observations.iter().rev() {
             if lines_available <= 0 {
@@ -143,5 +137,9 @@ pub fn get_battle_stats(topper: &mut Topper) -> BattleStats {
             }
         }
     }
-    BattleStats { lines }
+    BattleStats {
+        feed: lines,
+        my_stats,
+        target_stats,
+    }
 }
