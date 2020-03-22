@@ -889,7 +889,7 @@ lazy_static! {
 }
 
 lazy_static! {
-    static ref SOFT_STACK: Vec<FType> = vec![FType::Asthma, FType::Anorexia, FType::Slickness,];
+    pub static ref SOFT_STACK: Vec<FType> = vec![FType::Asthma, FType::Anorexia, FType::Slickness,];
 }
 
 lazy_static! {
@@ -1050,11 +1050,12 @@ fn go_for_thin_blood(_topper: &Topper, you: &AgentState, _strategy: &String) -> 
         && !you.is(FType::ThinBlood)
 }
 
-fn should_lock(you: &AgentState, lockers: &Vec<&str>) -> bool {
+pub fn should_lock(you: &AgentState, lockers: &Vec<&str>) -> bool {
     (!you.can_focus(true) || you.is(FType::Stupidity) || you.get_balance(BType::Focus) > 2.5)
         && (!you.can_tree(true) || you.get_balance(BType::Tree) > 2.5)
         && lockers.len() < 3
         && lockers.len() > 0
+        && (you.aff_count() >= 4 || you.get_balance(BType::Renew) > 4.0)
 }
 
 pub fn call_venom(target: &String, v1: &String) -> String {
@@ -1071,11 +1072,13 @@ pub fn get_flay_action(topper: &Topper, target: &String, def: String, v1: String
     } else {
         format!("flay {} {} {}", target, def, v1)
     };
-    if should_call_venoms(topper) {
+    let action = if should_call_venoms(topper) {
         format!("{};;{}", call_venom(target, &v1), action)
     } else {
         action
-    }
+    };
+
+    action
 }
 
 pub fn get_dstab_action(topper: &Topper, target: &String, v1: &String, v2: &String) -> String {

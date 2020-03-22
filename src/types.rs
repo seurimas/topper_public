@@ -916,4 +916,12 @@ impl AgentState {
     pub fn wield_two_hands(&mut self, what: String) {
         self.wield_state = WieldState::TwoHanded(what);
     }
+
+    pub fn aff_count(&self) -> usize {
+        let mut count = 0;
+        for _ in self.flags.aff_iter() {
+            count += 1;
+        }
+        count
+    }
 }

@@ -30,6 +30,16 @@ fn get_hypno_warning(state: &AgentState) -> Option<String> {
     }
 }
 
+fn get_lock_warning(state: &AgentState) -> Option<String> {
+    use crate::classes::get_venoms;
+    use crate::classes::syssin::{should_lock, SOFT_STACK};
+    if should_lock(state, &get_venoms(SOFT_STACK.to_vec(), 3, &state)) {
+        Some(format!("<pink>Close to a lock!"))
+    } else {
+        None
+    }
+}
+
 impl PlayerStats {
     pub fn new() -> Self {
         PlayerStats {
@@ -46,6 +56,9 @@ impl PlayerStats {
         }
         let mut warnings = Vec::new();
         if let Some(warning) = get_hypno_warning(&state) {
+            warnings.push(warning);
+        }
+        if let Some(warning) = get_lock_warning(&state) {
             warnings.push(warning);
         }
         let mut balances = HashMap::new();
