@@ -836,11 +836,13 @@ lazy_static! {
 }
 
 lazy_static! {
-    static ref WAYF_STACK: Vec<FType> = vec![
+    static ref YEDAN_STACK: Vec<FType> = vec![
+        FType::Slickness,
+        FType::Paresis,
+        FType::Anorexia,
         FType::Stupidity,
         FType::Clumsiness,
         FType::Weariness,
-        FType::Paresis,
         FType::Asthma,
         FType::Allergies,
         FType::Dizziness,
@@ -866,13 +868,14 @@ lazy_static! {
 
 lazy_static! {
     static ref SALVE_STACK: Vec<FType> = vec![
-        FType::Anorexia,
-        FType::Stuttering,
-        FType::LeftLegBroken,
-        FType::RightLegBroken,
         FType::LeftArmBroken,
         FType::RightArmBroken,
-        FType::Clumsiness,
+        FType::LeftLegBroken,
+        FType::RightLegBroken,
+        FType::Anorexia,
+        FType::Slickness,
+        FType::Paresis,
+        FType::Stupidity,
     ];
 }
 
@@ -915,7 +918,7 @@ lazy_static! {
         val.insert("aggro".into(), AGGRO_STACK.to_vec());
         val.insert("salve".into(), SALVE_STACK.to_vec());
         val.insert("peace".into(), PEACE_STACK.to_vec());
-        val.insert("wayf".into(), WAYF_STACK.to_vec());
+        val.insert("yedan".into(), YEDAN_STACK.to_vec());
         val
     };
 }
