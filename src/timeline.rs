@@ -28,6 +28,24 @@ pub struct CombatAction {
     pub target: String,
 }
 
+impl CombatAction {
+    pub fn observation(
+        caster: &str,
+        target: &str,
+        category: &str,
+        skill: &str,
+        annotation: &str,
+    ) -> Observation {
+        Observation::CombatAction(CombatAction {
+            caster: caster.to_string(),
+            target: target.to_string(),
+            category: category.to_string(),
+            skill: skill.to_string(),
+            annotation: annotation.to_string(),
+        })
+    }
+}
+
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub enum SimpleCure {
     Pill(String),
@@ -39,6 +57,27 @@ pub enum SimpleCure {
 pub struct SimpleCureAction {
     pub cure_type: SimpleCure,
     pub caster: String,
+}
+
+impl SimpleCureAction {
+    pub fn pill(caster: &str, pill: &str) -> Self {
+        SimpleCureAction {
+            cure_type: SimpleCure::Pill(pill.to_string()),
+            caster: caster.to_string(),
+        }
+    }
+    pub fn smoke(caster: &str, herb: &str) -> Self {
+        SimpleCureAction {
+            cure_type: SimpleCure::Smoke(herb.to_string()),
+            caster: caster.to_string(),
+        }
+    }
+    pub fn salve(caster: &str, salve: &str, location: &str) -> Self {
+        SimpleCureAction {
+            cure_type: SimpleCure::Salve(salve.to_string(), location.to_string()),
+            caster: caster.to_string(),
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, PartialEq, Clone)]

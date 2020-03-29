@@ -1,3 +1,5 @@
+use crate::io::Topper;
+use crate::observables::*;
 use crate::timeline::*;
 use crate::types::*;
 use std::collections::HashMap;
@@ -598,7 +600,115 @@ lazy_static! {
         val
     };
 }
-/*
+
+impl ActiveTransition for SimpleCureAction {
+    fn simulate(&self, topper: &Topper) -> Vec<ProbableEvent> {
+        ProbableEvent::certain(vec![Observation::SimpleCureAction(self.clone())])
+    }
+    fn act(&self, topper: &Topper) -> ActivateResult {
+        match &self.cure_type {
+            SimpleCure::Pill(pill) => Ok(format!("eat {}", pill)),
+            SimpleCure::Salve(salve, location) => Ok(format!("apply {} to {}", salve, location)),
+            SimpleCure::Smoke(herb) => Ok(format!("smoke {}", herb)),
+        }
+    }
+}
+
+pub struct FocusAction {
+    caster: String,
+}
+
+impl FocusAction {
+    pub fn new(caster: &str) -> Self {
+        FocusAction {
+            caster: caster.to_string(),
+        }
+    }
+}
+
+impl ActiveTransition for FocusAction {
+    fn simulate(&self, topper: &Topper) -> Vec<ProbableEvent> {
+        ProbableEvent::certain(vec![CombatAction::observation(
+            &self.caster,
+            &"",
+            &"Survival",
+            &"Focus",
+            &"",
+        )])
+    }
+    fn act(&self, topper: &Topper) -> ActivateResult {
+        Ok("focus".to_string())
+    }
+}
+
+pub struct TreeAction {
+    caster: String,
+}
+
+impl TreeAction {
+    pub fn new(caster: &str) -> Self {
+        TreeAction {
+            caster: caster.to_string(),
+        }
+    }
+}
+
+impl ActiveTransition for TreeAction {
+    fn simulate(&self, topper: &Topper) -> Vec<ProbableEvent> {
+        ProbableEvent::certain(vec![CombatAction::observation(
+            &self.caster,
+            &"",
+            &"Tattoos",
+            &"Tree",
+            &"",
+        )])
+    }
+    fn act(&self, topper: &Topper) -> ActivateResult {
+        Ok("touch tree".to_string())
+    }
+}
+
+pub enum FirstAidAction {
+    Simple(SimpleCureAction),
+    Focus(FocusAction),
+    Tree(TreeAction),
+    Wait,
+}
+
+impl FirstAidAction {
+    pub fn is_tree(&self) -> bool {
+        match self {
+            FirstAidAction::Tree(_) => true,
+            _ => false,
+        }
+    }
+    pub fn is_focus(&self) -> bool {
+        match self {
+            FirstAidAction::Focus(_) => true,
+            _ => false,
+        }
+    }
+}
+
+impl ActiveTransition for FirstAidAction {
+    fn simulate(&self, topper: &Topper) -> Vec<ProbableEvent> {
+        match self {
+            FirstAidAction::Simple(action) => action.simulate(&topper),
+            FirstAidAction::Focus(action) => action.simulate(&topper),
+            FirstAidAction::Tree(action) => action.simulate(&topper),
+            FirstAidAction::Wait => vec![],
+        }
+    }
+    fn act(&self, topper: &Topper) -> ActivateResult {
+        match self {
+            FirstAidAction::Simple(action) => action.act(&topper),
+            FirstAidAction::Focus(action) => action.act(&topper),
+            FirstAidAction::Tree(action) => action.act(&topper),
+            FirstAidAction::Wait => Ok("".to_string()),
+        }
+    }
+}
+
 pub struct FirstAid {
     simple_priorities: HashMap<FType, u32>,
     use_tree: bool,
@@ -612,10 +722,12 @@ impl FirstAid {
         simple_priorities.insert(FType::Indifference, 1);
         simple_priorities.insert(FType::Paralysis, 1);
         simple_priorities.insert(FType::Paresis, 1);
+        simple_priorities.insert(FType::Aeon, 1);
 
         simple_priorities.insert(FType::Slickness, 2);
         simple_priorities.insert(FType::Asthma, 2);
         simple_priorities.insert(FType::LimpVeins, 2);
+        simple_priorities.insert(FType::Hellsight, 2);
 
         simple_priorities.insert(FType::Clumsiness, 3);
         simple_priorities.insert(FType::ThinBlood, 3);
@@ -632,6 +744,7 @@ impl FirstAid {
         simple_priorities.insert(FType::Pacifism, 4);
 
         simple_priorities.insert(FType::Confusion, 5);
+        simple_priorities.insert(FType::Merciful, 5);
 
         simple_priorities.insert(FType::Sensitivity, 6);
         simple_priorities.insert(FType::Epilepsy, 6);
@@ -647,6 +760,9 @@ impl FirstAid {
         simple_priorities.insert(FType::Hallucinations, 7);
         simple_priorities.insert(FType::Hypersomnia, 7);
         simple_priorities.insert(FType::Berserking, 7);
+
+        simple_priorities.insert(FType::Dementia, 8);
+        simple_priorities.insert(FType::Paranoia, 8);
         FirstAid {
             simple_priorities,
             use_tree: true,
@@ -654,58 +770,96 @@ impl FirstAid {
         }
     }
 
-    fn best_cure(&self, state: &AgentState, aff: &FType) -> Option<String> {
+    fn best_cure(&self, who_am_i: &str, state: &AgentState, aff: &FType) -> FirstAidAction {
         if let Some(herb) = AFFLICTION_SMOKES.get(aff) {
-            if state.can_smoke() {
-                return Some(format!("smoke {}", herb));
+            if state.can_smoke(false) {
+                return FirstAidAction::Simple(SimpleCureAction::smoke(&who_am_i, &herb));
             }
         }
         if let Some(pill) = AFFLICTION_PILLS.get(aff) {
-            if state.can_pill() {
-                return Some(format!("eat {}", pill));
+            if state.can_pill(false) {
+                return FirstAidAction::Simple(SimpleCureAction::pill(&who_am_i, &pill));
             }
         }
         if let Some((salve, location)) = AFFLICTION_SALVES.get(aff) {
-            if state.can_salve() {
-                return Some(format!("apply {} to {}", salve, location));
+            if state.can_salve(false) {
+                return FirstAidAction::Simple(SimpleCureAction::salve(
+                    &who_am_i, &salve, &location,
+                ));
             }
         }
         // if let Some(elixir) = AFFLICTION_ELIXIRS.get(aff) {
         //     format!("sip {}", elixir)
         // }
         if self.use_focus && MENTAL_AFFLICTIONS.to_vec().contains(aff) && state.can_focus(false) {
-            Some(format!("focus"))
+            return FirstAidAction::Focus(FocusAction::new(&who_am_i));
         } else if self.use_tree && state.can_tree(false) {
-            Some(format!("touch tree"))
+            return FirstAidAction::Tree(TreeAction::new(&who_am_i));
         } else {
-            None
+            return FirstAidAction::Wait;
         }
     }
 
-    fn get_cure(&self, state: &AgentState) -> Option<(FType, String)> {
-        let mut top_priority: Option<(FType, u32, String)> = None;
+    pub fn get_cure(&self, who_am_i: &str, state: &AgentState) -> Option<(FType, FirstAidAction)> {
+        let mut top_priority: Option<(FType, u32, FirstAidAction)> = None;
         for aff in state.flags.aff_iter() {
             if let Some(priority) = self.simple_priorities.get(&aff) {
                 match top_priority {
                     Some((aff, top, _)) => {
-                        if *priority > top {
-                            if let Some(cure) = self.best_cure(state, &aff) {
-                                top_priority = Some((aff, *priority, cure))
+                        if *priority < top {
+                            match self.best_cure(&who_am_i, state, &aff) {
+                                FirstAidAction::Wait => {}
+                                cure => {
+                                    top_priority = Some((aff, *priority, cure));
+                                }
                             }
                         }
                     }
-                    None => {
-                        if let Some(cure) = self.best_cure(state, &aff) {
-                            top_priority = Some((aff, *priority, cure))
+                    None => match self.best_cure(&who_am_i, state, &aff) {
+                        FirstAidAction::Wait => {}
+                        cure => {
+                            top_priority = Some((aff, *priority, cure));
                         }
-                    }
+                    },
                 }
             }
         }
         top_priority.map(|(aff, _, cure)| (aff, cure))
     }
+
+    pub fn get_next_cure(
+        &self,
+        who_am_i: &str,
+        state: &AgentState,
+    ) -> Option<(FType, FirstAidAction)> {
+        if let Some(cure) = self.get_cure(&who_am_i, &state) {
+            return Some(cure);
+        }
+        let mut viable_balances = vec![];
+        if state.can_pill(true) && !state.balanced(BType::Pill) {
+            viable_balances.push(BType::Pill);
+        }
+        if state.can_salve(true) && !state.balanced(BType::Salve) {
+            viable_balances.push(BType::Salve);
+        }
+        if state.can_smoke(true) && !state.balanced(BType::Smoke) {
+            viable_balances.push(BType::Smoke);
+        }
+        if state.can_tree(true) && !state.balanced(BType::Tree) {
+            viable_balances.push(BType::Tree);
+        }
+        if state.can_focus(true) && !state.balanced(BType::Focus) {
+            viable_balances.push(BType::Focus);
+        }
+        if let Some(balance) = state.next_balance(viable_balances) {
+            let mut state = state.clone();
+            state.wait(state.get_raw_balance(balance));
+            return self.get_next_cure(&who_am_i, &state);
+        } else {
+            None
+        }
+    }
 }
- */
 
 pub fn handle_simple_cure_action(
     simple_cure: &SimpleCureAction,

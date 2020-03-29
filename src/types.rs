@@ -700,6 +700,10 @@ impl AgentState {
         self.balances[balance as usize] = (value * BALANCE_SCALE) as CType;
     }
 
+    pub fn get_raw_balance(&self, balance: BType) -> CType {
+        self.balances[balance as usize]
+    }
+
     pub fn get_balance(&self, balance: BType) -> f32 {
         (self.balances[balance as usize] as f32) / (BALANCE_SCALE as f32)
     }
@@ -708,21 +712,19 @@ impl AgentState {
         self.balances[balance as usize] <= 0
     }
 
-    /*
-        pub fn next_balance(&self, balances: Vec<BType>) -> Option<BType> {
-            let mut earliest = balances.first();
-            for balance in balances.iter() {
-                if let Some(earliest_bal) = earliest {
-                    if self.balances[*earliest_bal as usize] <= 0 {
-                        // Do nothing.
-                    } else if self.balances[*balance as usize] < self.balances[*earliest_bal as usize] {
-                        earliest = Some(balance)
-                    }
+    pub fn next_balance(&self, balances: Vec<BType>) -> Option<BType> {
+        let mut earliest = balances.first();
+        for balance in balances.iter() {
+            if let Some(earliest_bal) = earliest {
+                if self.balances[*earliest_bal as usize] <= 0 {
+                    // Do nothing.
+                } else if self.balances[*balance as usize] < self.balances[*earliest_bal as usize] {
+                    earliest = Some(balance)
                 }
             }
-            earliest.cloned()
         }
-    */
+        earliest.cloned()
+    }
 
     pub fn set_stat(&mut self, stat: SType, value: CType) {
         self.stats[stat as usize] = value;
@@ -763,19 +765,19 @@ impl AgentState {
         self.max_stats[stat as usize] = value;
         self.stats[stat as usize] = value;
     }
-    /*
-        pub fn can_smoke(&self) -> bool {
-            !self.is(FType::Asthma) && self.balanced(BType::Smoke)
-        }
 
-        pub fn can_pill(&self) -> bool {
-            !self.is(FType::Anorexia) && self.balanced(BType::Pill)
-        }
+    pub fn can_smoke(&self, ignore_bal: bool) -> bool {
+        !self.is(FType::Asthma) && (ignore_bal || self.balanced(BType::Smoke))
+    }
 
-        pub fn can_salve(&self) -> bool {
-            !self.is(FType::Slickness) && self.balanced(BType::Salve)
-        }
-    */
+    pub fn can_pill(&self, ignore_bal: bool) -> bool {
+        !self.is(FType::Anorexia) && (ignore_bal || self.balanced(BType::Pill))
+    }
+
+    pub fn can_salve(&self, ignore_bal: bool) -> bool {
+        !self.is(FType::Slickness) && (ignore_bal || self.balanced(BType::Salve))
+    }
+
     pub fn lock_duration(&self) -> Option<f32> {
         let mut earliest_escape = None;
         if self.is(FType::Asthma) && self.is(FType::Anorexia) && self.is(FType::Slickness) {

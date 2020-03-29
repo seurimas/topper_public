@@ -1,3 +1,4 @@
+use crate::curatives::FirstAid;
 use crate::io::Topper;
 use crate::timeline::*;
 use crate::types::*;
@@ -10,6 +11,7 @@ pub struct PlayerStats {
     balances: HashMap<String, f32>,
     warnings: Vec<String>,
     lock_duration: Option<f32>,
+    first_aid_cure: Option<String>,
 }
 
 fn get_hypno_warning(state: &AgentState) -> Option<String> {
@@ -40,6 +42,10 @@ fn get_lock_warning(state: &AgentState) -> Option<String> {
     }
 }
 
+lazy_static! {
+    static ref DEFAULT_FIRST_AID: FirstAid = { FirstAid::new() };
+}
+
 impl PlayerStats {
     pub fn new() -> Self {
         PlayerStats {
@@ -47,6 +53,7 @@ impl PlayerStats {
             warnings: Vec::new(),
             balances: HashMap::new(),
             lock_duration: None,
+            first_aid_cure: None,
         }
     }
     pub fn for_player(state: &AgentState) -> Self {
@@ -69,11 +76,21 @@ impl PlayerStats {
             state.get_balance(BType::Rebounding),
         );
         let lock_duration = state.lock_duration();
+        let first_aid_cure = DEFAULT_FIRST_AID
+            .get_next_cure(&"", state)
+            .map(|(aff, action)| {
+                if action.is_tree() {
+                    "Tree".to_string()
+                } else {
+                    format!("{:?}", aff)
+                }
+            });
         PlayerStats {
             afflictions,
             warnings,
             balances,
             lock_duration,
+            first_aid_cure,
         }
     }
 }

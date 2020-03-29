@@ -602,20 +602,20 @@ impl FlayAction {
 
 impl ActiveTransition for FlayAction {
     fn simulate(&self, topper: &Topper) -> Vec<ProbableEvent> {
-        let mut observations = vec![Observation::CombatAction(CombatAction {
-            caster: self.caster.clone(),
-            target: self.target.clone(),
-            annotation: self.annotation.clone(),
-            category: "Assassination".to_string(),
-            skill: "Flay".to_string(),
-        })];
+        let mut observations = vec![CombatAction::observation(
+            &self.caster,
+            &self.target,
+            &"Assassination",
+            &"Flay",
+            &self.annotation,
+        )];
         if self.venom.len() > 0
             && (self.annotation.eq_ignore_ascii_case("shield")
                 || self.annotation.eq_ignore_ascii_case("rebounding"))
         {
             observations.push(Observation::Devenoms(self.venom.clone()));
         }
-        vec![ProbableEvent::new(observations, 1)]
+        ProbableEvent::certain(observations)
     }
     fn act(&self, topper: &Topper) -> ActivateResult {
         Ok(get_flay_action(
@@ -655,16 +655,13 @@ impl ShruggingAction {
 
 impl ActiveTransition for ShruggingAction {
     fn simulate(&self, topper: &Topper) -> Vec<ProbableEvent> {
-        vec![ProbableEvent::new(
-            vec![Observation::CombatAction(CombatAction {
-                caster: self.caster.clone(),
-                category: "Assassination".to_string(),
-                skill: "Shrugging".to_string(),
-                annotation: self.shrugged.clone(),
-                target: "".to_string(),
-            })],
-            1,
-        )]
+        ProbableEvent::certain(vec![CombatAction::observation(
+            &self.caster,
+            &"",
+            &"Assassination",
+            &"Shrugging",
+            &self.shrugged,
+        )])
     }
     fn act(&self, topper: &Topper) -> ActivateResult {
         Ok(format!("shrug {}", self.shrugged))
@@ -678,27 +675,24 @@ pub struct BiteAction {
 }
 
 impl BiteAction {
-    pub fn new(caster: String, target: String, venom: String) -> Self {
+    pub fn new(caster: &str, target: &str, venom: &str) -> Self {
         BiteAction {
-            caster,
-            target,
-            venom,
+            caster: caster.to_string(),
+            target: target.to_string(),
+            venom: venom.to_string(),
         }
     }
 }
 
 impl ActiveTransition for BiteAction {
     fn simulate(&self, topper: &Topper) -> Vec<ProbableEvent> {
-        vec![ProbableEvent::new(
-            vec![Observation::CombatAction(CombatAction {
-                caster: self.caster.clone(),
-                target: self.target.clone(),
-                annotation: self.venom.clone(),
-                category: "Assassination".to_string(),
-                skill: "Bite".to_string(),
-            })],
-            1,
-        )]
+        ProbableEvent::certain(vec![CombatAction::observation(
+            &self.caster,
+            &self.target,
+            &"Assassination",
+            &"Bite",
+            &self.venom,
+        )])
     }
 
     fn act(&self, topper: &Topper) -> ActivateResult {
@@ -712,8 +706,11 @@ pub struct BedazzleAction {
 }
 
 impl BedazzleAction {
-    pub fn new(caster: String, target: String) -> Self {
-        BedazzleAction { caster, target }
+    pub fn new(caster: &str, target: &str) -> Self {
+        BedazzleAction {
+            caster: caster.to_string(),
+            target: target.to_string(),
+        }
     }
 }
 
@@ -724,6 +721,155 @@ impl ActiveTransition for BedazzleAction {
 
     fn act(&self, topper: &Topper) -> ActivateResult {
         Ok(format!("bedazzle {}", self.target))
+    }
+}
+
+pub struct HypnotiseAction {
+    pub caster: String,
+    pub target: String,
+}
+
+impl HypnotiseAction {
+    pub fn new(caster: &str, target: &str) -> Self {
+        HypnotiseAction {
+            caster: caster.to_string(),
+            target: target.to_string(),
+        }
+    }
+}
+
+impl ActiveTransition for HypnotiseAction {
+    fn simulate(&self, topper: &Topper) -> Vec<ProbableEvent> {
+        ProbableEvent::certain(vec![CombatAction::observation(
+            &self.caster,
+            &self.target,
+            &"Hypnosis",
+            &"Hypnotise",
+            &"",
+        )])
+    }
+    fn act(&self, topper: &Topper) -> ActivateResult {
+        Ok(format!("hypnotise {}", self.target))
+    }
+}
+
+pub struct SuggestAction {
+    pub caster: String,
+    pub target: String,
+    pub suggestion: Hypnosis,
+}
+
+impl SuggestAction {
+    pub fn new(caster: &str, target: &str, suggestion: Hypnosis) -> Self {
+        SuggestAction {
+            caster: caster.to_string(),
+            target: target.to_string(),
+            suggestion,
+        }
+    }
+    pub fn get_suggestion(&self) -> String {
+        let suggestion_string = match &self.suggestion {
+            Hypnosis::Aff(aff) => format!("{:?}", aff),
+            Hypnosis::Action(action) => format!("action {}", action),
+        };
+        format!("suggest {} {}", self.target, suggestion_string)
+    }
+}
+
+impl ActiveTransition for SuggestAction {
+    fn simulate(&self, topper: &Topper) -> Vec<ProbableEvent> {
+        ProbableEvent::certain(vec![
+            Observation::Sent(self.get_suggestion()),
+            CombatAction::observation(&self.caster, &self.target, &"Hypnosis", &"Suggest", &""),
+        ])
+    }
+    fn act(&self, topper: &Topper) -> ActivateResult {
+        Ok(self.get_suggestion())
+    }
+}
+
+pub struct SealAction {
+    pub caster: String,
+    pub target: String,
+    pub duration: usize,
+}
+
+impl SealAction {
+    pub fn new(caster: &str, target: &str, duration: usize) -> Self {
+        SealAction {
+            caster: caster.to_string(),
+            target: target.to_string(),
+            duration,
+        }
+    }
+}
+
+impl ActiveTransition for SealAction {
+    fn simulate(&self, topper: &Topper) -> Vec<ProbableEvent> {
+        ProbableEvent::certain(vec![
+            Observation::Sent(format!("seal {} {}", self.target, self.duration)),
+            CombatAction::observation(&self.caster, &self.target, &"Hypnosis", &"Suggest", &""),
+        ])
+    }
+    fn act(&self, topper: &Topper) -> ActivateResult {
+        Ok(format!("seal {} {}", self.target, self.duration))
+    }
+}
+
+pub struct SnapAction {
+    pub caster: String,
+    pub target: String,
+}
+
+impl SnapAction {
+    pub fn new(caster: &str, target: &str) -> Self {
+        SnapAction {
+            caster: caster.to_string(),
+            target: target.to_string(),
+        }
+    }
+}
+
+impl ActiveTransition for SnapAction {
+    fn simulate(&self, topper: &Topper) -> Vec<ProbableEvent> {
+        ProbableEvent::certain(vec![
+            Observation::Sent(format!("snap {}", self.target)),
+            CombatAction::observation(&self.caster, &self.target, &"Hypnosis", &"Snap", &""),
+        ])
+    }
+    fn act(&self, topper: &Topper) -> ActivateResult {
+        Ok(format!("snap {}", self.target))
+    }
+}
+
+pub struct SleightAction {
+    pub caster: String,
+    pub target: String,
+    pub sleight: String,
+}
+
+impl SleightAction {
+    pub fn new(caster: &str, target: &str, sleight: &str) -> Self {
+        SleightAction {
+            caster: caster.to_string(),
+            target: target.to_string(),
+            sleight: sleight.to_string(),
+        }
+    }
+}
+
+impl ActiveTransition for SleightAction {
+    fn simulate(&self, topper: &Topper) -> Vec<ProbableEvent> {
+        ProbableEvent::certain(vec![CombatAction::observation(
+            &self.caster,
+            &self.target,
+            &"Hypnosis",
+            &"Sleight",
+            &self.sleight,
+        )])
+    }
+    fn act(&self, topper: &Topper) -> ActivateResult {
+        Ok(format!("shadow sleight {} {}", self.sleight, self.target))
     }
 }
 
@@ -1100,9 +1246,13 @@ pub fn start_hypnosis(who: &mut AgentState) {
     who.set_flag(FType::Snapped, true);
 }
 
-pub fn get_top_hypno(name: &String, target: &AgentState, hypnos: &Vec<Hypnosis>) -> Option<String> {
+pub fn get_top_hypno(
+    me: &String,
+    target_name: &String,
+    target: &AgentState,
+    hypnos: &Vec<Hypnosis>,
+) -> Option<Box<dyn ActiveTransition>> {
     let mut hypno_idx = 0;
-    let mut hypno = None;
     for i in 0..target.hypnosis_stack.len() {
         if target.hypnosis_stack.get(i) == hypnos.get(hypno_idx) {
             hypno_idx += 1;
@@ -1110,17 +1260,27 @@ pub fn get_top_hypno(name: &String, target: &AgentState, hypnos: &Vec<Hypnosis>)
     }
     if hypno_idx < hypnos.len() {
         if let Some(next_hypno) = hypnos.get(hypno_idx) {
-            hypno = Some(get_hypno_str(name, next_hypno));
-        }
-    }
-    if let Some(suggestion) = hypno {
-        if !target.get_flag(FType::Hypnotized) {
-            Some(format!("hypnotise {};;{}", name, suggestion))
+            if !target.get_flag(FType::Hypnotized) {
+                Some(Box::new(SeparatorAction::pair(
+                    HypnotiseAction::new(&me, &target_name),
+                    SuggestAction::new(&me, &target_name, next_hypno.clone()),
+                )))
+            } else {
+                Some(Box::new(SuggestAction::new(
+                    &me,
+                    &target_name,
+                    next_hypno.clone(),
+                )))
+            }
         } else {
-            Some(suggestion)
+            panic!(
+                "get_top_hypno: Len checked {} vs {}",
+                hypno_idx,
+                hypnos.len()
+            )
         }
     } else if target.get_flag(FType::Hypnotized) {
-        Some(format!("seal {} 3", name))
+        Some(Box::new(SealAction::new(&me, &target_name, 3)))
     } else {
         None
     }
@@ -1271,7 +1431,10 @@ pub fn get_balance_attack(
             return Box::new(ShruggingAction::shrug_asthma(topper.me()));
         } else if needs_restore(&topper) {
             return Box::new(RestoreAction::new(topper.me()));
-        } else if get_equil_attack(topper, target, strategy).starts_with("seal") {
+        } else if let Ok(true) = get_equil_attack(topper, target, strategy)
+            .act(&topper)
+            .map(|act| act.starts_with("seal"))
+        {
             return Box::new(Inactivity);
         } else if you.is(FType::Shielded) || you.is(FType::Rebounding) {
             let defense = if you.is(FType::Shielded) {
@@ -1315,11 +1478,7 @@ pub fn get_balance_attack(
                     if you.is(FType::Fangbarrier) {
                         return Box::new(FlayAction::fangbarrier(topper.me(), target.to_string()));
                     } else {
-                        return Box::new(BiteAction::new(
-                            topper.me(),
-                            target.to_string(),
-                            "scytherus".to_string(),
-                        ));
+                        return Box::new(BiteAction::new(&topper.me(), &target, &"scytherus"));
                     }
                 }
                 let mut buffer = get_venoms(THIN_BUFFER_STACK.to_vec(), 2, &you);
@@ -1355,7 +1514,7 @@ pub fn get_balance_attack(
             let v2 = venoms.pop();
             if should_bedazzle(&topper) {
                 println!("Bedazzling!");
-                return Box::new(BedazzleAction::new(topper.me(), target.to_string()));
+                return Box::new(BedazzleAction::new(&topper.me(), &target));
             } else if you.is(FType::Hypersomnia) && !you.is(FType::Asleep) {
                 return Box::new(DoublestabAction::new(
                     topper.me(),
@@ -1373,11 +1532,7 @@ pub fn get_balance_attack(
             } else if you.is(FType::Fangbarrier) {
                 return Box::new(FlayAction::fangbarrier(topper.me(), target.to_string()));
             } else {
-                return Box::new(BiteAction::new(
-                    topper.me(),
-                    target.to_string(),
-                    "camus".to_string(),
-                ));
+                return Box::new(BiteAction::new(&topper.me(), &target, &"camus"));
             }
         }
     } else if strategy == "damage" {
@@ -1385,29 +1540,33 @@ pub fn get_balance_attack(
         if you.is(FType::Fangbarrier) {
             return Box::new(FlayAction::fangbarrier(topper.me(), target.to_string()));
         } else {
-            return Box::new(BiteAction::new(
-                topper.me(),
-                target.to_string(),
-                "camus".to_string(),
-            ));
+            return Box::new(BiteAction::new(&topper.me(), &target, &"camus"));
         }
     } else {
         return Box::new(Inactivity);
     }
 }
 
-pub fn get_equil_attack(topper: &Topper, target: &String, strategy: &String) -> String {
+pub fn get_equil_attack(
+    topper: &Topper,
+    target: &String,
+    strategy: &String,
+) -> Box<ActiveTransition> {
     if strategy.eq("damage") {
-        return "".to_string();
+        return Box::new(Inactivity);
     }
     let you = topper.timeline.state.borrow_agent(target);
-    let hypno_action = get_top_hypno(target, &you, &HARD_HYPNO.to_vec());
-    hypno_action.unwrap_or("".into())
+    let hypno_action = get_top_hypno(&topper.me(), target, &you, &HARD_HYPNO.to_vec());
+    hypno_action.unwrap_or(Box::new(Inactivity))
 }
 
-pub fn get_shadow_attack(topper: &Topper, target: &String, strategy: &String) -> String {
+pub fn get_shadow_attack(
+    topper: &Topper,
+    target: &String,
+    strategy: &String,
+) -> Box<ActiveTransition> {
     if strategy == "pre" {
-        "".into()
+        Box::new(Inactivity)
     } else {
         if !strategy.eq("salve") {
             let you = topper.timeline.state.borrow_agent(target);
@@ -1417,25 +1576,24 @@ pub fn get_shadow_attack(topper: &Topper, target: &String, strategy: &String) ->
                 || you.get_flag(FType::Snapped)
             {
                 if you.lock_duration().is_some() {
-                    format!(";;shadow sleight blank {}", target)
+                    Box::new(SleightAction::new(&topper.me(), &target, &"blank"))
                 } else {
-                    format!(";;shadow sleight dissipate {}", target)
+                    Box::new(SleightAction::new(&topper.me(), &target, &"dissipate"))
                 }
             } else {
-                format!("%%qs shadow sleight void {}", target)
+                Box::new(SleightAction::new(&topper.me(), &target, &"void"))
             }
         } else {
-            format!(";;shadow sleight abrasion {}", target)
+            Box::new(SleightAction::new(&topper.me(), &target, &"abrasion"))
         }
     }
 }
 
 pub fn get_snap(topper: &Topper, target: &String, _strategy: &String) -> bool {
     let you = topper.timeline.state.borrow_agent(target);
-    if get_top_hypno(target, &you, &HARD_HYPNO.to_vec()) == None
+    if get_top_hypno(&topper.me(), target, &you, &HARD_HYPNO.to_vec()).is_none()
         && !you.get_flag(FType::Snapped)
         && !you.get_flag(FType::Hypnotized)
-        && !you.balanced(BType::Tree)
     {
         return true;
     } else {
@@ -1459,11 +1617,15 @@ pub fn get_attack(topper: &Topper, target: &String, strategy: &String) -> String
     if let Ok(activation) = balance.act(&topper) {
         attack = format!("qeb {}", activation);
     }
-    if equil != "" {
-        attack = format!("{};;{}", attack, equil);
+    if let Ok(activation) = equil.act(&topper) {
+        attack = format!("{};;{}", attack, activation);
     }
-    if shadow != "" {
-        attack = format!("{}{}", attack, shadow);
+    if let Ok(activation) = shadow.act(&topper) {
+        if activation.starts_with("shadow sleight void") {
+            attack = format!("{}%%qs {}", attack, activation);
+        } else {
+            attack = format!("{};;{}", attack, activation);
+        }
     }
     attack
 }
