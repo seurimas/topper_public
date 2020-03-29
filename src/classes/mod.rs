@@ -1,5 +1,6 @@
 use crate::curatives::MENTAL_AFFLICTIONS;
 use crate::io::*;
+use crate::observables::*;
 use crate::timeline::*;
 use crate::types::*;
 use std::collections::HashMap;
@@ -242,5 +243,61 @@ pub fn add_buffers<'s>(ready: &mut Vec<&'s str>, buffers: &Vec<&'s str>) {
         if !found {
             ready.push(buffer);
         }
+    }
+}
+
+pub struct RestoreAction {
+    caster: String,
+}
+
+impl RestoreAction {
+    pub fn new(caster: String) -> Self {
+        RestoreAction { caster }
+    }
+}
+
+impl ActiveTransition for RestoreAction {
+    fn simulate(&self, topper: &Topper) -> Vec<ProbableEvent> {
+        vec![ProbableEvent::new(
+            vec![Observation::CombatAction(CombatAction {
+                caster: self.caster.clone(),
+                category: "Survival".to_string(),
+                skill: "Restoration".to_string(),
+                target: "".to_string(),
+                annotation: "".to_string(),
+            })],
+            1,
+        )]
+    }
+    fn act(&self, topper: &Topper) -> ActivateResult {
+        Ok(format!("restore"))
+    }
+}
+
+pub struct RegenerateAction {
+    caster: String,
+}
+
+impl RegenerateAction {
+    pub fn new(caster: String) -> Self {
+        RegenerateAction { caster }
+    }
+}
+
+impl ActiveTransition for RegenerateAction {
+    fn simulate(&self, topper: &Topper) -> Vec<ProbableEvent> {
+        vec![ProbableEvent::new(
+            vec![Observation::CombatAction(CombatAction {
+                caster: self.caster.clone(),
+                category: "Survival".to_string(),
+                skill: "Regenerate".to_string(),
+                target: "".to_string(),
+                annotation: "".to_string(),
+            })],
+            1,
+        )]
+    }
+    fn act(&self, topper: &Topper) -> ActivateResult {
+        Ok(format!("regenerate"))
     }
 }

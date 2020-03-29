@@ -1,4 +1,4 @@
-use crate::classes::{add_buffers, get_venoms};
+use crate::classes::*;
 use crate::io::*;
 use crate::observables::*;
 use crate::timeline::*;
@@ -537,48 +537,201 @@ pub fn handle_sent(command: &String, agent_states: &mut TimelineState) {
     }
 }
 
+/**
+ *
+ * ActiveTransitions!
+ *
+**/
+
 pub struct DoublestabAction {
     pub caster: String,
     pub target: String,
-    pub rebounded: bool,
-    pub dodges: usize,
-    pub venoms: Vec<String>,
+    pub venoms: (String, String),
+}
+
+impl DoublestabAction {
+    pub fn new(caster: String, target: String, v1: String, v2: String) -> Self {
+        DoublestabAction {
+            caster,
+            target,
+            venoms: (v1, v2),
+        }
+    }
 }
 
 impl ActiveTransition for DoublestabAction {
-    fn read(
-        _now: &TimelineState,
-        observation: &Observation,
-        _before: &Vec<Observation>,
-        _after: &Vec<Observation>,
-        _prompt: &Prompt,
-    ) -> Self {
-        if let Observation::CombatAction(combat_action) = observation {
-            let caster = combat_action.caster.clone();
-            let target = combat_action.target.clone();
-            let rebounded = false;
-            let dodges = 0;
-            let venoms = Vec::new();
-            DoublestabAction {
-                caster,
-                target,
-                rebounded,
-                dodges,
-                venoms,
-            }
-        } else {
-            panic!("Could not read DoubleStab for {:?}", observation)
+    fn simulate(&self, topper: &Topper) -> Vec<ProbableEvent> {
+        Vec::new()
+    }
+    fn act(&self, topper: &Topper) -> ActivateResult {
+        Ok(get_dstab_action(
+            &topper,
+            &self.target,
+            &self.venoms.0,
+            &self.venoms.1,
+        ))
+    }
+}
+
+pub struct FlayAction {
+    pub caster: String,
+    pub target: String,
+    pub annotation: String,
+    pub venom: String,
+}
+
+impl FlayAction {
+    pub fn new(caster: String, target: String, annotation: String, venom: String) -> Self {
+        FlayAction {
+            caster,
+            target,
+            annotation,
+            venom,
         }
     }
 
-    fn simulate(&self, _now: TimelineState) -> VariableState {
-        Vec::new()
-    }
-
-    fn act(&self, _now: TimelineState) -> ActivateResult {
-        Ok("".to_string())
+    pub fn fangbarrier(caster: String, target: String) -> Self {
+        FlayAction {
+            caster,
+            target,
+            annotation: "fangbarrier".to_string(),
+            venom: "".to_string(),
+        }
     }
 }
+
+impl ActiveTransition for FlayAction {
+    fn simulate(&self, topper: &Topper) -> Vec<ProbableEvent> {
+        let mut observations = vec![Observation::CombatAction(CombatAction {
+            caster: self.caster.clone(),
+            target: self.target.clone(),
+            annotation: self.annotation.clone(),
+            category: "Assassination".to_string(),
+            skill: "Flay".to_string(),
+        })];
+        if self.venom.len() > 0
+            && (self.annotation.eq_ignore_ascii_case("shield")
+                || self.annotation.eq_ignore_ascii_case("rebounding"))
+        {
+            observations.push(Observation::Devenoms(self.venom.clone()));
+        }
+        vec![ProbableEvent::new(observations, 1)]
+    }
+    fn act(&self, topper: &Topper) -> ActivateResult {
+        Ok(get_flay_action(
+            &topper,
+            &self.target,
+            self.annotation.clone(),
+            self.venom.clone(),
+        ))
+    }
+}
+
+pub struct ShruggingAction {
+    pub caster: String,
+    pub shrugged: String,
+}
+
+impl ShruggingAction {
+    pub fn shrug_asthma(caster: String) -> Self {
+        ShruggingAction {
+            caster,
+            shrugged: "asthma".to_string(),
+        }
+    }
+    pub fn shrug_anorexia(caster: String) -> Self {
+        ShruggingAction {
+            caster,
+            shrugged: "anorexia".to_string(),
+        }
+    }
+    pub fn shrug_slickness(caster: String) -> Self {
+        ShruggingAction {
+            caster,
+            shrugged: "slickness".to_string(),
+        }
+    }
+}
+
+impl ActiveTransition for ShruggingAction {
+    fn simulate(&self, topper: &Topper) -> Vec<ProbableEvent> {
+        vec![ProbableEvent::new(
+            vec![Observation::CombatAction(CombatAction {
+                caster: self.caster.clone(),
+                category: "Assassination".to_string(),
+                skill: "Shrugging".to_string(),
+                annotation: self.shrugged.clone(),
+                target: "".to_string(),
+            })],
+            1,
+        )]
+    }
+    fn act(&self, topper: &Topper) -> ActivateResult {
+        Ok(format!("shrug {}", self.shrugged))
+    }
+}
+
+pub struct BiteAction {
+    pub caster: String,
+    pub target: String,
+    pub venom: String,
+}
+
+impl BiteAction {
+    pub fn new(caster: String, target: String, venom: String) -> Self {
+        BiteAction {
+            caster,
+            target,
+            venom,
+        }
+    }
+}
+
+impl ActiveTransition for BiteAction {
+    fn simulate(&self, topper: &Topper) -> Vec<ProbableEvent> {
+        vec![ProbableEvent::new(
+            vec![Observation::CombatAction(CombatAction {
+                caster: self.caster.clone(),
+                target: self.target.clone(),
+                annotation: self.venom.clone(),
+                category: "Assassination".to_string(),
+                skill: "Bite".to_string(),
+            })],
+            1,
+        )]
+    }
+
+    fn act(&self, topper: &Topper) -> ActivateResult {
+        Ok(format!("bite {} {}", self.target, self.venom))
+    }
+}
+
+pub struct BedazzleAction {
+    pub caster: String,
+    pub target: String,
+}
+
+impl BedazzleAction {
+    pub fn new(caster: String, target: String) -> Self {
+        BedazzleAction { caster, target }
+    }
+}
+
+impl ActiveTransition for BedazzleAction {
+    fn simulate(&self, topper: &Topper) -> Vec<ProbableEvent> {
+        vec![]
+    }
+
+    fn act(&self, topper: &Topper) -> ActivateResult {
+        Ok(format!("bedazzle {}", self.target))
+    }
+}
+
+/**
+ *
+ * MOD ENTRY POINTS
+ *
+**/
 
 pub fn handle_combat_action(
     combat_action: &CombatAction,
@@ -1107,15 +1260,19 @@ pub fn get_slit_action(topper: &Topper, target: &String, v1: String) -> String {
 }
 */
 
-pub fn get_balance_attack(topper: &Topper, target: &String, strategy: &String) -> String {
+pub fn get_balance_attack(
+    topper: &Topper,
+    target: &String,
+    strategy: &String,
+) -> Box<dyn ActiveTransition> {
     if let Some(stack) = STACKING_STRATEGIES.get(strategy) {
         let you = topper.timeline.state.borrow_agent(target);
         if needs_shrugging(&topper) {
-            return "shrug asthma".to_string();
+            return Box::new(ShruggingAction::shrug_asthma(topper.me()));
         } else if needs_restore(&topper) {
-            return "restore".to_string();
+            return Box::new(RestoreAction::new(topper.me()));
         } else if get_equil_attack(topper, target, strategy).starts_with("seal") {
-            "".into()
+            return Box::new(Inactivity);
         } else if you.is(FType::Shielded) || you.is(FType::Rebounding) {
             let defense = if you.is(FType::Shielded) {
                 "shield"
@@ -1123,9 +1280,19 @@ pub fn get_balance_attack(topper: &Topper, target: &String, strategy: &String) -
                 "rebounding"
             };
             if let Some(venom) = get_venoms(stack.to_vec(), 1, &you).pop() {
-                return get_flay_action(topper, target, defense.to_string(), venom.to_string());
+                return Box::new(FlayAction::new(
+                    topper.me(),
+                    target.to_string(),
+                    defense.to_string(),
+                    venom.to_string(),
+                ));
             } else {
-                return format!("flay {} {}", target, defense);
+                return Box::new(FlayAction::new(
+                    topper.me(),
+                    target.to_string(),
+                    defense.to_string(),
+                    "".to_string(),
+                ));
             }
         } else {
             println!("{}", you.flags);
@@ -1146,9 +1313,13 @@ pub fn get_balance_attack(topper: &Topper, target: &String, strategy: &String) -
                 if go_for_thin_blood(topper, &you, strategy) {
                     println!("Thinning!");
                     if you.is(FType::Fangbarrier) {
-                        return format!("flay {} fangbarrier", target);
+                        return Box::new(FlayAction::fangbarrier(topper.me(), target.to_string()));
                     } else {
-                        return format!("bite {} scytherus", target);
+                        return Box::new(BiteAction::new(
+                            topper.me(),
+                            target.to_string(),
+                            "scytherus".to_string(),
+                        ));
                     }
                 }
                 let mut buffer = get_venoms(THIN_BUFFER_STACK.to_vec(), 2, &you);
@@ -1184,31 +1355,44 @@ pub fn get_balance_attack(topper: &Topper, target: &String, strategy: &String) -
             let v2 = venoms.pop();
             if should_bedazzle(&topper) {
                 println!("Bedazzling!");
-                return format!("bedazzle {}", target);
+                return Box::new(BedazzleAction::new(topper.me(), target.to_string()));
             } else if you.is(FType::Hypersomnia) && !you.is(FType::Asleep) {
-                return get_dstab_action(
-                    topper,
-                    target,
-                    &"delphinium".to_string(),
-                    &"delphinium".to_string(),
-                );
+                return Box::new(DoublestabAction::new(
+                    topper.me(),
+                    target.to_string(),
+                    "delphinium".to_string(),
+                    "delphinium".to_string(),
+                ));
             } else if let (Some(v1), Some(v2)) = (v1, v2) {
-                return get_dstab_action(topper, target, &v1.to_string(), &v2.to_string());
+                return Box::new(DoublestabAction::new(
+                    topper.me(),
+                    target.to_string(),
+                    v1.to_string(),
+                    v2.to_string(),
+                ));
             } else if you.is(FType::Fangbarrier) {
-                return format!("flay {} fangbarrier", target);
+                return Box::new(FlayAction::fangbarrier(topper.me(), target.to_string()));
             } else {
-                return format!("bite {} camus", target);
+                return Box::new(BiteAction::new(
+                    topper.me(),
+                    target.to_string(),
+                    "camus".to_string(),
+                ));
             }
         }
     } else if strategy == "damage" {
         let you = topper.timeline.state.borrow_agent(target);
         if you.is(FType::Fangbarrier) {
-            return format!("flay {} fangbarrier", target);
+            return Box::new(FlayAction::fangbarrier(topper.me(), target.to_string()));
         } else {
-            return format!("bite {} camus", target);
+            return Box::new(BiteAction::new(
+                topper.me(),
+                target.to_string(),
+                "camus".to_string(),
+            ));
         }
     } else {
-        "".into()
+        return Box::new(Inactivity);
     }
 }
 
@@ -1262,7 +1446,7 @@ pub fn get_snap(topper: &Topper, target: &String, _strategy: &String) -> bool {
 pub fn get_attack(topper: &Topper, target: &String, strategy: &String) -> String {
     let mut balance = get_balance_attack(topper, target, strategy);
     if should_regenerate(&topper) {
-        balance = format!("regenerate;;{}", balance);
+        balance = Box::new(RegenerateAction::new(topper.me()));
     }
     let equil = get_equil_attack(topper, target, strategy);
     let shadow = get_shadow_attack(topper, target, strategy);
@@ -1272,8 +1456,8 @@ pub fn get_attack(topper: &Topper, target: &String, strategy: &String) -> String
     } else {
         "".to_string()
     };
-    if balance != "" {
-        attack = format!("qeb {}", balance);
+    if let Ok(activation) = balance.act(&topper) {
+        attack = format!("qeb {}", activation);
     }
     if equil != "" {
         attack = format!("{};;{}", attack, equil);

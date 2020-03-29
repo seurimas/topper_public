@@ -1,19 +1,31 @@
-use crate::timeline::{Observation, Prompt, TimelineState};
+use crate::io::Topper;
+use crate::timeline::{Observation, Prompt};
 
 // A list of states and their relative weights.
-pub type VariableState = Vec<(TimelineState, u32)>;
+pub type ActiveEvent = Vec<Observation>;
+pub struct ProbableEvent(ActiveEvent, u32);
 pub type Activator = String;
 pub type ActivatorFailure = String;
 pub type ActivateResult = Result<Activator, ActivatorFailure>;
 
+impl ProbableEvent {
+    pub fn new(observations: ActiveEvent, weight: u32) -> Self {
+        ProbableEvent(observations, weight)
+    }
+}
+
 pub trait ActiveTransition {
-    fn read(
-        now: &TimelineState,
-        observation: &Observation,
-        before: &Vec<Observation>,
-        after: &Vec<Observation>,
-        prompt: &Prompt,
-    ) -> Self;
-    fn simulate(&self, now: TimelineState) -> VariableState;
-    fn act(&self, now: TimelineState) -> ActivateResult;
+    fn act(&self, topper: &Topper) -> ActivateResult;
+    fn simulate(&self, topper: &Topper) -> Vec<ProbableEvent>;
+}
+
+pub struct Inactivity;
+
+impl ActiveTransition for Inactivity {
+    fn act(&self, topper: &Topper) -> ActivateResult {
+        Ok(format!(""))
+    }
+    fn simulate(&self, topper: &Topper) -> Vec<ProbableEvent> {
+        vec![]
+    }
 }

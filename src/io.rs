@@ -91,6 +91,10 @@ impl Topper {
         }
     }
 
+    pub fn me(&self) -> String {
+        self.timeline.who_am_i()
+    }
+
     pub fn parse_request_or_event(&mut self, line: &String) -> Result<TopperResponse, String> {
         info!("{}", line);
         let parsed = from_str(line);
