@@ -602,10 +602,10 @@ lazy_static! {
 }
 
 impl ActiveTransition for SimpleCureAction {
-    fn simulate(&self, topper: &Topper) -> Vec<ProbableEvent> {
+    fn simulate(&self, timeline: &Timeline) -> Vec<ProbableEvent> {
         ProbableEvent::certain(vec![Observation::SimpleCureAction(self.clone())])
     }
-    fn act(&self, topper: &Topper) -> ActivateResult {
+    fn act(&self, timeline: &Timeline) -> ActivateResult {
         match &self.cure_type {
             SimpleCure::Pill(pill) => Ok(format!("eat {}", pill)),
             SimpleCure::Salve(salve, location) => Ok(format!("apply {} to {}", salve, location)),
@@ -627,7 +627,7 @@ impl FocusAction {
 }
 
 impl ActiveTransition for FocusAction {
-    fn simulate(&self, topper: &Topper) -> Vec<ProbableEvent> {
+    fn simulate(&self, timeline: &Timeline) -> Vec<ProbableEvent> {
         ProbableEvent::certain(vec![CombatAction::observation(
             &self.caster,
             &"",
@@ -636,7 +636,7 @@ impl ActiveTransition for FocusAction {
             &"",
         )])
     }
-    fn act(&self, topper: &Topper) -> ActivateResult {
+    fn act(&self, timeline: &Timeline) -> ActivateResult {
         Ok("focus".to_string())
     }
 }
@@ -654,7 +654,7 @@ impl TreeAction {
 }
 
 impl ActiveTransition for TreeAction {
-    fn simulate(&self, topper: &Topper) -> Vec<ProbableEvent> {
+    fn simulate(&self, timeline: &Timeline) -> Vec<ProbableEvent> {
         ProbableEvent::certain(vec![CombatAction::observation(
             &self.caster,
             &"",
@@ -663,7 +663,7 @@ impl ActiveTransition for TreeAction {
             &"",
         )])
     }
-    fn act(&self, topper: &Topper) -> ActivateResult {
+    fn act(&self, timeline: &Timeline) -> ActivateResult {
         Ok("touch tree".to_string())
     }
 }
@@ -691,23 +691,117 @@ impl FirstAidAction {
 }
 
 impl ActiveTransition for FirstAidAction {
-    fn simulate(&self, topper: &Topper) -> Vec<ProbableEvent> {
+    fn simulate(&self, timeline: &Timeline) -> Vec<ProbableEvent> {
         match self {
-            FirstAidAction::Simple(action) => action.simulate(&topper),
-            FirstAidAction::Focus(action) => action.simulate(&topper),
-            FirstAidAction::Tree(action) => action.simulate(&topper),
+            FirstAidAction::Simple(action) => action.simulate(&timeline),
+            FirstAidAction::Focus(action) => action.simulate(&timeline),
+            FirstAidAction::Tree(action) => action.simulate(&timeline),
             FirstAidAction::Wait => vec![],
         }
     }
-    fn act(&self, topper: &Topper) -> ActivateResult {
+    fn act(&self, timeline: &Timeline) -> ActivateResult {
         match self {
-            FirstAidAction::Simple(action) => action.act(&topper),
-            FirstAidAction::Focus(action) => action.act(&topper),
-            FirstAidAction::Tree(action) => action.act(&topper),
+            FirstAidAction::Simple(action) => action.act(&timeline),
+            FirstAidAction::Focus(action) => action.act(&timeline),
+            FirstAidAction::Tree(action) => action.act(&timeline),
             FirstAidAction::Wait => Ok("".to_string()),
         }
     }
 }
+
+static FIRST_AID_BLOCK: &'static str = "Your affliction curing priorities:
+1)  pipe:     [aeon]
+    poultice: [anorexia, indifference, destroyed_throat]
+    pill:     [paralysis, crippled_body, paresis]
+    special:  [asleep, voyria, writhe_gunk, writhe_grappled, writhe_stasis,
+               writhe_web, writhe_vines, writhe_bind, writhe_transfix,
+               writhe_ropes, writhe_impaled, writhe_thighlock,
+               writhe_armpitlock, writhe_necklock, dazed, writhe_hoist,
+               writhe_lure, itchy]
+
+2)  pipe:     [slickness, hellsight]
+    poultice: [head_mangled, crushed_chest, burnt_skin, head_bruised_critical]
+    pill:     [asthma, limp_veins, ringing_ears]
+    special:  [disrupted]
+
+3)  pipe:     [withering]
+    poultice: [left_arm_amputated, right_arm_amputated, left_leg_amputated,
+               right_leg_amputated, left_leg_damaged, right_leg_damaged,
+               right_leg_mangled, left_leg_mangled, right_arm_mangled,
+               left_arm_mangled, left_leg_bruised_critical,
+               right_leg_bruised_critical, right_arm_bruised_critical,
+               left_arm_bruised_critical, torso_bruised_critical, voidgaze]
+    pill:     [sandrot, clumsiness, thin_blood]
+    special:  [vinethorns]
+
+4)  pipe:     [disfigurement, migraine]
+    poultice: [left_leg_broken, right_leg_broken, firstaid_predict_arms,
+               firstaid_predict_legs, firstaid_predict_any_limb]
+    pill:     [impatience, recklessness, baldness, hypochondria, weariness,
+               pacifism, mirroring, infested, patterns]
+
+5)  pipe:     [deadening]
+    poultice: [spinal_rip, head_damaged, torso_damaged, left_arm_damaged,
+               right_arm_damaged, torso_mangled, left_arm_bruised,
+               right_arm_bruised, right_leg_bruised, left_leg_bruised,
+               head_bruised, torso_bruised, left_leg_bruised_moderate,
+               right_leg_bruised_moderate, right_arm_bruised_moderate,
+               left_arm_bruised_moderate, torso_bruised_moderate,
+               head_bruised_moderate, gloom]
+    pill:     [physical_disruption, mental_disruption, confusion, blood_curse,
+               blood_poison, plodding, idiocy, blighted, merciful, soulfire,
+               soulburn]
+
+6)  pipe:     [squelched]
+    poultice: [shivering, frozen, gorged, effused_blood, blurry_vision,
+               smashed_throat, right_arm_broken, left_arm_broken, cracked_ribs,
+               whiplash, backstrain, collapsed_lung, left_arm_dislocated,
+               left_leg_dislocated, right_arm_dislocated, right_leg_dislocated,
+               sore_wrist, sore_ankle, muscle_spasms, heatspear]
+    pill:     [sensitivity, rend, epilepsy, masochism, loneliness, haemophilia,
+               lethargy, vomiting, impairment, crippled, allergies,
+               shaderot_body, shaderot_benign, shaderot_spirit, shaderot_heat,
+               shaderot_wither]
+
+7)  poultice: [ablaze, hypothermia, stuttering, crippled_throat, mauled_face,
+               deepwound, stiffness, weak_grip]
+    pill:     [stupidity, heartflutter, hallucinations, hypersomnia, hatred,
+               peace, berserking, justice, lovers_effect, laxity, egocentric,
+               exhausted]
+    special:  [premonition]
+
+8)  poultice: [burnt_eyes, lightwound]
+    pill:     [dementia, paranoia, dizziness, shyness, dissonance, agoraphobia,
+               vertigo, claustrophobia, faintness]
+    special:  [fear]
+
+9)  pill:     [sadness, addiction, self-pity, commitment_fear, hubris,
+               body_odor, magnanimity]
+
+10) poultice: [pre-restore right arm (20%), pre-restore right leg (20%)]
+    pill:     [generosity, superstition, blisters]
+    special:  [oiled]
+
+11) poultice: [void, weakvoid]
+
+12) poultice: [pre-restore head (15%), pre-restore left leg (15%)]
+
+13)
+14)
+15) poultice: [pre-restore left arm (20%)]
+
+16)
+17)
+18)
+19)
+20)
+21)
+22)
+23)
+24)
+25) poultice: [pre-restore torso (5%)]
+
+26)";
 
 pub struct FirstAid {
     simple_priorities: HashMap<FType, u32>,
@@ -851,7 +945,7 @@ impl FirstAid {
         if state.can_focus(true) && !state.balanced(BType::Focus) {
             viable_balances.push(BType::Focus);
         }
-        if let Some(balance) = state.next_balance(viable_balances) {
+        if let Some(balance) = state.next_balance(viable_balances.iter()) {
             let mut state = state.clone();
             state.wait(state.get_raw_balance(balance));
             return self.get_next_cure(&who_am_i, &state);

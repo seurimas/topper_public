@@ -704,6 +704,16 @@ impl AgentState {
         self.balances[balance as usize]
     }
 
+    pub fn get_qeb_balance(&self) -> f32 {
+        f32::max(
+            0.0,
+            f32::max(
+                self.get_balance(BType::Balance),
+                self.get_balance(BType::Equil),
+            ),
+        )
+    }
+
     pub fn get_balance(&self, balance: BType) -> f32 {
         (self.balances[balance as usize] as f32) / (BALANCE_SCALE as f32)
     }
@@ -712,15 +722,25 @@ impl AgentState {
         self.balances[balance as usize] <= 0
     }
 
-    pub fn next_balance(&self, balances: Vec<BType>) -> Option<BType> {
-        let mut earliest = balances.first();
-        for balance in balances.iter() {
+    pub fn qeb_balance(&self) -> BType {
+        if self.get_raw_balance(BType::Balance) <= self.get_raw_balance(BType::Equil) {
+            BType::Balance
+        } else {
+            BType::Equil
+        }
+    }
+
+    pub fn next_balance<'s>(&self, balances: impl Iterator<Item = &'s BType>) -> Option<BType> {
+        let mut earliest: Option<&BType> = None;
+        for balance in balances {
             if let Some(earliest_bal) = earliest {
                 if self.balances[*earliest_bal as usize] <= 0 {
                     // Do nothing.
                 } else if self.balances[*balance as usize] < self.balances[*earliest_bal as usize] {
                     earliest = Some(balance)
                 }
+            } else {
+                earliest = Some(balance)
             }
         }
         earliest.cloned()
@@ -923,6 +943,16 @@ impl AgentState {
         let mut count = 0;
         for _ in self.flags.aff_iter() {
             count += 1;
+        }
+        count
+    }
+
+    pub fn affs_count(&self, affs: &Vec<FType>) -> usize {
+        let mut count = 0;
+        for aff in affs.iter() {
+            if self.is(*aff) {
+                count += 1;
+            }
         }
         count
     }

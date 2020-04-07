@@ -27,6 +27,7 @@ pub enum Class {
     Syssin,
     Shapeshifter,
     Wayfarerer,
+    Lord,
 }
 
 pub fn get_skill_class(category: &String) -> Option<Class> {
@@ -52,6 +53,7 @@ pub fn get_skill_class(category: &String) -> Option<Class> {
         // Unaffiliated
         "Ferality" | "Shapeshifting" | "Vocalizing" => Some(Class::Shapeshifter),
         "Tenacity" | "Wayfaring" | "Fury" => Some(Class::Wayfarerer),
+        "Titan" | "Chaos" => Some(Class::Lord),
         _ => None,
     }
 }
@@ -64,11 +66,11 @@ pub fn get_attack(topper: &Topper, target: &String, strategy: &String) -> String
     if let Some(class) = topper.timeline.get_my_class() {
         match class {
             Class::Zealot => zealot::get_attack(topper, target, strategy),
-            Class::Syssin => syssin::get_attack(topper, target, strategy),
-            _ => syssin::get_attack(topper, target, strategy),
+            Class::Syssin => syssin::get_attack(&topper.timeline, target, strategy),
+            _ => syssin::get_attack(&topper.timeline, target, strategy),
         }
     } else {
-        syssin::get_attack(topper, target, strategy)
+        syssin::get_attack(&topper.timeline, target, strategy)
     }
 }
 
@@ -91,11 +93,13 @@ pub fn handle_combat_action(
         "Survival" => match combat_action.skill.as_ref() {
             "Focus" => {
                 let mut me = agent_states.get_agent(&combat_action.caster);
-                let duration = if me.is(FType::MentalFatigue) {
-                    10.0
-                } else {
-                    5.0
-                };
+                let mut duration = 5.0;
+                if me.is(FType::NumbedSkin) {
+                    duration += 5.0;
+                }
+                if me.is(FType::Laxity) {
+                    duration += 2.0;
+                }
                 apply_or_infer_cures(&mut me, MENTAL_AFFLICTIONS.to_vec(), after)?;
                 apply_or_infer_balance(&mut me, (BType::Focus, duration), after);
                 agent_states.set_agent(&combat_action.caster, me);
@@ -113,7 +117,13 @@ pub fn handle_combat_action(
             }
             "Tree" => {
                 let mut me = agent_states.get_agent(&combat_action.caster);
-                let duration = if me.is(FType::NumbedSkin) { 15.0 } else { 10.0 };
+                let mut duration = 10.0;
+                if me.is(FType::NumbedSkin) {
+                    duration += 5.0;
+                }
+                if me.is(FType::Laxity) {
+                    duration += 2.0;
+                }
                 apply_or_infer_balance(&mut me, (BType::Tree, duration), after);
                 agent_states.set_agent(&combat_action.caster, me);
                 Ok(())
@@ -246,6 +256,15 @@ pub fn add_buffers<'s>(ready: &mut Vec<&'s str>, buffers: &Vec<&'s str>) {
     }
 }
 
+pub fn remove_through(you: &mut AgentState, end: FType, order: &Vec<FType>) {
+    for flag in order.iter() {
+        you.set_flag(*flag, false);
+        if *flag == end {
+            break;
+        }
+    }
+}
+
 pub struct RestoreAction {
     caster: String,
 }
@@ -257,7 +276,7 @@ impl RestoreAction {
 }
 
 impl ActiveTransition for RestoreAction {
-    fn simulate(&self, topper: &Topper) -> Vec<ProbableEvent> {
+    fn simulate(&self, timeline: &Timeline) -> Vec<ProbableEvent> {
         vec![ProbableEvent::new(
             vec![Observation::CombatAction(CombatAction {
                 caster: self.caster.clone(),
@@ -269,7 +288,7 @@ impl ActiveTransition for RestoreAction {
             1,
         )]
     }
-    fn act(&self, topper: &Topper) -> ActivateResult {
+    fn act(&self, timeline: &Timeline) -> ActivateResult {
         Ok(format!("restore"))
     }
 }
@@ -285,7 +304,7 @@ impl RegenerateAction {
 }
 
 impl ActiveTransition for RegenerateAction {
-    fn simulate(&self, topper: &Topper) -> Vec<ProbableEvent> {
+    fn simulate(&self, timeline: &Timeline) -> Vec<ProbableEvent> {
         vec![ProbableEvent::new(
             vec![Observation::CombatAction(CombatAction {
                 caster: self.caster.clone(),
@@ -297,7 +316,7 @@ impl ActiveTransition for RegenerateAction {
             1,
         )]
     }
-    fn act(&self, topper: &Topper) -> ActivateResult {
+    fn act(&self, timeline: &Timeline) -> ActivateResult {
         Ok(format!("regenerate"))
     }
 }

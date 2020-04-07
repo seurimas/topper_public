@@ -28,7 +28,10 @@ pub fn get_balance_attack(topper: &Topper, target: &String, strategy: &String) -
         if you.parrying == Some(LType::HeadDamage) {
             return format!("flow {} clawtwist clawtwist", target);
         } else {
-            return format!("flow {} sunkick uprise;;psi shock {}", target, target);
+            return format!(
+                "hackles {} wristlash;;flow {} sunkick pummel left;;psi shock {}",
+                target, target, target
+            );
         }
     } else {
         "".into()

@@ -138,6 +138,7 @@ pub enum Observation {
 pub enum Prompt {
     Promptless,
     Blackout,
+    Simulation,
     Stats(PromptStats),
 }
 
@@ -150,6 +151,19 @@ pub struct TimeSlice {
     pub me: String,
 }
 
+impl TimeSlice {
+    pub fn simulation(observations: Vec<Observation>, time: CType) -> Self {
+        TimeSlice {
+            observations,
+            lines: Vec::new(),
+            prompt: Prompt::Simulation,
+            time,
+            me: "".to_string(),
+        }
+    }
+}
+
+#[derive(Clone)]
 pub struct TimelineState {
     agent_states: HashMap<String, AgentState>,
     free_hints: HashMap<String, String>,
@@ -388,6 +402,13 @@ impl Timeline {
         Timeline {
             slices: Vec::new(),
             state: TimelineState::new(),
+        }
+    }
+
+    pub fn branch(&self) -> Self {
+        Timeline {
+            slices: Vec::new(),
+            state: self.state.clone(),
         }
     }
 
