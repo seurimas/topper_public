@@ -26,7 +26,7 @@ pub enum Class {
     Sciomancer,
     Syssin,
     Shapeshifter,
-    Wayfarerer,
+    Wayfarer,
     Lord,
 }
 
@@ -52,9 +52,31 @@ pub fn get_skill_class(category: &String) -> Option<Class> {
         "Assassination" | "Subterfuge" | "Hypnosis" => Some(Class::Syssin),
         // Unaffiliated
         "Ferality" | "Shapeshifting" | "Vocalizing" => Some(Class::Shapeshifter),
-        "Tenacity" | "Wayfaring" | "Fury" => Some(Class::Wayfarerer),
+        "Tenacity" | "Wayfaring" | "Fury" => Some(Class::Wayfarer),
         "Titan" | "Chaos" => Some(Class::Lord),
         _ => None,
+    }
+}
+
+pub fn has_special_cure(class: &Class, affliction: FType) -> bool {
+    match (affliction, class) {
+        (FType::Asthma, Class::Monk) => true,
+        (FType::Asthma, Class::Syssin) => true,
+        (FType::Paresis, Class::Zealot) => true,
+        _ => false,
+    }
+}
+
+pub fn is_affected_by(class: &Class, affliction: FType) -> bool {
+    match (affliction, class) {
+        (FType::Clumsiness, Class::Syssin) => true,
+        (FType::Clumsiness, Class::Templar) => true,
+        (FType::Clumsiness, Class::Carnifex) => true,
+        (FType::Clumsiness, Class::Wayfarer) => true,
+        (FType::Clumsiness, Class::Monk) => true,
+        (FType::Peace, Class::Luminary) => true,
+        (FType::Disfigurement, Class::Archivists) => true,
+        _ => false,
     }
 }
 
@@ -71,6 +93,45 @@ pub fn get_attack(topper: &Topper, target: &String, strategy: &String) -> String
         }
     } else {
         syssin::get_attack(&topper.timeline, target, strategy)
+    }
+}
+
+pub fn get_needed_parry(
+    timeline: &Timeline,
+    me: &String,
+    target: &String,
+    strategy: &String,
+) -> Option<LType> {
+    if let Ok(parry) = get_preferred_parry(timeline, me, target, strategy) {
+        let me = timeline.state.borrow_agent(me);
+        if let Some(current) = me.parrying {
+            if current == parry {
+                None
+            } else {
+                Some(parry)
+            }
+        } else {
+            Some(parry)
+        }
+    } else {
+        None
+    }
+}
+
+pub fn get_preferred_parry(
+    timeline: &Timeline,
+    me: &String,
+    target: &String,
+    strategy: &String,
+) -> Result<LType, String> {
+    if let Some(class) = timeline.get_class(target) {
+        match class {
+            Class::Zealot => zealot::get_preferred_parry(timeline, me, target, strategy),
+            Class::Wayfarer => Ok(LType::RightLegDamage),
+            _ => Ok(LType::HeadDamage),
+        }
+    } else {
+        Ok(LType::HeadDamage)
     }
 }
 
@@ -123,6 +184,11 @@ pub fn handle_combat_action(
                 }
                 if me.is(FType::Laxity) {
                     duration += 2.0;
+                }
+                if me.is(FType::Paresis) || me.is(FType::Paralysis) {
+                    me.set_flag(FType::Paresis, false);
+                    me.set_flag(FType::Paralysis, false);
+                    warn!("Missed Paresis cure!");
                 }
                 apply_or_infer_balance(&mut me, (BType::Tree, duration), after);
                 agent_states.set_agent(&combat_action.caster, me);
@@ -290,6 +356,29 @@ impl ActiveTransition for RestoreAction {
     }
     fn act(&self, timeline: &Timeline) -> ActivateResult {
         Ok(format!("restore"))
+    }
+}
+
+pub struct ParryAction {
+    caster: String,
+    limb: LType,
+}
+
+impl ParryAction {
+    pub fn new(caster: String, limb: LType) -> Self {
+        ParryAction { caster, limb }
+    }
+}
+
+impl ActiveTransition for ParryAction {
+    fn simulate(&self, timeline: &Timeline) -> Vec<ProbableEvent> {
+        ProbableEvent::certain(vec![Observation::Parry(
+            self.caster.clone(),
+            self.limb.to_string(),
+        )])
+    }
+    fn act(&self, timeline: &Timeline) -> ActivateResult {
+        Ok(format!("parry {}", self.limb.to_string()))
     }
 }
 

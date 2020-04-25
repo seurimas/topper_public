@@ -74,6 +74,20 @@ pub enum LType {
     SIZE,
 }
 
+impl LType {
+    pub fn to_string(&self) -> String {
+        match self {
+            LType::HeadDamage => "head".to_string(),
+            LType::TorsoDamage => "torso".to_string(),
+            LType::LeftArmDamage => "left arm".to_string(),
+            LType::RightArmDamage => "right arm".to_string(),
+            LType::LeftLegDamage => "left leg".to_string(),
+            LType::RightLegDamage => "right leg".to_string(),
+            _ => "size".to_string(),
+        }
+    }
+}
+
 pub fn get_limb_damage(what: &String) -> Result<LType, String> {
     match what.as_ref() {
         "head" => Ok(LType::HeadDamage),
@@ -145,6 +159,7 @@ pub enum FType {
     Waterwalking,
     // Reishi
     Rebounding,
+    AssumedRebounding,
     // Elixirs
     Levitation,
     VenomResistance,
@@ -660,8 +675,22 @@ impl PartialEq for AgentState {
 
 impl AgentState {
     pub fn wait(&mut self, duration: i32) {
+        let rebound_pending = !self.balanced(BType::Rebounding) && !self.is(FType::Rebounding);
         for i in 0..self.balances.len() {
             self.balances[i] -= duration;
+        }
+        if rebound_pending && self.balanced(BType::Rebounding) {
+            self.set_flag(FType::AssumedRebounding, true);
+        }
+    }
+
+    pub fn will_be_rebounding(&self, qeb: f32) -> bool {
+        if self.is(FType::Rebounding) || self.is(FType::AssumedRebounding) {
+            true
+        } else if !self.balanced(BType::Rebounding) {
+            self.get_balance(BType::Rebounding) < qeb && self.get_balance(BType::Rebounding) > -2.0
+        } else {
+            false
         }
     }
 
@@ -680,6 +709,9 @@ impl AgentState {
 
     pub fn set_flag(&mut self, flag: FType, value: bool) {
         self.flags.0[flag as usize] = value;
+        if flag == FType::Rebounding && value == true {
+            self.flags.0[FType::AssumedRebounding as usize] = false;
+        }
     }
 
     pub fn get_flag(&self, flag: FType) -> bool {

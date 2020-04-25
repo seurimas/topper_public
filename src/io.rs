@@ -14,6 +14,7 @@ enum TopperRequest {
     BattleStats,
     Attack(String),
     Hint(String, String, String),
+    Assume(String, String, bool),
     Reset,
 }
 
@@ -120,6 +121,12 @@ impl Topper {
                     }
                     TopperRequest::Hint(who, hint, value) => {
                         self.timeline.state.add_player_hint(&who, &hint, value);
+                        Ok(TopperResponse::silent())
+                    }
+                    TopperRequest::Assume(who, aff_or_def, value) => {
+                        self.timeline
+                            .state
+                            .set_flag_for_agent(&who, &aff_or_def, value);
                         Ok(TopperResponse::silent())
                     }
                     TopperRequest::Reset => {

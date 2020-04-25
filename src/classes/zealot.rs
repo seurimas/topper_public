@@ -2,6 +2,15 @@ use crate::io::*;
 use crate::timeline::*;
 use crate::types::*;
 
+pub fn get_preferred_parry(
+    timeline: &Timeline,
+    me: &String,
+    target: &String,
+    strategy: &String,
+) -> Result<LType, String> {
+    Ok(LType::TorsoDamage)
+}
+
 pub fn handle_combat_action(
     combat_action: &CombatAction,
     agent_states: &mut TimelineState,

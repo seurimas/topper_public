@@ -174,10 +174,12 @@ pub struct TimelineState {
 
 impl TimelineState {
     pub fn new() -> Self {
+        let mut classes = HashMap::new();
+        classes.insert("Haven".to_string(), Class::Luminary);
         TimelineState {
             agent_states: HashMap::new(),
             free_hints: HashMap::new(),
-            classes: HashMap::new(),
+            classes,
             time: 0,
             me: "".to_string(),
         }
@@ -310,6 +312,11 @@ impl TimelineState {
             }
             Observation::Gained(who, defence) => {
                 self.set_flag_for_agent(who, defence, true)?;
+                if defence.eq("rebounding") {
+                    let mut me = self.get_agent(who);
+                    me.set_balance(BType::Rebounding, 0.0);
+                    self.set_agent(who, me);
+                }
             }
             Observation::LimbDamage(what, much) => {
                 self.adjust_agent_limb(&self.me.clone(), what, *much)?;
@@ -428,6 +435,10 @@ impl Timeline {
 
     pub fn get_my_class(&self) -> Option<Class> {
         self.state.classes.get(&self.state.me).cloned()
+    }
+
+    pub fn get_class(&self, who: &str) -> Option<Class> {
+        self.state.classes.get(who).cloned()
     }
 }
 
@@ -713,7 +724,7 @@ pub fn apply_or_infer_cure(
                 if let Some(order) = SMOKE_CURE_ORDERS.get(herb_name) {
                     remove_in_order(order.to_vec())(who);
                 } else if herb_name == "reishi" {
-                    who.set_balance(BType::Rebounding, 8.0);
+                    who.set_balance(BType::Rebounding, 6.25);
                 } else {
                     return Err(format!("Could not find smoke {}", herb_name));
                 }
