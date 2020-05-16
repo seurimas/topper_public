@@ -232,7 +232,6 @@ pub enum FType {
     // Coagulation
     BodyOdor,
     Lethargy,
-    Allergies,
     MentalDisruption,
     PhysicalDisruption,
     Vomiting,
@@ -310,7 +309,6 @@ pub enum FType {
     // Mending Torso
     TorsoBruisedCritical,
     Lightwound,
-    Ablaze,
     CrackedRibs,
     TorsoBruisedModerate,
     TorsoBruised,
@@ -412,6 +410,10 @@ pub enum FType {
     WritheWeb,
 
     SIZE,
+    // Afflictions that stack.
+    Allergies,
+    Ablaze,
+    FULL,
 }
 
 impl FType {
@@ -433,20 +435,93 @@ impl FType {
         let result: Option<FType> = pretty.parse().ok();
         result
     }
+
+    pub fn try_from_counter_idx(
+        idx: usize,
+    ) -> Result<FType, num_enum::TryFromPrimitiveError<FType>> {
+        FType::try_from(FType::SIZE as u16 + 1 + idx as u16)
+    }
+
+    pub fn is_counter(&self) -> bool {
+        self > &FType::SIZE
+    }
 }
 
-pub struct FlagSet([bool; FType::SIZE as usize]);
+const COUNTERS_SIZE: usize = FType::FULL as usize - FType::SIZE as usize - 1;
+
+pub struct FlagSet {
+    simple: [bool; FType::SIZE as usize],
+    counters: [u8; COUNTERS_SIZE],
+}
+
+impl FlagSet {
+    pub fn is_flag_set(&self, flag: FType) -> bool {
+        if flag.is_counter() {
+            self.counters[flag as usize - FType::SIZE as usize - 1] > 0
+        } else {
+            self.simple[flag as usize]
+        }
+    }
+
+    pub fn get_flag_count(&self, flag: FType) -> u8 {
+        if flag.is_counter() {
+            self.counters[flag as usize - FType::SIZE as usize - 1]
+        } else {
+            if self.simple[flag as usize] {
+                1
+            } else {
+                0
+            }
+        }
+    }
+
+    pub fn set_flag(&mut self, flag: FType, value: bool) {
+        if flag.is_counter() {
+            let counter_idx = flag as usize - FType::SIZE as usize - 1;
+            let old_value = self.counters[counter_idx as usize];
+            if value && old_value < 1 {
+                self.counters[counter_idx] = 1;
+            } else if !value && old_value > 0 {
+                self.counters[counter_idx] = 0;
+            }
+        } else {
+            self.simple[flag as usize] = value;
+        }
+    }
+
+    pub fn tick_counter_up(&mut self, flag: FType) {
+        if flag.is_counter() {
+            self.counters[flag as usize - FType::SIZE as usize - 1] += 1;
+        } else {
+            println!("Tried to tick up non-counter.");
+        }
+    }
+}
 
 impl fmt::Debug for FlagSet {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "[")?;
         let mut wrote = false;
-        for idx in 0..self.0.len() {
-            if self.0[idx] {
+        for idx in 0..self.simple.len() {
+            if self.simple[idx] {
                 if wrote {
                     write!(f, ", ")?;
                 }
                 write!(f, "{:?}", FType::try_from(idx as u16))?;
+                wrote = true;
+            }
+        }
+        for idx in 0..self.counters.len() {
+            if self.counters[idx] > 0 {
+                if wrote {
+                    write!(f, ", ")?;
+                }
+                write!(
+                    f,
+                    "{:?}x{}",
+                    FType::try_from_counter_idx(idx),
+                    self.counters[idx]
+                )?;
                 wrote = true;
             }
         }
@@ -457,8 +532,8 @@ impl fmt::Debug for FlagSet {
 impl fmt::Display for FlagSet {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut wrote = false;
-        for idx in 0..self.0.len() {
-            if self.0[idx] {
+        for idx in 0..self.simple.len() {
+            if self.simple[idx] {
                 if let Ok(ftype) = FType::try_from(idx as u16) {
                     if ftype.is_affliction() {
                         if wrote {
@@ -470,25 +545,54 @@ impl fmt::Display for FlagSet {
                 }
             }
         }
+        for idx in 0..self.counters.len() {
+            if self.counters[idx] > 0 {
+                if let Ok(ftype) = FType::try_from_counter_idx(idx) {
+                    if ftype.is_affliction() {
+                        if wrote {
+                            write!(f, ", ")?;
+                        }
+                        write!(f, "{:?}x{}", ftype, self.counters[idx])?;
+                        wrote = true;
+                    }
+                }
+            }
+        }
         Ok(())
     }
 }
 
 pub struct FlagSetIterator<'s> {
     index: usize,
+    simple: bool,
     set: &'s FlagSet,
     predicate: &'s Fn(FType) -> bool,
 }
 
-impl<'s> Iterator for FlagSetIterator<'s> {
-    type Item = FType;
-    fn next(&mut self) -> Option<Self::Item> {
-        while self.index < self.set.0.len() && !self.set.0[self.index] {
+impl<'s> FlagSetIterator<'s> {
+    fn next_simple(&mut self) -> Option<FType> {
+        while self.index < self.set.simple.len() && !self.set.simple[self.index] {
             self.index += 1;
         }
-        if self.index < self.set.0.len() {
+        if self.index < self.set.simple.len() {
+            let ftype = FType::try_from(self.index as u16).unwrap();
             self.index += 1;
-            let ftype = FType::try_from((self.index - 1) as u16).unwrap();
+            if (self.predicate)(ftype) {
+                Some(ftype)
+            } else {
+                self.next()
+            }
+        } else {
+            None
+        }
+    }
+    fn next_counter(&mut self) -> Option<FType> {
+        while self.index < self.set.counters.len() && self.set.counters[self.index] == 0 {
+            self.index += 1;
+        }
+        if self.index < self.set.counters.len() {
+            let ftype = FType::try_from_counter_idx(self.index).unwrap();
+            self.index += 1;
             if (self.predicate)(ftype) {
                 Some(ftype)
             } else {
@@ -500,9 +604,27 @@ impl<'s> Iterator for FlagSetIterator<'s> {
     }
 }
 
+impl<'s> Iterator for FlagSetIterator<'s> {
+    type Item = FType;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.simple {
+            if let Some(simple) = self.next_simple() {
+                Some(simple)
+            } else {
+                self.simple = false;
+                self.index = 0;
+                self.next()
+            }
+        } else {
+            self.next_counter()
+        }
+    }
+}
+
 impl<'s> FlagSetIterator<'s> {
     fn new(flagset: &'s FlagSet, predicate: &'s Fn(FType) -> bool) -> Self {
         FlagSetIterator {
+            simple: true,
             index: 0,
             set: flagset,
             predicate,
@@ -518,14 +640,19 @@ impl FlagSet {
 
 impl Default for FlagSet {
     fn default() -> Self {
-        FlagSet([false; FType::SIZE as usize])
+        FlagSet {
+            simple: [false; FType::SIZE as usize],
+            counters: [0; COUNTERS_SIZE],
+        }
     }
 }
 
 impl Clone for FlagSet {
     fn clone(&self) -> Self {
-        let flags = self.0;
-        FlagSet(flags)
+        FlagSet {
+            simple: self.simple,
+            counters: self.counters,
+        }
     }
 }
 
@@ -685,17 +812,23 @@ impl AgentState {
     }
 
     pub fn will_be_rebounding(&self, qeb: f32) -> bool {
-        if self.is(FType::Rebounding) || self.is(FType::AssumedRebounding) {
+        if self.is(FType::Rebounding)
+            || (self.is(FType::AssumedRebounding) && self.get_balance(BType::Rebounding) > -1.5)
+        {
             true
         } else if !self.balanced(BType::Rebounding) {
-            self.get_balance(BType::Rebounding) < qeb && self.get_balance(BType::Rebounding) > -2.0
+            self.get_balance(BType::Rebounding) < qeb
         } else {
             false
         }
     }
 
     pub fn is(&self, flag: FType) -> bool {
-        self.flags.0[flag as usize]
+        self.flags.is_flag_set(flag)
+    }
+
+    pub fn get_count(&self, flag: FType) -> u8 {
+        self.flags.get_flag_count(flag)
     }
 
     pub fn some(&self, afflictions: Vec<FType>) -> bool {
@@ -708,26 +841,16 @@ impl AgentState {
     }
 
     pub fn set_flag(&mut self, flag: FType, value: bool) {
-        self.flags.0[flag as usize] = value;
+        self.flags.set_flag(flag, value);
         if flag == FType::Rebounding && value == true {
-            self.flags.0[FType::AssumedRebounding as usize] = false;
+            self.flags.set_flag(FType::AssumedRebounding, false);
         }
     }
 
-    pub fn get_flag(&self, flag: FType) -> bool {
-        self.flags.0[flag as usize]
+    pub fn tick_flag_up(&mut self, flag: FType) {
+        self.flags.tick_counter_up(flag);
     }
-    /*
-        pub fn affliction_count(&self) -> i32 {
-            let mut count = 0;
-            for i in 0..(FType::SIZE as usize) {
-                if i >= FType::Sadness as usize && i < FType::SIZE as usize {
-                    count += 1;
-                }
-            }
-            count
-        }
-    */
+
     pub fn set_balance(&mut self, balance: BType, value: f32) {
         self.balances[balance as usize] = (value * BALANCE_SCALE) as CType;
     }
@@ -849,6 +972,10 @@ impl AgentState {
             earliest_escape = earliest_escape.or(Some((15.0 * BALANCE_SCALE) as CType))
         }
         earliest_escape.map(|escape| (escape as f32) / BALANCE_SCALE)
+    }
+
+    pub fn can_renew(&self, ignore_bal: bool) -> bool {
+        ignore_bal || self.balanced(BType::Renew)
     }
 
     pub fn can_tree(&self, ignore_bal: bool) -> bool {

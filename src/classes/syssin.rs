@@ -33,12 +33,12 @@ mod timeline_tests {
         timeline.push_time_slice(dstab_slice);
         let savas_state = timeline.state.get_agent(&"Savas".to_string());
         assert_eq!(savas_state.balanced(BType::Balance), false);
-        assert_eq!(savas_state.get_flag(FType::Asthma), false);
-        assert_eq!(savas_state.get_flag(FType::Anorexia), false);
+        assert_eq!(savas_state.is(FType::Asthma), false);
+        assert_eq!(savas_state.is(FType::Anorexia), false);
         let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Balance), true);
-        assert_eq!(bene_state.get_flag(FType::Asthma), true);
-        assert_eq!(bene_state.get_flag(FType::Anorexia), true);
+        assert_eq!(bene_state.is(FType::Asthma), true);
+        assert_eq!(bene_state.is(FType::Anorexia), true);
     }
 
     #[test]
@@ -66,12 +66,12 @@ mod timeline_tests {
         timeline.push_time_slice(dstab_slice);
         let savas_state = timeline.state.get_agent(&"Savas".to_string());
         assert_eq!(savas_state.balanced(BType::Balance), false);
-        assert_eq!(savas_state.get_flag(FType::Asthma), false);
-        assert_eq!(savas_state.get_flag(FType::Anorexia), false);
+        assert_eq!(savas_state.is(FType::Asthma), false);
+        assert_eq!(savas_state.is(FType::Anorexia), false);
         let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Balance), true);
-        assert_eq!(bene_state.get_flag(FType::Asthma), true);
-        assert_eq!(bene_state.get_flag(FType::Anorexia), false);
+        assert_eq!(bene_state.is(FType::Asthma), true);
+        assert_eq!(bene_state.is(FType::Anorexia), false);
     }
 
     #[test]
@@ -97,12 +97,12 @@ mod timeline_tests {
         timeline.push_time_slice(dstab_slice);
         let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Balance), false);
-        assert_eq!(seur_state.get_flag(FType::Asthma), false);
-        assert_eq!(seur_state.get_flag(FType::Anorexia), false);
+        assert_eq!(seur_state.is(FType::Asthma), false);
+        assert_eq!(seur_state.is(FType::Anorexia), false);
         let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Balance), true);
-        assert_eq!(bene_state.get_flag(FType::Asthma), true);
-        assert_eq!(bene_state.get_flag(FType::Anorexia), true);
+        assert_eq!(bene_state.is(FType::Asthma), true);
+        assert_eq!(bene_state.is(FType::Anorexia), true);
     }
 
     #[test]
@@ -128,12 +128,12 @@ mod timeline_tests {
         timeline.push_time_slice(dstab_slice);
         let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Balance), false);
-        assert_eq!(seur_state.get_flag(FType::Asthma), false);
-        assert_eq!(seur_state.get_flag(FType::Anorexia), false);
+        assert_eq!(seur_state.is(FType::Asthma), false);
+        assert_eq!(seur_state.is(FType::Anorexia), false);
         let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Balance), true);
-        assert_eq!(bene_state.get_flag(FType::Asthma), true);
-        assert_eq!(bene_state.get_flag(FType::Anorexia), false);
+        assert_eq!(bene_state.is(FType::Asthma), true);
+        assert_eq!(bene_state.is(FType::Anorexia), false);
     }
 
     #[test]
@@ -159,12 +159,12 @@ mod timeline_tests {
         timeline.push_time_slice(dstab_slice);
         let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Balance), false);
-        assert_eq!(seur_state.get_flag(FType::Asthma), false);
-        assert_eq!(seur_state.get_flag(FType::Anorexia), false);
+        assert_eq!(seur_state.is(FType::Asthma), false);
+        assert_eq!(seur_state.is(FType::Anorexia), false);
         let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Balance), true);
-        assert_eq!(bene_state.get_flag(FType::Rebounding), false);
-        assert_eq!(bene_state.get_flag(FType::Speed), false);
+        assert_eq!(bene_state.is(FType::Rebounding), false);
+        assert_eq!(bene_state.is(FType::Speed), false);
     }
 
     #[test]
@@ -190,12 +190,12 @@ mod timeline_tests {
         timeline.push_time_slice(dstab_slice);
         let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Balance), false);
-        assert_eq!(seur_state.get_flag(FType::Asthma), false);
-        assert_eq!(seur_state.get_flag(FType::Anorexia), false);
+        assert_eq!(seur_state.is(FType::Asthma), false);
+        assert_eq!(seur_state.is(FType::Anorexia), false);
         let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Balance), true);
-        assert_eq!(bene_state.get_flag(FType::Rebounding), true);
-        assert_eq!(bene_state.get_flag(FType::Speed), false);
+        assert_eq!(bene_state.is(FType::Rebounding), true);
+        assert_eq!(bene_state.is(FType::Speed), false);
     }
 
     #[test]
@@ -223,15 +223,15 @@ mod timeline_tests {
         };
         let bene_state = timeline.state.get_agent(&"Seurimas".to_string());
         assert_eq!(bene_state.balanced(BType::Pill), true);
-        assert_eq!(bene_state.get_flag(FType::Stupidity), true);
-        assert_eq!(bene_state.get_flag(FType::Void), true);
-        assert_eq!(bene_state.get_flag(FType::Weakvoid), false);
+        assert_eq!(bene_state.is(FType::Stupidity), true);
+        assert_eq!(bene_state.is(FType::Void), true);
+        assert_eq!(bene_state.is(FType::Weakvoid), false);
         timeline.push_time_slice(dstab_slice);
         let bene_state = timeline.state.get_agent(&"Seurimas".to_string());
         assert_eq!(bene_state.balanced(BType::Pill), false);
-        assert_eq!(bene_state.get_flag(FType::Stupidity), true);
-        assert_eq!(bene_state.get_flag(FType::Void), false);
-        assert_eq!(bene_state.get_flag(FType::Weakvoid), true);
+        assert_eq!(bene_state.is(FType::Stupidity), true);
+        assert_eq!(bene_state.is(FType::Void), false);
+        assert_eq!(bene_state.is(FType::Weakvoid), true);
     }
 
     #[test]
@@ -258,15 +258,15 @@ mod timeline_tests {
         };
         let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Pill), true);
-        assert_eq!(bene_state.get_flag(FType::Stupidity), true);
-        assert_eq!(bene_state.get_flag(FType::Void), true);
-        assert_eq!(bene_state.get_flag(FType::Weakvoid), false);
+        assert_eq!(bene_state.is(FType::Stupidity), true);
+        assert_eq!(bene_state.is(FType::Void), true);
+        assert_eq!(bene_state.is(FType::Weakvoid), false);
         timeline.push_time_slice(dstab_slice);
         let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Pill), false);
-        assert_eq!(bene_state.get_flag(FType::Stupidity), true);
-        assert_eq!(bene_state.get_flag(FType::Void), false);
-        assert_eq!(bene_state.get_flag(FType::Weakvoid), true);
+        assert_eq!(bene_state.is(FType::Stupidity), true);
+        assert_eq!(bene_state.is(FType::Void), false);
+        assert_eq!(bene_state.is(FType::Weakvoid), true);
     }
 
     #[test]
@@ -293,15 +293,15 @@ mod timeline_tests {
         };
         let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Pill), true);
-        assert_eq!(bene_state.get_flag(FType::Stupidity), true);
-        assert_eq!(bene_state.get_flag(FType::Void), false);
-        assert_eq!(bene_state.get_flag(FType::Weakvoid), true);
+        assert_eq!(bene_state.is(FType::Stupidity), true);
+        assert_eq!(bene_state.is(FType::Void), false);
+        assert_eq!(bene_state.is(FType::Weakvoid), true);
         timeline.push_time_slice(dstab_slice);
         let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Pill), false);
-        assert_eq!(bene_state.get_flag(FType::Stupidity), true);
-        assert_eq!(bene_state.get_flag(FType::Void), false);
-        assert_eq!(bene_state.get_flag(FType::Weakvoid), false);
+        assert_eq!(bene_state.is(FType::Stupidity), true);
+        assert_eq!(bene_state.is(FType::Void), false);
+        assert_eq!(bene_state.is(FType::Weakvoid), false);
     }
 
     #[test]
@@ -328,12 +328,12 @@ mod timeline_tests {
         timeline.push_time_slice(dstab_slice);
         let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Balance), false);
-        assert_eq!(seur_state.get_flag(FType::Asthma), false);
-        assert_eq!(seur_state.get_flag(FType::Anorexia), false);
+        assert_eq!(seur_state.is(FType::Asthma), false);
+        assert_eq!(seur_state.is(FType::Anorexia), false);
         let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Balance), true);
-        assert_eq!(bene_state.get_flag(FType::Asthma), false);
-        assert_eq!(bene_state.get_flag(FType::Anorexia), true);
+        assert_eq!(bene_state.is(FType::Asthma), false);
+        assert_eq!(bene_state.is(FType::Anorexia), true);
     }
 
     #[test]
@@ -373,12 +373,12 @@ mod timeline_tests {
         timeline.push_time_slice(dstab_slice);
         let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Balance), false);
-        assert_eq!(seur_state.get_flag(FType::Asthma), false);
-        assert_eq!(seur_state.get_flag(FType::Anorexia), false);
+        assert_eq!(seur_state.is(FType::Asthma), false);
+        assert_eq!(seur_state.is(FType::Anorexia), false);
         let mut bene_state = timeline.state.get_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Balance), true);
-        assert_eq!(bene_state.get_flag(FType::Asthma), true);
-        assert_eq!(bene_state.get_flag(FType::Anorexia), true);
+        assert_eq!(bene_state.is(FType::Asthma), true);
+        assert_eq!(bene_state.is(FType::Anorexia), true);
         assert_eq!(bene_state.relapse(), Some("slike".to_string()));
         assert_eq!(bene_state.relapse(), Some("kalmia".to_string()));
     }
@@ -408,12 +408,12 @@ mod timeline_tests {
         timeline.push_time_slice(dstab_slice);
         let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Balance), false);
-        assert_eq!(seur_state.get_flag(FType::Asthma), true);
-        assert_eq!(seur_state.get_flag(FType::Anorexia), true);
+        assert_eq!(seur_state.is(FType::Asthma), true);
+        assert_eq!(seur_state.is(FType::Anorexia), true);
         let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Balance), true);
-        assert_eq!(bene_state.get_flag(FType::Asthma), false);
-        assert_eq!(bene_state.get_flag(FType::Anorexia), false);
+        assert_eq!(bene_state.is(FType::Asthma), false);
+        assert_eq!(bene_state.is(FType::Anorexia), false);
     }
 
     #[test]
@@ -435,10 +435,10 @@ mod timeline_tests {
         timeline.push_time_slice(dstab_slice);
         let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Balance), false);
-        assert_eq!(seur_state.get_flag(FType::ThinBlood), false);
+        assert_eq!(seur_state.is(FType::ThinBlood), false);
         let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Balance), true);
-        assert_eq!(bene_state.get_flag(FType::ThinBlood), true);
+        assert_eq!(bene_state.is(FType::ThinBlood), true);
     }
 
     #[test]
@@ -463,10 +463,10 @@ mod timeline_tests {
         timeline.push_time_slice(dstab_slice);
         let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Balance), false);
-        assert_eq!(seur_state.get_flag(FType::ThinBlood), false);
+        assert_eq!(seur_state.is(FType::ThinBlood), false);
         let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Balance), true);
-        assert_eq!(bene_state.get_flag(FType::ThinBlood), false);
+        assert_eq!(bene_state.is(FType::ThinBlood), false);
     }
 
     #[test]
@@ -491,11 +491,11 @@ mod timeline_tests {
         timeline.push_time_slice(dstab_slice);
         let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Balance), false);
-        assert_eq!(seur_state.get_flag(FType::ThinBlood), false);
+        assert_eq!(seur_state.is(FType::ThinBlood), false);
         assert_eq!(seur_state.get_parrying(), None);
         let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Balance), true);
-        assert_eq!(bene_state.get_flag(FType::ThinBlood), false);
+        assert_eq!(bene_state.is(FType::ThinBlood), false);
         assert_eq!(bene_state.get_parrying(), Some(LType::HeadDamage));
     }
 
@@ -996,7 +996,7 @@ pub fn handle_combat_action(
                 combat_action.caster.eq(&agent_states.me),
                 agent_states.get_player_hint(&combat_action.caster, &"CALLED_VENOMS".to_string()),
             )?;
-            apply_or_infer_balance(&mut me, (BType::Balance, 2.8), after);
+            apply_or_infer_balance(&mut me, (BType::Balance, 2.65), after);
             agent_states.set_agent(&combat_action.caster, me);
             agent_states.set_agent(&combat_action.target, you);
         }
@@ -1131,12 +1131,15 @@ pub fn handle_combat_action(
             let mut you = agent_states.get_agent(&combat_action.target);
             apply_or_infer_balance(&mut me, (BType::Equil, 3.0), after);
             you.set_flag(FType::Hypnotized, false);
+            you.set_flag(FType::Snapped, false);
             agent_states.set_agent(&combat_action.caster, me);
             agent_states.set_agent(&combat_action.target, you);
         }
         "Suggest" => {
             let mut me = agent_states.get_agent(&combat_action.caster);
             let mut you = agent_states.get_agent(&combat_action.target);
+            you.set_flag(FType::Hypnotized, true);
+            you.set_flag(FType::Snapped, false);
             apply_or_infer_balance(&mut me, (BType::Equil, 2.25), after);
             you.push_suggestion(infer_suggestion(&combat_action.target, agent_states));
             agent_states.set_agent(&combat_action.caster, me);
@@ -1145,6 +1148,7 @@ pub fn handle_combat_action(
         "Fizzle" => {
             let mut me = agent_states.get_agent(&combat_action.target);
             me.pop_suggestion();
+            me.set_flag(FType::Hypnotized, true);
             agent_states.set_agent(&combat_action.target, me);
         }
         "Snap" => {
@@ -1163,7 +1167,7 @@ pub fn handle_combat_action(
         "Bedazzle" => {
             let mut me = agent_states.get_agent(&combat_action.caster);
             let mut you = agent_states.get_agent(&combat_action.target);
-            apply_or_infer_balance(&mut me, (BType::Balance, 2.25), after);
+            apply_or_infer_balance(&mut me, (BType::Balance, 2.75), after);
             apply_or_infer_random_afflictions(&mut you, after)?;
             agent_states.set_agent(&combat_action.caster, me);
             agent_states.set_agent(&combat_action.target, you);
@@ -1428,6 +1432,17 @@ lazy_static! {
     ];
 }
 
+lazy_static! {
+    static ref HYPER_HYPNO: Vec<Hypnosis> = vec![
+        Hypnosis::Aff(FType::Impatience),
+        Hypnosis::Aff(FType::Addiction),
+        Hypnosis::Aff(FType::Hypersomnia),
+        Hypnosis::Aff(FType::Impatience),
+        Hypnosis::Aff(FType::Addiction),
+        Hypnosis::Aff(FType::Hypersomnia),
+    ];
+}
+
 pub fn get_hypno_str(target: &String, hypno: &Hypnosis) -> String {
     match hypno {
         Hypnosis::Aff(affliction) => format!("suggest {} {:?}", target, affliction),
@@ -1453,7 +1468,7 @@ pub fn get_top_hypno<'s>(
     }
     if hypno_idx < hypnos.len() {
         if let Some(next_hypno) = hypnos.get(hypno_idx) {
-            if !target.get_flag(FType::Hypnotized) {
+            if !target.is(FType::Hypnotized) {
                 Some(Box::new(SeparatorAction::pair(
                     Box::new(HypnotiseAction::new(&me, &target_name)),
                     Box::new(SuggestAction::new(&me, &target_name, next_hypno.clone())),
@@ -1472,7 +1487,7 @@ pub fn get_top_hypno<'s>(
                 hypnos.len()
             )
         }
-    } else if target.get_flag(FType::Hypnotized) {
+    } else if target.is(FType::Hypnotized) {
         Some(Box::new(SealAction::new(&me, &target_name, 3)))
     } else {
         None
@@ -1622,6 +1637,42 @@ pub fn get_dstab_action(timeline: &Timeline, target: &String, v1: &String, v2: &
     }
 }
 
+pub fn add_delphs(
+    timeline: &Timeline,
+    me: &AgentState,
+    you: &AgentState,
+    strategy: &String,
+    venoms: &mut Vec<&'static str>,
+) {
+    if you.is(FType::Allergies) || you.is(FType::Vomiting) {
+        return;
+    }
+    if you.is(FType::Hypersomnia) {
+        if !you.is(FType::Insomnia) && !you.is(FType::Asleep) {
+            venoms.push("delphinium");
+            if you.is(FType::Instawake) {
+                venoms.push("delphinium");
+            }
+        } else if you.is(FType::Insomnia)
+            && !you.is(FType::Asleep)
+            && (you.aff_count() > 4 || (!you.can_tree(false) && !you.can_renew(false)))
+        {
+            venoms.push("delphinium");
+        }
+        if venoms.len() >= 2 && Some(&"darkshade") == venoms.get(venoms.len() - 2) {
+            venoms.remove(venoms.len() - 2);
+        }
+        if venoms.len() >= 2 && Some(&"euphorbia") == venoms.get(venoms.len() - 2) {
+            venoms.remove(venoms.len() - 2);
+        }
+    } else if !you.is(FType::Insomnia) {
+        venoms.push("delphinium");
+        if you.is(FType::Instawake) {
+            venoms.push("delphinium");
+        }
+    }
+}
+
 pub fn get_stack<'s>(
     timeline: &Timeline,
     target: &String,
@@ -1755,18 +1806,14 @@ pub fn get_balance_attack<'s>(
                     add_buffers(&mut venoms, &hypno_buffers);
                 }
             }
+            if !priority_buffer {
+                add_delphs(&timeline, &me, &you, &strategy, &mut venoms);
+            }
             let v2 = venoms.pop();
             let v1 = venoms.pop();
             if should_bedazzle(&me, &you, &strategy, false) {
                 println!("Bedazzling!");
                 return Box::new(BedazzleAction::new(who_am_i, &target));
-            } else if you.is(FType::Hypersomnia) && !you.is(FType::Asleep) {
-                return Box::new(DoublestabAction::new(
-                    who_am_i.to_string(),
-                    target.to_string(),
-                    "delphinium".to_string(),
-                    "delphinium".to_string(),
-                ));
             } else if let (Some(v1), Some(v2)) = (v1, v2) {
                 return Box::new(DoublestabAction::new(
                     who_am_i.to_string(),
@@ -1808,11 +1855,14 @@ pub fn get_equil_attack<'s>(
         return Box::new(Inactivity);
     }
     let you = timeline.state.borrow_agent(target);
-    let stack = if strategy.eq("lumi") {
-        //        FAST_HYPNO.to_vec()
-        HARD_HYPNO.to_vec()
-    } else {
-        HARD_HYPNO.to_vec()
+    let stack = match timeline
+        .state
+        .get_my_hint(&"HYPNO_STACK".to_string())
+        .as_deref()
+    {
+        Some("hyper") => HYPER_HYPNO.to_vec(),
+        Some("fast") => FAST_HYPNO.to_vec(),
+        _ => HARD_HYPNO.to_vec(),
     };
     let hypno_action = get_top_hypno(me, target, &you, &stack);
     hypno_action.unwrap_or(Box::new(Inactivity))
@@ -1830,9 +1880,9 @@ pub fn get_shadow_attack<'s>(
         if !strategy.eq("salve") {
             let you = timeline.state.borrow_agent(target);
             if !should_void(timeline)
-                || you.get_flag(FType::Void)
-                || you.get_flag(FType::Weakvoid)
-                || you.get_flag(FType::Snapped)
+                || you.is(FType::Void)
+                || you.is(FType::Weakvoid)
+                || you.is(FType::Snapped)
             {
                 if you.lock_duration().is_some() {
                     Box::new(SleightAction::new(me, &target, &"blank"))
@@ -1851,8 +1901,8 @@ pub fn get_shadow_attack<'s>(
 pub fn get_snap(timeline: &Timeline, me: &String, target: &String, _strategy: &String) -> bool {
     let you = timeline.state.borrow_agent(target);
     if get_top_hypno(me, target, &you, &HARD_HYPNO.to_vec()).is_none()
-        && !you.get_flag(FType::Snapped)
-        && !you.get_flag(FType::Hypnotized)
+        && !you.is(FType::Snapped)
+        && !you.is(FType::Hypnotized)
     {
         return true;
     } else {

@@ -59,7 +59,11 @@ impl PlayerStats {
     pub fn for_player(state: &AgentState) -> Self {
         let mut afflictions = Vec::new();
         for aff in state.flags.aff_iter() {
-            afflictions.push(format!("{:?}", aff));
+            if state.get_count(aff) > 1 {
+                afflictions.push(format!("{:?}x{}", aff, state.get_count(aff)));
+            } else {
+                afflictions.push(format!("{:?}", aff));
+            }
         }
         let mut warnings = Vec::new();
         if let Some(warning) = get_hypno_warning(&state) {

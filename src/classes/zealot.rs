@@ -26,6 +26,16 @@ pub fn handle_combat_action(
             agent_states.set_agent(&combat_action.caster, me);
             agent_states.set_agent(&combat_action.target, you);
         }
+        "Quicken" => {
+            let mut me = agent_states.get_agent(&combat_action.caster);
+            let mut you = agent_states.get_agent(&combat_action.target);
+            apply_or_infer_balance(&mut me, (BType::Equil, 3.0), after);
+            you.set_flag(FType::Ablaze, true);
+            you.set_flag(FType::Ablaze, true);
+            you.set_flag(FType::Ablaze, true);
+            agent_states.set_agent(&combat_action.caster, me);
+            agent_states.set_agent(&combat_action.target, you);
+        }
         _ => {}
     }
     Ok(())

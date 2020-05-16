@@ -35,10 +35,10 @@ mod timeline_tests {
         timeline.push_time_slice(coag_slice);
         let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Pill), true);
-        assert_eq!(seur_state.get_flag(FType::ThinBlood), true);
+        assert_eq!(seur_state.is(FType::ThinBlood), true);
         let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Pill), false);
-        assert_eq!(bene_state.get_flag(FType::ThinBlood), false);
+        assert_eq!(bene_state.is(FType::ThinBlood), false);
     }
 
     #[test]
@@ -67,10 +67,10 @@ mod timeline_tests {
         timeline.push_time_slice(coag_slice);
         let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Salve), true);
-        assert_eq!(seur_state.get_flag(FType::LeftArmBroken), true);
+        assert_eq!(seur_state.is(FType::LeftArmBroken), true);
         let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Salve), false);
-        assert_eq!(bene_state.get_flag(FType::LeftArmBroken), false);
+        assert_eq!(bene_state.is(FType::LeftArmBroken), false);
     }
 }
 fn noop() -> Box<Fn(&mut AgentState)> {
@@ -977,8 +977,7 @@ pub fn handle_simple_cure_action(
             apply_or_infer_balance(&mut me, (BType::Smoke, 2.0), after);
             apply_or_infer_cure(&mut me, &simple_cure.cure_type, after)?;
             Ok(())
-        }
-        // _ => Ok(()),
+        } // _ => Ok(()),
     };
     agent_states.set_agent(&simple_cure.caster, me);
     results

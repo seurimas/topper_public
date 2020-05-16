@@ -125,6 +125,7 @@ pub enum Observation {
     Stripped(String),
     // Specific case, non-action
     Relapse(String),
+    TickAff(String, String),
     // General messages
     Balance(String, f32),
     BalanceBack(String),
@@ -236,6 +237,26 @@ impl TimelineState {
             me.set_flag(aff_flag, val);
         } else if let Ok((_damage_type, _damage_amount)) = get_damage_barrier(flag_name) {
             // Do nothing...
+        } else {
+            return Err(format!("Failed to find flag {}", flag_name));
+        }
+        self.set_agent(who, me);
+        Ok(())
+    }
+
+    pub fn tick_counter_up_for_agent(
+        &mut self,
+        who: &String,
+        flag_name: &String,
+    ) -> Result<(), String> {
+        let mut me = self.get_agent(who);
+        if let Some(aff_flag) = FType::from_name(flag_name) {
+            if aff_flag.is_counter() {
+                println!("Ticking up!");
+                me.tick_flag_up(aff_flag);
+            } else {
+                return Err(format!("Tried to tick non-counter: {}", flag_name));
+            }
         } else {
             return Err(format!("Failed to find flag {}", flag_name));
         }
@@ -365,6 +386,9 @@ impl TimelineState {
                 me.wield_two_hands(what.clone());
                 self.set_agent(who, me);
             }
+            Observation::TickAff(who, what) => {
+                self.tick_counter_up_for_agent(who, what)?;
+            }
             Observation::Relapse(who) => {
                 //let mut you = self.get_agent(who);
                 //apply_or_infer_relapse(&mut you, after)?;
@@ -467,12 +491,26 @@ pub fn apply_or_infer_suggestion(
     who: &mut AgentState,
     after: &Vec<Observation>,
 ) -> Result<(), String> {
-    if let Some(Observation::DiscernedAfflict(_affliction)) = after.get(0) {
+    if let Some(Observation::DiscernedAfflict(affliction)) = after.get(1) {
         println!("Discerned correct!");
-    // This is fine. Discerned afflict will be applied independently.
+        if let Some(affliction) = FType::from_name(affliction) {
+            who.set_flag(affliction, true);
+        }
+    } else if let Some(Observation::DiscernedAfflict(affliction)) = after.get(1) {
+        println!(
+            "Expected {:?} but got {:?}!",
+            who.hypnosis_stack.get(0),
+            affliction
+        );
+        if let Some(affliction) = FType::from_name(affliction) {
+            who.set_flag(affliction, true);
+        }
     } else if let Some(Hypnosis::Aff(_affliction)) = who.hypnosis_stack.get(0) {
-        // Discernment is off??? Might be out of sync, don't assume.
-        // who.set_flag(*affliction, true);
+        println!(
+            "Expected {:?} but got {:?}!",
+            who.hypnosis_stack.get(0),
+            after.get(0)
+        );
     }
     if who.hypnosis_stack.len() > 0 {
         who.hypnosis_stack.remove(0);
