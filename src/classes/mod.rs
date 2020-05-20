@@ -1,7 +1,7 @@
 use crate::curatives::MENTAL_AFFLICTIONS;
-use crate::io::*;
 use crate::observables::*;
 use crate::timeline::*;
+use crate::topper::*;
 use crate::types::*;
 use std::collections::HashMap;
 pub mod carnifex;
@@ -84,15 +84,15 @@ pub fn handle_sent(command: &String, agent_states: &mut TimelineState) {
     syssin::handle_sent(command, agent_states);
 }
 
-pub fn get_attack(topper: &Topper, target: &String, strategy: &String) -> String {
-    if let Some(class) = topper.timeline.get_my_class() {
+pub fn get_attack(topper: &mut Topper, target: &String, strategy: &String) -> String {
+    if let Some(class) = topper.get_timeline().get_my_class() {
         match class {
             Class::Zealot => zealot::get_attack(topper, target, strategy),
-            Class::Syssin => syssin::get_attack(&topper.timeline, target, strategy),
-            _ => syssin::get_attack(&topper.timeline, target, strategy),
+            Class::Syssin => syssin::get_attack(&topper.get_timeline(), target, strategy),
+            _ => syssin::get_attack(&topper.get_timeline(), target, strategy),
         }
     } else {
-        syssin::get_attack(&topper.timeline, target, strategy)
+        syssin::get_attack(&topper.get_timeline(), target, strategy)
     }
 }
 

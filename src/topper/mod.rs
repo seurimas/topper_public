@@ -1,6 +1,9 @@
 use crate::battle_stats::*;
 use crate::classes::get_attack;
-use crate::timeline::*;
+use crate::topper::telnet::TelnetModule;
+use crate::topper::timeline::{TimeSlice, Timeline, TimelineModule};
+pub mod telnet;
+mod timeline;
 use log::info;
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
@@ -34,7 +37,45 @@ pub struct TopperResponse {
     pub die: bool,
 }
 
+pub trait TopperModule {
+    fn handle_message(&mut self, message: &TopperMessage) -> Result<TopperResponse, String>;
+}
+
+pub struct TopperCore {
+    target: Option<String>,
+}
+
+impl TopperCore {
+    fn new() -> Self {
+        TopperCore { target: None }
+    }
+}
+
+impl TopperModule for TopperCore {
+    fn handle_message(&mut self, message: &TopperMessage) -> Result<TopperResponse, String> {
+        match message {
+            TopperMessage::Kill => Ok(TopperResponse::die()),
+            TopperMessage::Request(request) => match request {
+                TopperRequest::Target(target) => {
+                    self.target = Some(target.to_string());
+                    Ok(TopperResponse::silent())
+                }
+                _ => Ok(TopperResponse::silent()),
+            },
+            _ => Ok(TopperResponse::silent()),
+        }
+    }
+}
+
 impl TopperResponse {
+    pub fn then(self, next: TopperResponse) -> Self {
+        TopperResponse {
+            qeb: self.qeb.or(next.qeb),
+            battle_stats: self.battle_stats.or(next.battle_stats),
+            error: self.error.or(next.error),
+            die: self.die || next.die,
+        }
+    }
     pub fn battle_stats(battle_stats: BattleStats) -> Self {
         TopperResponse {
             qeb: None,
@@ -78,72 +119,62 @@ impl TopperResponse {
 }
 
 pub struct Topper {
-    pub timeline: Timeline,
-    pub target: Option<String>,
-    send_lines: Sender<String>,
+    timeline_module: TimelineModule,
+    core_module: TopperCore,
+    telnet_module: TelnetModule,
 }
 
 impl Topper {
     pub fn new(send_lines: Sender<String>) -> Self {
         Topper {
-            timeline: Timeline::new(),
-            target: None,
-            send_lines,
+            timeline_module: TimelineModule::new(),
+            core_module: TopperCore::new(),
+            telnet_module: TelnetModule::new(send_lines),
         }
     }
 
     pub fn me(&self) -> String {
-        self.timeline.who_am_i()
+        self.timeline_module.timeline.who_am_i()
+    }
+
+    pub fn get_target(&self) -> Option<String> {
+        self.core_module.target.clone()
+    }
+
+    pub fn get_timeline(&mut self) -> &mut Timeline {
+        &mut self.timeline_module.timeline
     }
 
     pub fn parse_request_or_event(&mut self, line: &String) -> Result<TopperResponse, String> {
         info!("{}", line);
         let parsed = from_str(line);
         match parsed {
-            Ok(topper_msg) => match topper_msg {
-                TopperMessage::Kill => Ok(TopperResponse::die()),
-                TopperMessage::Event(timeslice) => {
-                    for (line, _line_number) in timeslice.lines.iter() {
-                        match self.send_lines.send(line.to_string()) {
-                            Ok(()) => {}
-                            Err(err) => {
-                                println!("Line: {:?}", err);
+            Ok(topper_msg) => {
+                let module_msg = self
+                    .core_module
+                    .handle_message(&topper_msg)?
+                    .then(self.timeline_module.handle_message(&topper_msg)?)
+                    .then(self.telnet_module.handle_message(&topper_msg)?);
+                match topper_msg {
+                    TopperMessage::Request(request) => {
+                        match request {
+                            TopperRequest::Attack(strategy) => {
+                                if let Some(target) = self.get_target() {
+                                    Ok(module_msg.then(TopperResponse::qeb(get_attack(
+                                        self, &target, &strategy,
+                                    ))))
+                                } else {
+                                    Ok(module_msg.then(TopperResponse::error("No target.".into())))
+                                }
                             }
-                        };
-                    }
-                    self.timeline.push_time_slice(timeslice)?;
-                    Ok(TopperResponse::battle_stats(get_battle_stats(self)))
-                }
-                TopperMessage::Request(request) => match request {
-                    TopperRequest::Target(target) => {
-                        self.target = Some(target);
-                        Ok(TopperResponse::battle_stats(get_battle_stats(self)))
-                    }
-                    TopperRequest::Hint(who, hint, value) => {
-                        self.timeline.state.add_player_hint(&who, &hint, value);
-                        Ok(TopperResponse::silent())
-                    }
-                    TopperRequest::Assume(who, aff_or_def, value) => {
-                        self.timeline
-                            .state
-                            .set_flag_for_agent(&who, &aff_or_def, value);
-                        Ok(TopperResponse::silent())
-                    }
-                    TopperRequest::Reset => {
-                        self.timeline.reset();
-                        Ok(TopperResponse::silent())
-                    }
-                    TopperRequest::Attack(strategy) => {
-                        if let Some(target) = &self.target {
-                            Ok(TopperResponse::qeb(get_attack(self, target, &strategy)))
-                        } else {
-                            Ok(TopperResponse::error("No target.".into()))
+                            TopperRequest::BattleStats => Ok(module_msg
+                                .then(TopperResponse::battle_stats(get_battle_stats(self)))),
+                            _ => Ok(module_msg),
                         }
                     }
-                    _ => Ok(TopperResponse::silent()),
-                },
-                _ => Ok(TopperResponse::silent()),
-            },
+                    _ => Ok(module_msg),
+                }
+            }
             Err(error) => Err(error.to_string()),
         }
     }

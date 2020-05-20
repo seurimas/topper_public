@@ -1,8 +1,8 @@
 use crate::alpha_beta::ActionPlanner;
 use crate::classes::*;
-use crate::io::*;
 use crate::observables::*;
 use crate::timeline::*;
+use crate::topper::*;
 use crate::types::*;
 use regex::Regex;
 use std::collections::HashMap;
@@ -369,6 +369,32 @@ mod timeline_tests {
             time: 0,
             me: "Seurimas".into(),
         };
+        let cure_slice = TimeSlice {
+            observations: vec![
+                Observation::SimpleCureAction(SimpleCureAction {
+                    caster: "Benedicto".into(),
+                    cure_type: SimpleCure::Pill("decongestant".into()),
+                }),
+                Observation::SimpleCureAction(SimpleCureAction {
+                    caster: "Benedicto".into(),
+                    cure_type: SimpleCure::Salve("epidermal".into(), "head".into()),
+                }),
+            ],
+            lines: vec![],
+            prompt: Prompt::Blackout,
+            time: 0,
+            me: "Seurimas".into(),
+        };
+        let relapse_slice = TimeSlice {
+            observations: vec![
+                Observation::Relapse("Benedicto".into()),
+                Observation::Relapse("Benedicto".into()),
+            ],
+            lines: vec![],
+            prompt: Prompt::Blackout,
+            time: 220,
+            me: "Seurimas".into(),
+        };
         timeline.push_time_slice(bite_slice);
         timeline.push_time_slice(dstab_slice);
         let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
@@ -379,8 +405,16 @@ mod timeline_tests {
         assert_eq!(bene_state.balanced(BType::Balance), true);
         assert_eq!(bene_state.is(FType::Asthma), true);
         assert_eq!(bene_state.is(FType::Anorexia), true);
-        assert_eq!(bene_state.relapse(), Some("slike".to_string()));
-        assert_eq!(bene_state.relapse(), Some("kalmia".to_string()));
+        timeline.push_time_slice(cure_slice);
+        let mut bene_cured_state = timeline.state.get_agent(&"Benedicto".to_string());
+        assert_eq!(bene_cured_state.balanced(BType::Balance), true);
+        assert_eq!(bene_cured_state.is(FType::Asthma), false);
+        assert_eq!(bene_cured_state.is(FType::Anorexia), false);
+        timeline.push_time_slice(relapse_slice);
+        let mut bene_relapsed_state = timeline.state.get_agent(&"Benedicto".to_string());
+        assert_eq!(bene_relapsed_state.balanced(BType::Balance), true);
+        assert_eq!(bene_relapsed_state.is(FType::Asthma), true);
+        assert_eq!(bene_relapsed_state.is(FType::Anorexia), true);
     }
 
     #[test]
@@ -1331,11 +1365,12 @@ lazy_static! {
 
 lazy_static! {
     static ref SALVE_STACK: Vec<FType> = vec![
-        FType::LeftArmBroken,
-        FType::RightArmBroken,
         FType::LeftLegBroken,
         FType::RightLegBroken,
+        FType::LeftArmBroken,
+        FType::RightArmBroken,
         FType::Anorexia,
+        FType::Stuttering,
         FType::Slickness,
         FType::Paresis,
         FType::Stupidity,

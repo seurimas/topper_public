@@ -1,5 +1,5 @@
-use crate::io::*;
 use crate::timeline::*;
+use crate::topper::*;
 use crate::types::*;
 
 pub fn get_preferred_parry(
@@ -41,9 +41,9 @@ pub fn handle_combat_action(
     Ok(())
 }
 
-pub fn get_balance_attack(topper: &Topper, target: &String, strategy: &String) -> String {
+pub fn get_balance_attack(topper: &mut Topper, target: &String, strategy: &String) -> String {
     if strategy == "damage" {
-        let you = topper.timeline.state.borrow_agent(target);
+        let you = topper.get_timeline().state.borrow_agent(target);
         if you.parrying == Some(LType::HeadDamage) {
             return format!("flow {} clawtwist clawtwist", target);
         } else {
@@ -57,7 +57,7 @@ pub fn get_balance_attack(topper: &Topper, target: &String, strategy: &String) -
     }
 }
 
-pub fn get_attack(topper: &Topper, target: &String, strategy: &String) -> String {
+pub fn get_attack(topper: &mut Topper, target: &String, strategy: &String) -> String {
     let mut balance = get_balance_attack(topper, target, strategy);
     let mut attack = "".to_string();
     if balance != "" {

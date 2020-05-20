@@ -1,6 +1,6 @@
 use crate::curatives::FirstAid;
-use crate::io::Topper;
 use crate::timeline::*;
+use crate::topper::Topper;
 use crate::types::*;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -124,53 +124,53 @@ fn format_combat_action(combat_action: &CombatAction) -> Vec<String> {
 
 pub fn get_battle_stats(topper: &mut Topper) -> BattleStats {
     let mut lines = Vec::new();
-    let my_stats = PlayerStats::for_player(&topper.timeline.state.get_me());
-    let target_stats = if let Some(target) = &topper.target {
+    let my_stats = PlayerStats::for_player(&topper.get_timeline().state.get_me());
+    let target_stats = if let Some(target) = &topper.get_target() {
         Some(PlayerStats::for_player(
-            &topper.timeline.state.get_agent(target),
+            &topper.get_timeline().state.get_agent(target),
         ))
     } else {
         None
     };
     let mut lines_available = 16;
-    lines.push(format_self_limbs(&topper.timeline.state.get_me()));
-    if let Some(target) = &topper.target {
-        let target = topper.timeline.state.get_agent(target);
+    lines.push(format_self_limbs(&topper.get_timeline().state.get_me()));
+    if let Some(target) = &topper.get_target() {
+        let target = topper.get_timeline().state.get_agent(target);
         lines.push(format_target_limbs(&target));
-    }
-    for timeslice in topper.timeline.slices.iter().rev() {
-        for observation in timeslice.observations.iter().rev() {
-            if lines_available <= 0 {
-                break;
-            }
-            if let Observation::CombatAction(combat_action) = observation {
-                if let Some(who) = &topper.target {
-                    if !who.eq_ignore_ascii_case(&combat_action.target)
-                        && !who.eq_ignore_ascii_case(&combat_action.caster)
-                        && !who.eq_ignore_ascii_case(&topper.timeline.who_am_i())
-                    {
-                        continue;
-                    }
-                }
-                let new_lines = format_combat_action(combat_action);
-                for line in new_lines.iter().rev() {
-                    if lines_available > 0 {
-                        lines.push(line.to_string());
-                        lines_available -= 1;
-                    }
-                }
-            }
-            if None == topper.target {
-                if let Observation::SimpleCureAction(simple_cure) = observation {
-                    lines.push(format!(
-                        "{} <= {:?}",
-                        simple_cure.caster, simple_cure.cure_type
-                    ));
-                    lines_available -= 1;
-                }
-            }
-        }
-    }
+    } /*
+      for timeslice in topper.get_timeline().slices.iter().rev() {
+          for observation in timeslice.observations.iter().rev() {
+              if lines_available <= 0 {
+                  break;
+              }
+              if let Observation::CombatAction(combat_action) = observation {
+                  if let Some(who) = topper.get_target() {
+                      if !who.eq_ignore_ascii_case(&combat_action.target)
+                          && !who.eq_ignore_ascii_case(&combat_action.caster)
+                          && !who.eq_ignore_ascii_case(&topper.me())
+                      {
+                          continue;
+                      }
+                  }
+                  let new_lines = format_combat_action(combat_action);
+                  for line in new_lines.iter().rev() {
+                      if lines_available > 0 {
+                          lines.push(line.to_string());
+                          lines_available -= 1;
+                      }
+                  }
+              }
+              if None == topper.target {
+                  if let Observation::SimpleCureAction(simple_cure) = observation {
+                      lines.push(format!(
+                          "{} <= {:?}",
+                          simple_cure.caster, simple_cure.cure_type
+                      ));
+                      lines_available -= 1;
+                  }
+              }
+          }
+      }*/
     BattleStats {
         feed: lines,
         my_stats,

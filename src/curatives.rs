@@ -1,4 +1,3 @@
-use crate::io::Topper;
 use crate::observables::*;
 use crate::timeline::*;
 use crate::types::*;

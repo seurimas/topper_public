@@ -1,4 +1,4 @@
-use crate::io::{send_response, TopperResponse};
+use crate::topper::{send_response, TopperMessage, TopperModule, TopperResponse};
 use std::io::prelude::*;
 use std::io::{Error, ErrorKind};
 use std::net::{Shutdown, TcpListener, TcpStream};
@@ -6,6 +6,35 @@ use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 use std::time::Duration;
+
+pub struct TelnetModule {
+    send_lines: Sender<String>,
+}
+
+impl TelnetModule {
+    pub fn new(send_lines: Sender<String>) -> Self {
+        TelnetModule { send_lines }
+    }
+}
+
+impl TopperModule for TelnetModule {
+    fn handle_message(&mut self, message: &TopperMessage) -> Result<TopperResponse, String> {
+        match message {
+            TopperMessage::Event(timeslice) => {
+                for (line, _line_number) in timeslice.lines.iter() {
+                    match self.send_lines.send(line.to_string()) {
+                        Ok(()) => {}
+                        Err(err) => {
+                            println!("Line: {:?}", err);
+                        }
+                    };
+                }
+                Ok(TopperResponse::silent())
+            }
+            _ => Ok(TopperResponse::silent()),
+        }
+    }
+}
 
 pub fn proxy(receive_lines: Receiver<String>) {
     println!("Starting proxy!");

@@ -774,6 +774,81 @@ impl Default for WieldState {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum RelapseState {
+    Inactive,
+    Active(Vec<(CType, String)>),
+}
+
+pub enum RelapseResult {
+    Concrete(Vec<String>),
+    Uncertain(Vec<(CType, String)>),
+    None,
+}
+
+impl Default for RelapseState {
+    fn default() -> Self {
+        RelapseState::Inactive
+    }
+}
+
+impl RelapseState {
+    pub fn wait(&mut self, duration: CType) {
+        match self {
+            RelapseState::Active(relapses) => {
+                for relapse in relapses.iter_mut() {
+                    relapse.0 += duration;
+                }
+            }
+            RelapseState::Inactive => {}
+        }
+    }
+
+    pub fn push(&mut self, venom: String) {
+        match self {
+            RelapseState::Active(relapses) => {
+                relapses.push((0 as CType, venom));
+            }
+            RelapseState::Inactive => {
+                *self = RelapseState::Active(vec![(0 as CType, venom)]);
+            }
+        }
+    }
+
+    fn is_venom_ripe(time: CType) -> bool {
+        time > (1.9 * BALANCE_SCALE as f32) as CType && time < (7.1 * BALANCE_SCALE as f32) as CType
+    }
+
+    fn is_venom_alive(time: CType) -> bool {
+        time < (7.1 * BALANCE_SCALE as f32) as CType
+    }
+
+    pub fn get_relapses(&mut self, relapse_count: usize) -> RelapseResult {
+        match self {
+            RelapseState::Active(relapses) => {
+                let mut possible = Vec::new();
+                for (time, venom) in relapses.iter() {
+                    if RelapseState::is_venom_ripe(*time) {
+                        possible.push(venom.to_string());
+                    }
+                }
+                if possible.len() == relapse_count {
+                    relapses.retain(|(time, _venom)| {
+                        !RelapseState::is_venom_ripe(*time) && RelapseState::is_venom_alive(*time)
+                    });
+                    RelapseResult::Concrete(possible)
+                } else if possible.len() > 0 {
+                    relapses.retain(|(time, _venom)| RelapseState::is_venom_alive(*time));
+                    RelapseResult::Uncertain(relapses.clone())
+                } else {
+                    RelapseResult::None
+                }
+            }
+            RelapseState::Inactive => RelapseResult::None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct AgentState {
     pub balances: [CType; BType::SIZE as usize],
@@ -782,7 +857,7 @@ pub struct AgentState {
     pub flags: FlagSet,
     pub limb_damage: LimbSet,
     pub hypnosis_stack: Vec<Hypnosis>,
-    pub relapses: Vec<String>,
+    pub relapses: RelapseState,
     pub parrying: Option<LType>,
     pub wield_state: WieldState,
 }
@@ -802,6 +877,7 @@ impl PartialEq for AgentState {
 
 impl AgentState {
     pub fn wait(&mut self, duration: i32) {
+        self.relapses.wait(duration);
         let rebound_pending = !self.balanced(BType::Rebounding) && !self.is(FType::Rebounding);
         for i in 0..self.balances.len() {
             self.balances[i] -= duration;
@@ -994,16 +1070,12 @@ impl AgentState {
         self.relapses.push(venom);
     }
 
-    pub fn relapse(&mut self) -> Option<String> {
-        if let Some(_aff) = self.relapses.first() {
-            Some(self.relapses.remove(0))
-        } else {
-            None
-        }
+    pub fn get_relapses(&mut self, relapse_count: usize) -> RelapseResult {
+        self.relapses.get_relapses(relapse_count)
     }
 
     pub fn clear_relapses(&mut self) {
-        self.relapses = Vec::new();
+        self.relapses = RelapseState::Inactive;
     }
 
     pub fn set_restoring(&mut self, damage: LType) {

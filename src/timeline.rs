@@ -9,7 +9,7 @@ use regex::Regex;
 use serde::Deserialize;
 use std::collections::HashMap;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct PromptStats {
     pub health: CType,
     pub mana: CType,
@@ -135,7 +135,7 @@ pub enum Observation {
     Sent(String),
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub enum Prompt {
     Promptless,
     Blackout,
@@ -143,7 +143,7 @@ pub enum Prompt {
     Stats(PromptStats),
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct TimeSlice {
     pub observations: Vec<Observation>,
     pub lines: Vec<(String, u32)>,
@@ -390,9 +390,19 @@ impl TimelineState {
                 self.tick_counter_up_for_agent(who, what)?;
             }
             Observation::Relapse(who) => {
-                //let mut you = self.get_agent(who);
-                //apply_or_infer_relapse(&mut you, after)?;
-                //self.set_agent(who, you);
+                if before.len() == 0 {
+                    // Just don't do the next check.
+                } else if let Some(Observation::Relapse(last_relapse)) =
+                    before.get(before.len() - 1)
+                {
+                    if last_relapse.eq(who) {
+                        // We've already handled this block.
+                        return Ok(());
+                    }
+                }
+                let mut you = self.get_agent(who);
+                apply_or_infer_relapse(&mut you, after)?;
+                self.set_agent(who, you);
             }
             _ => {}
         }
@@ -607,13 +617,35 @@ pub fn apply_weapon_hits(
 
 pub fn apply_or_infer_relapse(
     who: &mut AgentState,
-    _observations: &Vec<Observation>,
+    after: &Vec<Observation>,
 ) -> Result<(), String> {
-    if let Some(venom) = who.relapse() {
-        println!("Relapse: {}", venom);
-        apply_venom(who, &venom)?;
-    } else {
-        println!("No relapse found...");
+    let mut relapse_count = 1;
+    let mut name = "";
+    for observation in after.iter() {
+        if let Observation::Relapse(next_name) = observation {
+            if name.eq("") {
+                name = next_name;
+            } else if name.eq(next_name) {
+                relapse_count += 1;
+            } else {
+                break;
+            }
+        }
+    }
+    println!("{} {}", relapse_count, name);
+    match who.get_relapses(relapse_count) {
+        RelapseResult::Concrete(venoms) => {
+            println!("Relapses: {:?}", venoms);
+            for venom in venoms.iter() {
+                apply_venom(who, &venom)?;
+            }
+        }
+        RelapseResult::Uncertain(venoms) => {
+            println!("Possible relapses: {:?}", venoms);
+        }
+        RelapseResult::None => {
+            println!("No relapses found???");
+        }
     }
     Ok(())
 }
