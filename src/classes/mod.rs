@@ -5,11 +5,13 @@ use crate::topper::*;
 use crate::types::*;
 use std::collections::HashMap;
 pub mod carnifex;
+use num_enum::TryFromPrimitive;
 pub mod syssin;
 pub mod zealot;
 use serde::Serialize;
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Clone, Display, TryFromPrimitive)]
+#[repr(u8)]
 pub enum Class {
     Carnifex,
     Indorani,
@@ -28,6 +30,65 @@ pub enum Class {
     Shapeshifter,
     Wayfarer,
     Lord,
+}
+
+impl Class {
+    pub fn from_str(string: &str) -> Option<Class> {
+        match string.as_ref() {
+            // Bloodloch
+            "Carnifex" => Some(Class::Carnifex),
+            "Indorani" => Some(Class::Indorani),
+            "Praenomen" => Some(Class::Praenomen),
+            "Teradrim" => Some(Class::Teradrim),
+            // Duiran
+            "Monk" => Some(Class::Monk),
+            "Sentinel" => Some(Class::Sentinel),
+            "Shaman" => Some(Class::Shaman),
+            // Enorian
+            "Ascendril" => Some(Class::Ascendril),
+            "Luminary" => Some(Class::Luminary),
+            "Templar" => Some(Class::Templar),
+            "Zealot" => Some(Class::Zealot),
+            // Spinesreach
+            "Archivists" => Some(Class::Archivists),
+            "Sciomancer" => Some(Class::Sciomancer),
+            "Syssin" => Some(Class::Syssin),
+            // Unaffiliated
+            "Shapeshifter" => Some(Class::Shapeshifter),
+            "Wayfarer" => Some(Class::Wayfarer),
+            "Titan Lord" => Some(Class::Lord),
+            "Chaos Lord" => Some(Class::Lord),
+            "Lord" => Some(Class::Lord),
+            _ => None,
+        }
+    }
+    pub fn to_str(&self) -> &str {
+        match self {
+            // Bloodloch
+            Class::Carnifex => "Carnifex",
+            Class::Indorani => "Indorani",
+            Class::Praenomen => "Praenomen",
+            Class::Teradrim => "Teradrim",
+            // Duiran
+            Class::Monk => "Monk",
+            Class::Sentinel => "Sentinel",
+            Class::Shaman => "Shaman",
+            // Enorian
+            Class::Templar => "Templar",
+            Class::Zealot => "Zealot",
+            Class::Luminary => "Luminary",
+            Class::Ascendril => "Ascendril",
+            // Spinesreach
+            Class::Archivists => "Archivists",
+            Class::Sciomancer => "Sciomancer",
+            Class::Syssin => "Syssin",
+            // Bloodloch
+            Class::Shapeshifter => "Shapeshifter",
+            Class::Wayfarer => "Wayfarer",
+            Class::Lord => "Lord",
+            _ => "Unknown",
+        }
+    }
 }
 
 pub fn get_skill_class(category: &String) -> Option<Class> {

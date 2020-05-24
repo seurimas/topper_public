@@ -1,7 +1,11 @@
-use crate::battle_stats::*;
 use crate::classes::get_attack;
+use crate::topper::battle_stats::*;
+use crate::topper::db::DatabaseModule;
 use crate::topper::telnet::TelnetModule;
 use crate::topper::timeline::{TimeSlice, Timeline, TimelineModule};
+use crate::types::CType;
+mod battle_stats;
+pub mod db;
 pub mod telnet;
 mod timeline;
 use log::info;
@@ -12,17 +16,18 @@ use std::sync::mpsc::Sender;
 use std::thread;
 
 #[derive(Deserialize)]
-enum TopperRequest {
+pub enum TopperRequest {
     Target(String),
-    BattleStats,
+    BattleStats(CType),
     Attack(String),
     Hint(String, String, String),
     Assume(String, String, bool),
-    Reset,
+    Reset(String),
+    Api(String),
 }
 
 #[derive(Deserialize)]
-enum TopperMessage {
+pub enum TopperMessage {
     Kill,
     Event(TimeSlice),
     Request(TopperRequest),
@@ -37,8 +42,13 @@ pub struct TopperResponse {
     pub die: bool,
 }
 
-pub trait TopperModule {
-    fn handle_message(&mut self, message: &TopperMessage) -> Result<TopperResponse, String>;
+pub trait TopperModule<'s> {
+    type Siblings;
+    fn handle_message(
+        &mut self,
+        message: &TopperMessage,
+        siblings: Self::Siblings,
+    ) -> Result<TopperResponse, String>;
 }
 
 pub struct TopperCore {
@@ -51,8 +61,13 @@ impl TopperCore {
     }
 }
 
-impl TopperModule for TopperCore {
-    fn handle_message(&mut self, message: &TopperMessage) -> Result<TopperResponse, String> {
+impl<'s> TopperModule<'s> for TopperCore {
+    type Siblings = ();
+    fn handle_message(
+        &mut self,
+        message: &TopperMessage,
+        siblings: Self::Siblings,
+    ) -> Result<TopperResponse, String> {
         match message {
             TopperMessage::Kill => Ok(TopperResponse::die()),
             TopperMessage::Request(request) => match request {
@@ -122,6 +137,8 @@ pub struct Topper {
     timeline_module: TimelineModule,
     core_module: TopperCore,
     telnet_module: TelnetModule,
+    battlestats_module: BattleStatsModule,
+    database_module: DatabaseModule,
 }
 
 impl Topper {
@@ -130,6 +147,8 @@ impl Topper {
             timeline_module: TimelineModule::new(),
             core_module: TopperCore::new(),
             telnet_module: TelnetModule::new(send_lines),
+            battlestats_module: BattleStatsModule,
+            database_module: DatabaseModule::new("topper.db"),
         }
     }
 
@@ -152,26 +171,31 @@ impl Topper {
             Ok(topper_msg) => {
                 let module_msg = self
                     .core_module
-                    .handle_message(&topper_msg)?
-                    .then(self.timeline_module.handle_message(&topper_msg)?)
-                    .then(self.telnet_module.handle_message(&topper_msg)?);
+                    .handle_message(&topper_msg, ())?
+                    .then(self.timeline_module.handle_message(&topper_msg, ())?)
+                    .then(self.telnet_module.handle_message(&topper_msg, ())?)
+                    .then(self.battlestats_module.handle_message(
+                        &topper_msg,
+                        (
+                            &self.timeline_module.timeline,
+                            &self.core_module.target,
+                            &self.database_module,
+                        ),
+                    )?)
+                    .then(self.database_module.handle_message(&topper_msg, ())?);
                 match topper_msg {
-                    TopperMessage::Request(request) => {
-                        match request {
-                            TopperRequest::Attack(strategy) => {
-                                if let Some(target) = self.get_target() {
-                                    Ok(module_msg.then(TopperResponse::qeb(get_attack(
-                                        self, &target, &strategy,
-                                    ))))
-                                } else {
-                                    Ok(module_msg.then(TopperResponse::error("No target.".into())))
-                                }
+                    TopperMessage::Request(request) => match request {
+                        TopperRequest::Attack(strategy) => {
+                            if let Some(target) = self.get_target() {
+                                Ok(module_msg.then(TopperResponse::qeb(get_attack(
+                                    self, &target, &strategy,
+                                ))))
+                            } else {
+                                Ok(module_msg.then(TopperResponse::error("No target.".into())))
                             }
-                            TopperRequest::BattleStats => Ok(module_msg
-                                .then(TopperResponse::battle_stats(get_battle_stats(self)))),
-                            _ => Ok(module_msg),
                         }
-                    }
+                        _ => Ok(module_msg),
+                    },
                     _ => Ok(module_msg),
                 }
             }

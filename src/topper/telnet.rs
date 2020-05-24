@@ -17,8 +17,13 @@ impl TelnetModule {
     }
 }
 
-impl TopperModule for TelnetModule {
-    fn handle_message(&mut self, message: &TopperMessage) -> Result<TopperResponse, String> {
+impl<'s> TopperModule<'s> for TelnetModule {
+    type Siblings = ();
+    fn handle_message(
+        &mut self,
+        message: &TopperMessage,
+        siblings: Self::Siblings,
+    ) -> Result<TopperResponse, String> {
         match message {
             TopperMessage::Event(timeslice) => {
                 for (line, _line_number) in timeslice.lines.iter() {

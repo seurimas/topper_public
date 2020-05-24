@@ -33,6 +33,7 @@ pub enum BType {
     Fangbarrier,
     Rebounding,
     Restoration,
+    Void,
 
     UNKNOWN,
     SIZE,
@@ -885,6 +886,11 @@ impl AgentState {
         if rebound_pending && self.balanced(BType::Rebounding) {
             self.set_flag(FType::AssumedRebounding, true);
         }
+        if self.is(FType::Void) && self.balanced(BType::Void) {
+            self.set_flag(FType::Void, false);
+        } else if self.is(FType::Weakvoid) && self.balanced(BType::Void) {
+            self.set_flag(FType::Weakvoid, false);
+        }
     }
 
     pub fn will_be_rebounding(&self, qeb: f32) -> bool {
@@ -920,6 +926,9 @@ impl AgentState {
         self.flags.set_flag(flag, value);
         if flag == FType::Rebounding && value == true {
             self.flags.set_flag(FType::AssumedRebounding, false);
+        }
+        if (flag == FType::Weakvoid || flag == FType::Void) && value == true {
+            self.set_balance(BType::Void, 10.0);
         }
     }
 

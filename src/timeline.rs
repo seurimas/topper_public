@@ -219,6 +219,10 @@ impl TimelineState {
             .clone()
     }
 
+    pub fn borrow_me(&self) -> AgentState {
+        self.borrow_agent(&self.me.clone())
+    }
+
     pub fn set_agent(&mut self, name: &String, state: AgentState) {
         self.agent_states.insert(name.to_string(), state);
     }
@@ -409,12 +413,17 @@ impl TimelineState {
         Ok(())
     }
 
+    pub fn update_time(&mut self, when: CType) -> Result<(), String> {
+        if when > self.time {
+            self.wait(when - self.time);
+            self.time = when;
+        }
+        Ok(())
+    }
+
     fn apply_time_slice(&mut self, slice: &TimeSlice) -> Result<(), String> {
         self.me = slice.me.clone();
-        if slice.time > self.time {
-            self.wait(slice.time - self.time);
-            self.time = slice.time;
-        }
+        self.update_time(slice.time);
         let mut before = Vec::new();
         let mut after = slice.observations.clone();
         for observation in slice.observations.iter() {
@@ -453,14 +462,42 @@ impl Timeline {
         }
     }
 
-    pub fn reset(&mut self) {
-        self.state.agent_states = HashMap::new();
+    pub fn reset(&mut self, full: bool) {
+        if full {
+            self.state.agent_states = HashMap::new();
+        } else {
+            for (key, val) in self.state.agent_states.iter_mut() {
+                let mut affs = Vec::new();
+                for aff in val.flags.aff_iter() {
+                    affs.push(aff);
+                }
+                for aff in affs.iter() {
+                    val.set_flag(*aff, false);
+                }
+                val.set_flag(FType::Blindness, true);
+                val.set_flag(FType::Deafness, true);
+                val.set_flag(FType::Temperance, true);
+                val.set_flag(FType::Levitation, true);
+                val.set_flag(FType::Speed, true);
+                val.set_flag(FType::Temperance, true);
+                val.set_flag(FType::Vigor, true);
+                val.set_flag(FType::Rebounding, true);
+                val.set_flag(FType::Insomnia, true);
+                val.set_flag(FType::Fangbarrier, true);
+                val.set_flag(FType::Instawake, true);
+                val.limb_damage = LimbSet::default();
+            }
+        }
     }
 
     pub fn push_time_slice(&mut self, slice: TimeSlice) -> Result<(), String> {
         let result = self.state.apply_time_slice(&slice);
         self.slices.push(slice);
         result
+    }
+
+    pub fn update_time(&mut self, when: CType) -> Result<(), String> {
+        self.state.update_time(when)
     }
 
     pub fn who_am_i(&self) -> String {
@@ -584,6 +621,7 @@ pub fn apply_weapon_hits(
         for i in 0..observations.len() {
             if let Some(Observation::Devenoms(venom)) = observations.get(i) {
                 if let Some(Observation::Rebounds) = observations.get(i - 1) {
+                    target.set_flag(FType::Rebounding, true);
                     apply_venom(attacker, venom)?;
                 } else {
                     if let Some(Observation::PurgeVenom(_, _v2)) = observations.get(i + 1) {

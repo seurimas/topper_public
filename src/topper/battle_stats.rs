@@ -1,6 +1,8 @@
+use crate::classes::Class;
 use crate::curatives::FirstAid;
 use crate::timeline::*;
-use crate::topper::Topper;
+use crate::topper::db::DatabaseModule;
+use crate::topper::{TopperMessage, TopperModule, TopperRequest, TopperResponse};
 use crate::types::*;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -12,6 +14,7 @@ pub struct PlayerStats {
     warnings: Vec<String>,
     lock_duration: Option<f32>,
     first_aid_cure: Option<String>,
+    class: String,
 }
 
 fn get_hypno_warning(state: &AgentState) -> Option<String> {
@@ -54,9 +57,10 @@ impl PlayerStats {
             balances: HashMap::new(),
             lock_duration: None,
             first_aid_cure: None,
+            class: "".to_string(),
         }
     }
-    pub fn for_player(state: &AgentState) -> Self {
+    pub fn for_player(state: &AgentState, class: Option<Class>) -> Self {
         let mut afflictions = Vec::new();
         for aff in state.flags.aff_iter() {
             if state.get_count(aff) > 1 {
@@ -95,6 +99,28 @@ impl PlayerStats {
             balances,
             lock_duration,
             first_aid_cure,
+            class: class.map_or_else(|| "Unknown".to_string(), |class| format!("{}", class)),
+        }
+    }
+}
+
+pub struct BattleStatsModule;
+
+impl<'s> TopperModule<'s> for BattleStatsModule {
+    type Siblings = (&'s Timeline, &'s Option<String>, &'s DatabaseModule);
+    fn handle_message(
+        &mut self,
+        message: &TopperMessage,
+        (timeline, target, db): Self::Siblings,
+    ) -> Result<TopperResponse, String> {
+        match message {
+            TopperMessage::Request(request) => match request {
+                TopperRequest::BattleStats(_) => Ok(TopperResponse::battle_stats(
+                    get_battle_stats(timeline, target, db),
+                )),
+                _ => Ok(TopperResponse::silent()),
+            },
+            _ => Ok(TopperResponse::silent()),
         }
     }
 }
@@ -122,55 +148,63 @@ fn format_combat_action(combat_action: &CombatAction) -> Vec<String> {
     lines
 }
 
-pub fn get_battle_stats(topper: &mut Topper) -> BattleStats {
+pub fn get_battle_stats(
+    timeline: &Timeline,
+    target: &Option<String>,
+    db: &DatabaseModule,
+) -> BattleStats {
     let mut lines = Vec::new();
-    let my_stats = PlayerStats::for_player(&topper.get_timeline().state.get_me());
-    let target_stats = if let Some(target) = &topper.get_target() {
+    let my_stats = PlayerStats::for_player(
+        &timeline.state.borrow_me(),
+        db.get_class(timeline.who_am_i()),
+    );
+    let target_stats = if let Some(target) = target {
         Some(PlayerStats::for_player(
-            &topper.get_timeline().state.get_agent(target),
+            &timeline.state.borrow_agent(target),
+            db.get_class(target.to_string()),
         ))
     } else {
         None
     };
     let mut lines_available = 16;
-    lines.push(format_self_limbs(&topper.get_timeline().state.get_me()));
-    if let Some(target) = &topper.get_target() {
-        let target = topper.get_timeline().state.get_agent(target);
+    lines.push(format_self_limbs(&timeline.state.borrow_me()));
+    if let Some(target) = target {
+        let target = timeline.state.borrow_agent(target);
         lines.push(format_target_limbs(&target));
-    } /*
-      for timeslice in topper.get_timeline().slices.iter().rev() {
-          for observation in timeslice.observations.iter().rev() {
-              if lines_available <= 0 {
-                  break;
-              }
-              if let Observation::CombatAction(combat_action) = observation {
-                  if let Some(who) = topper.get_target() {
-                      if !who.eq_ignore_ascii_case(&combat_action.target)
-                          && !who.eq_ignore_ascii_case(&combat_action.caster)
-                          && !who.eq_ignore_ascii_case(&topper.me())
-                      {
-                          continue;
-                      }
-                  }
-                  let new_lines = format_combat_action(combat_action);
-                  for line in new_lines.iter().rev() {
-                      if lines_available > 0 {
-                          lines.push(line.to_string());
-                          lines_available -= 1;
-                      }
-                  }
-              }
-              if None == topper.target {
-                  if let Observation::SimpleCureAction(simple_cure) = observation {
-                      lines.push(format!(
-                          "{} <= {:?}",
-                          simple_cure.caster, simple_cure.cure_type
-                      ));
-                      lines_available -= 1;
-                  }
-              }
-          }
-      }*/
+    }
+    for timeslice in timeline.slices.iter().rev() {
+        for observation in timeslice.observations.iter().rev() {
+            if lines_available <= 0 {
+                break;
+            }
+            if let Observation::CombatAction(combat_action) = observation {
+                if let Some(who) = target {
+                    if !who.eq_ignore_ascii_case(&combat_action.target)
+                        && !who.eq_ignore_ascii_case(&combat_action.caster)
+                        && !who.eq_ignore_ascii_case(&timeline.who_am_i())
+                    {
+                        continue;
+                    }
+                }
+                let new_lines = format_combat_action(combat_action);
+                for line in new_lines.iter().rev() {
+                    if lines_available > 0 {
+                        lines.push(line.to_string());
+                        lines_available -= 1;
+                    }
+                }
+            }
+            if target.is_none() {
+                if let Observation::SimpleCureAction(simple_cure) = observation {
+                    lines.push(format!(
+                        "{} <= {:?}",
+                        simple_cure.caster, simple_cure.cure_type
+                    ));
+                    lines_available -= 1;
+                }
+            }
+        }
+    }
     BattleStats {
         feed: lines,
         my_stats,

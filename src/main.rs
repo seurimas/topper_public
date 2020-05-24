@@ -10,7 +10,6 @@ extern crate chrono;
 extern crate simplelog;
 mod actions;
 mod alpha_beta;
-mod battle_stats;
 mod classes;
 mod curatives;
 mod observables;
