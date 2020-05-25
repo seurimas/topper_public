@@ -1,7 +1,8 @@
 use crate::classes::Class;
-use sled::{open, Db};
+use sled::{open, Db, IVec};
 use std::path::Path;
-use serde::Deserialize;
+use serde::{Serialize, Deserialize};
+use serde::de::DeserializeOwned;
 use reqwest::Response;
 use std::convert::{TryInto, TryFrom};
 use std::thread::JoinHandle;
@@ -20,7 +21,7 @@ pub struct DatabaseModule {
 
 struct ApiRequest(String);
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CharacterApiResponse {
     name: String,
     fullname: String,
@@ -72,40 +73,67 @@ impl DatabaseModule {
         }
     }
 
-    fn send_api_request(&self, who: String) {
-        let last_bytes = self.db.open_tree("api_last").expect("Bad api_last tree").get(who.clone()).expect("Bad api get").unwrap_or((&[0; 16]).into());
+    fn insert(&self, tree: &str, key: String, value: IVec) {
+        self.db
+            .open_tree(tree)
+            .expect(format!("Bad {} tree", tree).as_ref())
+            .insert(key.clone(), value)
+            .expect(format!("Bad {} insert", key).as_ref());
+    }
+
+    fn insert_json<T: Serialize>(&self, tree: &str, key: String, value: T) {
+        let json = serde_json::to_string(&value).unwrap();
+        self.insert(tree, key, json.as_bytes().into())
+    }
+
+    fn get(&self, tree: &str, key: String) -> Option<IVec> {
+        self.db
+            .open_tree(tree)
+            .expect(format!("Bad {} tree", tree).as_ref())
+            .get(key.clone())
+            .expect(format!("Bad {} get", key).as_ref())
+    }
+
+    fn get_json<T: DeserializeOwned>(&self, tree: &str, key: String) -> Option<T> {
+        self.get(tree, key)
+            .and_then(|ivec| {
+                let slice: Vec<u8> = ivec.as_ref().into();
+                String::from_utf8(slice).ok()
+            })
+            .and_then(|str_val| {
+                let str_val: &str = str_val.as_ref();
+                serde_json::from_str(str_val).ok()
+            })
+    }
+
+    fn send_api_request(&self, who: String, priority: u64) -> bool {
+        let last_bytes = self.get("api_last", who.clone()).unwrap_or((&[0; 16]).into());
         let last = u128::from_be_bytes(last_bytes.as_ref().try_into().expect("Bad length"));
         let since = time_since_epoch(last);
-        if since.as_secs() > 300 {
-            self.api_sender.send(ApiRequest(who));
+        if since.as_secs() > priority {
+            let epoch = get_epoch_time();
+            self.insert("api_last", who.clone(), (&epoch.to_be_bytes()).into());
+            self.api_sender.send(ApiRequest(who)).is_ok()
         } else {
-            println!("Ignoring request for {}, last request only {} seconds ago.", who, since.as_secs());
+            false
         }
     }
 
     fn drain_responses(&self) {
         while let Ok(character) = self.api_receiver.try_recv() {
-            println!("Received response for {}", character.name);
-            let epoch = get_epoch_time();
-            self.db.open_tree("api_last").expect("Bad api_last tree").insert(character.name.clone(), &epoch.to_be_bytes()).expect("Bad api insert");
+            println!("Received response for {} ({} from {})", character.name, character.class, character.city);
             if let Some(class) = Class::from_str(&character.class) {
-                self.set_class(character.name, class);
+                self.set_class(character.name.clone(), class);
             }
+            self.insert_json("character", character.name.clone(), character);
         }
     }
 
     pub fn get_class(&self, who: String) -> Option<Class> {
-        if let Ok(tree) = self.db.open_tree("classes") {
-            if let Ok(Some(value)) = tree.get(who) {
-                if let [value] = value.as_ref() {
-                    if let Ok(class) = Class::try_from(*value) {
-                        Some(class)
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
+        let class_id = self.get("classes", who);
+        if let Some(class_id) = class_id {
+            if let [class_id] = class_id.as_ref() {
+                Class::try_from(*class_id).ok()
             } else {
                 None
             }
@@ -115,8 +143,14 @@ impl DatabaseModule {
     }
 
     pub fn set_class(&self, who: String, class: Class) {
-        if let Ok(tree) = self.db.open_tree("classes") {
-            tree.insert(who.as_bytes(), &[class as u8]);
+        self.insert("classes", who, (&[class as u8]).into());
+    }
+
+    pub fn get_character(&self, who: String) -> Option<(Option<Class>, String)> {
+        if let Some(character) = self.get_json::<CharacterApiResponse>("character", who) {
+            Some((Class::from_str(&character.class), character.city.clone()))
+        } else {
+            None
         }
     }
 }
@@ -131,7 +165,24 @@ impl<'s> TopperModule<'s> for DatabaseModule {
         self.drain_responses();
         match message {
             TopperMessage::Request(TopperRequest::Api(who)) => {
-                self.send_api_request(who.to_string());
+                self.send_api_request(who.to_string(), 300);
+                Ok(TopperResponse::silent())
+            }
+            TopperMessage::Event(event) => {
+                for observation in event.observations.iter() {
+                    match observation {
+                        crate::timeline::Observation::CombatAction(crate::timeline::CombatAction { caster, target, .. }) => {
+                            if !caster.eq("") {
+                                self.send_api_request(caster.to_string(), 3600 * 2);
+                            }
+                            if !target.eq("") {
+                                self.send_api_request(target.to_string(), 3600 * 2);
+                            }
+                        }
+                        _ => {
+                        }
+                    }
+                }
                 Ok(TopperResponse::silent())
             }
             _ => Ok(TopperResponse::silent()),
