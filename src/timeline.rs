@@ -624,10 +624,10 @@ pub fn apply_weapon_hits(
         } else if let Some(captures) = CALLED_VENOM.captures(&venom_hints) {
             venoms.push(captures.get(1).unwrap().as_str().to_string());
         }
-        if let Some(Observation::Dodges(_)) = observations.get(0) {
+        if let Some(Observation::Dodges(_)) = observations.get(1) {
             println!("Dodged");
             venoms.pop();
-        } else if let Some(Observation::Dodges(_)) = observations.get(0) {
+        } else if let Some(Observation::Dodges(_)) = observations.get(1) {
             println!("Dodged");
             venoms.pop();
         }

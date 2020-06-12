@@ -418,6 +418,102 @@ mod timeline_tests {
     }
 
     #[test]
+    fn test_dstab_relapse_clever() {
+        let mut timeline = Timeline::new();
+        let bite_slice = TimeSlice {
+            observations: vec![Observation::CombatAction(CombatAction {
+                caster: "Seurimas".to_string(),
+                category: "Assassination".to_string(),
+                skill: "Bite".to_string(),
+                target: "Benedicto".to_string(),
+                annotation: "scytherus".to_string(),
+            })],
+            lines: vec![],
+            prompt: Prompt::Blackout,
+            time: 0,
+            me: "Seurimas".into(),
+        };
+        timeline.push_time_slice(bite_slice);
+        let dstab_slice = TimeSlice {
+            observations: vec![
+                Observation::CombatAction(CombatAction {
+                    caster: "Seurimas".to_string(),
+                    category: "Assassination".to_string(),
+                    skill: "Doublestab".to_string(),
+                    target: "Benedicto".to_string(),
+                    annotation: "".to_string(),
+                }),
+                Observation::Devenoms("slike".into()),
+                Observation::Devenoms("kalmia".into()),
+            ],
+            lines: vec![],
+            prompt: Prompt::Blackout,
+            time: 0,
+            me: "Seurimas".into(),
+        };
+        let cure_slice = TimeSlice {
+            observations: vec![
+                Observation::SimpleCureAction(SimpleCureAction {
+                    caster: "Benedicto".into(),
+                    cure_type: SimpleCure::Pill("decongestant".into()),
+                }),
+                Observation::SimpleCureAction(SimpleCureAction {
+                    caster: "Benedicto".into(),
+                    cure_type: SimpleCure::Salve("epidermal".into(), "head".into()),
+                }),
+            ],
+            lines: vec![],
+            prompt: Prompt::Blackout,
+            time: 0,
+            me: "Seurimas".into(),
+        };
+        let relapse_slice_1 = TimeSlice {
+            observations: vec![
+                Observation::Relapse("Benedicto".into()),
+                Observation::SimpleCureAction(SimpleCureAction {
+                    caster: "Benedicto".into(),
+                    cure_type: SimpleCure::Salve("epidermal".into(), "head".into()),
+                }),
+            ],
+            lines: vec![],
+            prompt: Prompt::Blackout,
+            time: 220,
+            me: "Seurimas".into(),
+        };
+        let relapse_slice_2 = TimeSlice {
+            observations: vec![Observation::Relapse("Benedicto".into())],
+            lines: vec![],
+            prompt: Prompt::Blackout,
+            time: 270,
+            me: "Seurimas".into(),
+        };
+        timeline.push_time_slice(dstab_slice);
+        let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
+        assert_eq!(seur_state.balanced(BType::Balance), false);
+        assert_eq!(seur_state.is(FType::Asthma), false);
+        assert_eq!(seur_state.is(FType::Anorexia), false);
+        let mut bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        assert_eq!(bene_state.balanced(BType::Balance), true);
+        assert_eq!(bene_state.is(FType::Asthma), true);
+        assert_eq!(bene_state.is(FType::Anorexia), true);
+        timeline.push_time_slice(cure_slice);
+        let mut bene_cured_state = timeline.state.get_agent(&"Benedicto".to_string());
+        assert_eq!(bene_cured_state.balanced(BType::Balance), true);
+        assert_eq!(bene_cured_state.is(FType::Asthma), false);
+        assert_eq!(bene_cured_state.is(FType::Anorexia), false);
+        timeline.push_time_slice(relapse_slice_1);
+        let mut bene_relapsed_state = timeline.state.get_agent(&"Benedicto".to_string());
+        assert_eq!(bene_relapsed_state.balanced(BType::Balance), true);
+        assert_eq!(bene_relapsed_state.is(FType::Asthma), false);
+        assert_eq!(bene_relapsed_state.is(FType::Anorexia), false);
+        timeline.push_time_slice(relapse_slice_2);
+        let mut bene_relapsed_state = timeline.state.get_agent(&"Benedicto".to_string());
+        assert_eq!(bene_relapsed_state.balanced(BType::Balance), true);
+        assert_eq!(bene_relapsed_state.is(FType::Asthma), true);
+        assert_eq!(bene_relapsed_state.is(FType::Anorexia), false);
+    }
+
+    #[test]
     fn test_dstab_rebounds() {
         let mut timeline = Timeline::new();
         let dstab_slice = TimeSlice {
@@ -586,8 +682,43 @@ mod timeline_tests {
         timeline.push_time_slice(suggest_slice);
         let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
         assert_eq!(
-            bene_state.hypnosis_stack.get(0),
+            bene_state.hypno_state.hypnosis_stack.get(0),
             Some(&Hypnosis::Aff(FType::Stupidity))
+        );
+    }
+}
+
+#[cfg(test)]
+mod action_tests {
+    use super::*;
+
+    #[test]
+    fn test_bedazzling() {
+        let mut timeline = Timeline::new();
+        let qeb = get_attack(
+            &timeline,
+            &"Benedicto".to_string(),
+            &"bedazzle".to_string(),
+            None,
+        );
+        assert_eq!(
+            qeb,
+            "qeb parry head;;bedazzle Benedicto;;hypnotise Benedicto;;suggest Benedicto Hypochondria%%qs shadow sleight void Benedicto",
+        );
+    }
+
+    #[test]
+    fn test_aggro() {
+        let mut timeline = Timeline::new();
+        let qeb = get_attack(
+            &timeline,
+            &"Benedicto".to_string(),
+            &"aggro".to_string(),
+            None,
+        );
+        assert_eq!(
+            qeb,
+            "qeb parry head;;envenom whip with curare;;flay Benedicto;;hypnotise Benedicto;;suggest Benedicto Hypochondria%%qs shadow sleight void Benedicto",
         );
     }
 }
@@ -1200,12 +1331,12 @@ pub fn handle_combat_action(
             }
         }
         "Bedazzle" => {
-            let mut me = agent_states.get_agent(&combat_action.caster);
             let mut you = agent_states.get_agent(&combat_action.target);
-            apply_or_infer_balance(&mut me, (BType::Balance, 2.75), after);
             apply_or_infer_random_afflictions(&mut you, after)?;
-            agent_states.set_agent(&combat_action.caster, me);
             agent_states.set_agent(&combat_action.target, you);
+            let mut me = agent_states.get_agent(&combat_action.caster);
+            apply_or_infer_balance(&mut me, (BType::Balance, 2.75), after);
+            agent_states.set_agent(&combat_action.caster, me);
         }
         "Fire" => {
             let mut you = agent_states.get_agent(&combat_action.target);
@@ -1408,6 +1539,34 @@ lazy_static! {
 }
 
 lazy_static! {
+    static ref THIN_STACK: Vec<VenomPlan> = vec![
+        VenomPlan::OnTree(FType::Paresis),
+        VenomPlan::IfDo(
+            FType::ThinBlood,
+            Box::new(VenomPlan::Stalest(FType::Vomiting, FType::Allergies))
+        ),
+        VenomPlan::IfNotDo(
+            FType::ThinBlood,
+            Box::new(VenomPlan::Stick(FType::Allergies)),
+        ),
+        VenomPlan::IfNotDo(
+            FType::ThinBlood,
+            Box::new(VenomPlan::Stick(FType::Vomiting)),
+        ),
+        VenomPlan::Stick(FType::Asthma),
+        VenomPlan::Stalest(FType::Clumsiness, FType::Weariness),
+        VenomPlan::IfDo(
+            FType::Loneliness,
+            Box::new(VenomPlan::Stalest(FType::Recklessness, FType::Sensitivity))
+        ),
+        VenomPlan::Stick(FType::Slickness),
+        VenomPlan::Stick(FType::Paresis),
+        VenomPlan::Stalest(FType::LeftLegBroken, FType::LeftArmBroken),
+        VenomPlan::Stalest(FType::RightLegBroken, FType::RightArmBroken),
+    ];
+}
+
+lazy_static! {
     pub static ref SOFT_STACK: Vec<FType> = vec![FType::Slickness, FType::Asthma, FType::Anorexia];
 }
 
@@ -1446,20 +1605,21 @@ lazy_static! {
 }
 
 lazy_static! {
-    static ref STACKING_STRATEGIES: HashMap<String, Vec<FType>> = {
+    static ref STACKING_STRATEGIES: HashMap<String, Vec<VenomPlan>> = {
         let mut val = HashMap::new();
-        val.insert("coag".into(), COAG_STACK.to_vec());
-        val.insert("dec".into(), DEC_STACK.to_vec());
-        val.insert("phys".into(), PHYS_STACK.to_vec());
-        val.insert("fire".into(), FIRE_STACK.to_vec());
-        val.insert("aggro".into(), AGGRO_STACK.to_vec());
-        val.insert("salve".into(), SALVE_STACK.to_vec());
-        val.insert("peace".into(), PEACE_STACK.to_vec());
-        val.insert("Monk".into(), MONK_STACK.to_vec());
-        val.insert("Luminary".into(), LUMI_STACK.to_vec());
-        val.insert("lumi".into(), LUMI_STACK.to_vec());
-        val.insert("yedan".into(), YEDAN_STACK.to_vec());
-        val.insert("bedazzle".into(), BEDAZZLE_STACK.to_vec());
+        val.insert("coag".into(), get_simple_plan(COAG_STACK.to_vec()));
+        val.insert("dec".into(), get_simple_plan(DEC_STACK.to_vec()));
+        val.insert("phys".into(), get_simple_plan(PHYS_STACK.to_vec()));
+        val.insert("fire".into(), get_simple_plan(FIRE_STACK.to_vec()));
+        val.insert("aggro".into(), get_simple_plan(AGGRO_STACK.to_vec()));
+        val.insert("salve".into(), get_simple_plan(SALVE_STACK.to_vec()));
+        val.insert("peace".into(), get_simple_plan(PEACE_STACK.to_vec()));
+        val.insert("Monk".into(), get_simple_plan(MONK_STACK.to_vec()));
+        val.insert("Luminary".into(), get_simple_plan(LUMI_STACK.to_vec()));
+        val.insert("lumi".into(), get_simple_plan(LUMI_STACK.to_vec()));
+        val.insert("yedan".into(), get_simple_plan(YEDAN_STACK.to_vec()));
+        val.insert("bedazzle".into(), get_simple_plan(BEDAZZLE_STACK.to_vec()));
+        val.insert("thin".into(), THIN_STACK.to_vec());
         val
     };
 }
@@ -1745,7 +1905,7 @@ pub fn get_stack<'s>(
     target: &String,
     strategy: &String,
     db: Option<&DatabaseModule>,
-) -> Option<&'s Vec<FType>> {
+) -> Option<&'s Vec<VenomPlan>> {
     if strategy.eq("class") {
         if let Some(class) = db.and_then(|db| db.get_class(target)) {
             let class_name = format!("{:?}", class);
@@ -1796,7 +1956,7 @@ pub fn get_balance_attack<'s>(
             } else {
                 "rebounding"
             };
-            if let Some(venom) = get_venoms(stack.to_vec(), 1, &you).pop() {
+            if let Some(venom) = get_venoms_from_plan(stack.to_vec(), 1, &you).pop() {
                 return Box::new(FlayAction::new(
                     who_am_i.to_string(),
                     target.to_string(),
@@ -1813,7 +1973,7 @@ pub fn get_balance_attack<'s>(
             }
         } else {
             println!("{}", you.flags);
-            let mut venoms = get_venoms(stack.to_vec(), 2, &you);
+            let mut venoms = get_venoms_from_plan(stack.to_vec(), 2, &you);
             let lockers = get_venoms(SOFT_STACK.to_vec(), 3, &you);
             let mut priority_buffer = false;
             if should_lock(Some(&me), &you, &lockers) {
@@ -1839,6 +1999,9 @@ pub fn get_balance_attack<'s>(
                     }
                 }
                 let mut buffer = get_venoms(THIN_BUFFER_STACK.to_vec(), 2, &you);
+                if strategy.eq("thin") {
+                    buffer.clear();
+                }
                 if you.lock_duration().map_or(false, |dur| dur > 10.0) && !you.is(FType::Voyria) {
                     buffer.insert(buffer.len(), "voyria");
                 }

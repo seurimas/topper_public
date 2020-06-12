@@ -376,6 +376,15 @@ lazy_static! {
     };
 }
 
+pub fn remove_through(you: &mut AgentState, end: FType, order: &Vec<FType>) {
+    for flag in order.iter() {
+        you.set_flag(*flag, false);
+        if *flag == end {
+            break;
+        }
+    }
+}
+
 /*
 pub fn get_venom(affliction: FType) -> Option<&'static str> {
     if let Some(venom) = AFFLICT_VENOMS.get(&affliction) {
@@ -385,6 +394,10 @@ pub fn get_venom(affliction: FType) -> Option<&'static str> {
     }
 }
 */
+
+pub fn is_susceptible(target: &AgentState, affliction: &FType) -> bool {
+    !target.is(*affliction) && !(*affliction == FType::Paresis && target.is(FType::Paralysis))
+}
 
 pub fn get_venoms(afflictions: Vec<FType>, count: usize, target: &AgentState) -> Vec<&'static str> {
     let mut venoms = Vec::new();
@@ -417,13 +430,95 @@ pub fn add_buffers<'s>(ready: &mut Vec<&'s str>, buffers: &Vec<&'s str>) {
     }
 }
 
-pub fn remove_through(you: &mut AgentState, end: FType, order: &Vec<FType>) {
-    for flag in order.iter() {
-        you.set_flag(*flag, false);
-        if *flag == end {
+#[derive(Clone, Debug)]
+pub enum VenomPlan {
+    Stick(FType),
+    StickThisIfThat(FType, FType),
+    OnTree(FType),
+    Stalest(FType, FType),
+    IfDo(FType, Box<VenomPlan>),
+    IfNotDo(FType, Box<VenomPlan>),
+}
+
+pub fn get_simple_plan(afflictions: Vec<FType>) -> Vec<VenomPlan> {
+    afflictions
+        .iter()
+        .map(|aff| VenomPlan::Stick(*aff))
+        .collect()
+}
+
+fn add_venom_from_plan(item: &VenomPlan, target: &AgentState, venoms: &mut Vec<&'static str>) {
+    match item {
+        VenomPlan::Stick(aff) => {
+            if is_susceptible(target, aff) {
+                if let Some(venom) = AFFLICT_VENOMS.get(aff) {
+                    venoms.push(*venom);
+                }
+            }
+        }
+        VenomPlan::StickThisIfThat(this, that) => {
+            if target.is(*this) && is_susceptible(target, that) {
+                if let Some(venom) = AFFLICT_VENOMS.get(that) {
+                    venoms.push(*venom);
+                }
+            }
+        }
+        VenomPlan::OnTree(aff) => {
+            if target.balanced(BType::Tree) && is_susceptible(target, aff) {
+                if let Some(venom) = AFFLICT_VENOMS.get(aff) {
+                    venoms.push(*venom);
+                }
+            }
+        }
+        VenomPlan::Stalest(priority, secondary) => {
+            if let (Some(priority_venom), Some(secondary_venom)) =
+                (AFFLICT_VENOMS.get(priority), AFFLICT_VENOMS.get(secondary))
+            {
+                println!("{} {}", priority_venom, secondary_venom);
+                if target.is(*priority) && !target.is(*secondary) {
+                    venoms.push(secondary_venom);
+                } else if !target.is(*priority) && target.is(*secondary) {
+                    venoms.push(priority_venom);
+                } else if !target.is(*priority) && !target.is(*secondary) {
+                    if let Some(stalest) = target.relapses.stalest(vec![
+                        priority_venom.to_string(),
+                        secondary_venom.to_string(),
+                    ]) {
+                        if stalest.eq(priority_venom) {
+                            venoms.push(priority_venom);
+                        } else {
+                            venoms.push(secondary_venom);
+                        }
+                    }
+                }
+            }
+        }
+        VenomPlan::IfDo(when, plan) => {
+            if target.is(*when) {
+                add_venom_from_plan(plan, target, venoms);
+            }
+        }
+        VenomPlan::IfNotDo(when, plan) => {
+            if !target.is(*when) {
+                add_venom_from_plan(plan, target, venoms);
+            }
+        }
+    }
+}
+
+pub fn get_venoms_from_plan(
+    plan: Vec<VenomPlan>,
+    count: usize,
+    target: &AgentState,
+) -> Vec<&'static str> {
+    let mut venoms = Vec::new();
+    for item in plan.iter() {
+        add_venom_from_plan(item, target, &mut venoms);
+        if count == venoms.len() {
             break;
         }
     }
+    venoms
 }
 
 pub struct RestoreAction {

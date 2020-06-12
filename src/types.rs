@@ -1,5 +1,6 @@
 use num_enum::TryFromPrimitive;
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fmt;
 pub type CType = i32;
@@ -832,6 +833,26 @@ impl RelapseState {
 
     fn is_venom_alive(time: CType) -> bool {
         time < (7.1 * BALANCE_SCALE as f32) as CType
+    }
+
+    pub fn stalest(&self, venoms: Vec<String>) -> Option<String> {
+        match self {
+            RelapseState::Active(relapses) => {
+                let mut ages = HashMap::new();
+                for venom in venoms.iter() {
+                    ages.insert(venom, BALANCE_SCALE as CType * 10);
+                }
+                for (time, venom) in relapses.iter() {
+                    if ages.contains_key(venom) {
+                        ages.insert(venom, *time);
+                    }
+                }
+                ages.iter()
+                    .max_by_key(|(venom, age)| *age)
+                    .map(|(venom, age)| venom.to_string())
+            }
+            _ => venoms.get(0).cloned(),
+        }
     }
 
     pub fn get_relapses(&mut self, relapse_count: usize) -> RelapseResult {
