@@ -164,6 +164,10 @@ impl Topper {
         &mut self.timeline_module.timeline
     }
 
+    pub fn get_database(&mut self) -> &mut DatabaseModule {
+        &mut self.database_module
+    }
+
     pub fn parse_request_or_event(&mut self, line: &String) -> Result<TopperResponse, String> {
         info!("{}", line);
         let parsed = from_str(line);
@@ -188,7 +192,11 @@ impl Topper {
                         TopperRequest::Attack(strategy) => {
                             if let Some(target) = self.get_target() {
                                 Ok(module_msg.then(TopperResponse::qeb(get_attack(
-                                    self, &target, &strategy,
+                                    &self.timeline_module.timeline,
+                                    &self.me(),
+                                    &target,
+                                    &strategy,
+                                    Some(&self.database_module),
                                 ))))
                             } else {
                                 Ok(module_msg.then(TopperResponse::error("No target.".into())))

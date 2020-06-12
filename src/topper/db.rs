@@ -73,28 +73,28 @@ impl DatabaseModule {
         }
     }
 
-    fn insert(&self, tree: &str, key: String, value: IVec) {
+    fn insert(&self, tree: &str, key: &String, value: IVec) {
         self.db
             .open_tree(tree)
             .expect(format!("Bad {} tree", tree).as_ref())
-            .insert(key.clone(), value)
+            .insert(key, value)
             .expect(format!("Bad {} insert", key).as_ref());
     }
 
-    fn insert_json<T: Serialize>(&self, tree: &str, key: String, value: T) {
+    fn insert_json<T: Serialize>(&self, tree: &str, key: &String, value: T) {
         let json = serde_json::to_string(&value).unwrap();
         self.insert(tree, key, json.as_bytes().into())
     }
 
-    fn get(&self, tree: &str, key: String) -> Option<IVec> {
+    fn get(&self, tree: &str, key: &String) -> Option<IVec> {
         self.db
             .open_tree(tree)
             .expect(format!("Bad {} tree", tree).as_ref())
-            .get(key.clone())
+            .get(key)
             .expect(format!("Bad {} get", key).as_ref())
     }
 
-    fn get_json<T: DeserializeOwned>(&self, tree: &str, key: String) -> Option<T> {
+    fn get_json<T: DeserializeOwned>(&self, tree: &str, key: &String) -> Option<T> {
         self.get(tree, key)
             .and_then(|ivec| {
                 let slice: Vec<u8> = ivec.as_ref().into();
@@ -106,14 +106,14 @@ impl DatabaseModule {
             })
     }
 
-    fn send_api_request(&self, who: String, priority: u64) -> bool {
-        let last_bytes = self.get("api_last", who.clone()).unwrap_or((&[0; 16]).into());
+    fn send_api_request(&self, who: &String, priority: u64) -> bool {
+        let last_bytes = self.get("api_last", who).unwrap_or((&[0; 16]).into());
         let last = u128::from_be_bytes(last_bytes.as_ref().try_into().expect("Bad length"));
         let since = time_since_epoch(last);
         if since.as_secs() > priority {
             let epoch = get_epoch_time();
-            self.insert("api_last", who.clone(), (&epoch.to_be_bytes()).into());
-            self.api_sender.send(ApiRequest(who)).is_ok()
+            self.insert("api_last", who, (&epoch.to_be_bytes()).into());
+            self.api_sender.send(ApiRequest(who.to_string())).is_ok()
         } else {
             false
         }
@@ -123,13 +123,13 @@ impl DatabaseModule {
         while let Ok(character) = self.api_receiver.try_recv() {
             println!("Received response for {} ({} from {})", character.name, character.class, character.city);
             if let Some(class) = Class::from_str(&character.class) {
-                self.set_class(character.name.clone(), class);
+                self.set_class(&character.name, class);
             }
-            self.insert_json("character", character.name.clone(), character);
+            self.insert_json("character", &character.name.clone(), character);
         }
     }
 
-    pub fn get_class(&self, who: String) -> Option<Class> {
+    pub fn get_class(&self, who: &String) -> Option<Class> {
         let class_id = self.get("classes", who);
         if let Some(class_id) = class_id {
             if let [class_id] = class_id.as_ref() {
@@ -142,11 +142,11 @@ impl DatabaseModule {
         }
     }
 
-    pub fn set_class(&self, who: String, class: Class) {
+    pub fn set_class(&self, who: &String, class: Class) {
         self.insert("classes", who, (&[class as u8]).into());
     }
 
-    pub fn get_character(&self, who: String) -> Option<(Option<Class>, String)> {
+    pub fn get_character(&self, who: &String) -> Option<(Option<Class>, String)> {
         if let Some(character) = self.get_json::<CharacterApiResponse>("character", who) {
             Some((Class::from_str(&character.class), character.city.clone()))
         } else {
@@ -165,18 +165,18 @@ impl<'s> TopperModule<'s> for DatabaseModule {
         self.drain_responses();
         match message {
             TopperMessage::Request(TopperRequest::Api(who)) => {
-                self.send_api_request(who.to_string(), 300);
+                self.send_api_request(who, 300);
                 Ok(TopperResponse::silent())
             }
             TopperMessage::Event(event) => {
                 for observation in event.observations.iter() {
                     match observation {
                         crate::timeline::Observation::CombatAction(crate::timeline::CombatAction { caster, target, .. }) => {
-                            if !caster.eq("") {
-                                self.send_api_request(caster.to_string(), 3600 * 2);
+                            if !caster.eq("") && !caster.find(" ").is_some() {
+                                self.send_api_request(caster, 3600 * 2);
                             }
-                            if !target.eq("") {
-                                self.send_api_request(target.to_string(), 3600 * 2);
+                            if !target.eq("") && !target.find(" ").is_some() {
+                                self.send_api_request(target, 3600 * 2);
                             }
                         }
                         _ => {

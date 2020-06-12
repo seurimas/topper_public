@@ -41,9 +41,9 @@ pub fn handle_combat_action(
     Ok(())
 }
 
-pub fn get_balance_attack(topper: &mut Topper, target: &String, strategy: &String) -> String {
+pub fn get_balance_attack(timeline: &Timeline, target: &String, strategy: &String) -> String {
     if strategy == "damage" {
-        let you = topper.get_timeline().state.borrow_agent(target);
+        let you = timeline.state.borrow_agent(target);
         if you.parrying == Some(LType::HeadDamage) {
             return format!("flow {} clawtwist clawtwist", target);
         } else {
@@ -57,8 +57,8 @@ pub fn get_balance_attack(topper: &mut Topper, target: &String, strategy: &Strin
     }
 }
 
-pub fn get_attack(topper: &mut Topper, target: &String, strategy: &String) -> String {
-    let mut balance = get_balance_attack(topper, target, strategy);
+pub fn get_attack(timeline: &Timeline, target: &String, strategy: &String) -> String {
+    let mut balance = get_balance_attack(timeline, target, strategy);
     let mut attack = "".to_string();
     if balance != "" {
         attack = format!("qeb {}", balance);

@@ -143,8 +143,6 @@ pub enum FType {
     Player,
     Ally,
     Enemy,
-    Hypnotized,
-    Snapped,
 
     // Defences
     Shielded,
@@ -272,6 +270,11 @@ pub enum FType {
     // Panacea
     Patterns,
     Shaderot,
+    ShaderotBenign,
+    ShaderotSpirit,
+    ShaderotHeat,
+    ShaderotWither,
+    ShaderotBody,
 
     // Willow
     Aeon,
@@ -389,10 +392,17 @@ pub enum FType {
     InfernalSeal,
     InfernalShroud,
 
+    // Scio Uncurable
+    Imbued,
+    Impeded,
+    Shadowbrand,
+    Shadowsphere,
+
     // Special
     Disrupted,
     Fear,
     Prone,
+    Itchy,
 
     // Writhes
     WritheArmpitlock,
@@ -850,6 +860,148 @@ impl RelapseState {
     }
 }
 
+const SOFT_COOLDOWN: f32 = 2.0;
+const HARD_COOLDOWN: f32 = 6.0;
+
+#[derive(Debug, Clone)]
+pub enum DodgeState {
+    Ready,
+    Cooldown(CType),
+}
+
+impl Default for DodgeState {
+    fn default() -> Self {
+        DodgeState::Ready
+    }
+}
+
+impl DodgeState {
+    pub fn wait(&mut self, duration: CType) {
+        match self {
+            DodgeState::Ready => {}
+            DodgeState::Cooldown(remaining) => {
+                if *remaining > duration {
+                    *self = DodgeState::Cooldown(*remaining - duration);
+                } else {
+                    *self = DodgeState::Ready
+                }
+            }
+        }
+    }
+    pub fn register_hit(&mut self) {
+        match self {
+            DodgeState::Ready => {
+                *self = DodgeState::Cooldown((SOFT_COOLDOWN * BALANCE_SCALE) as CType);
+            }
+            DodgeState::Cooldown(_) => {}
+        }
+    }
+    pub fn register_dodge(&mut self) {
+        *self = DodgeState::Cooldown((HARD_COOLDOWN * BALANCE_SCALE) as CType);
+    }
+    pub fn can_dodge(&self) -> bool {
+        match self {
+            DodgeState::Ready => true,
+            _ => false,
+        }
+    }
+    pub fn can_dodge_at(&self, qeb: f32) -> bool {
+        match self {
+            DodgeState::Ready => true,
+            DodgeState::Cooldown(cooldown) => {
+                if *cooldown < ((qeb * BALANCE_SCALE) as CType) {
+                    true
+                } else {
+                    false
+                }
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct HypnoState {
+    pub hypnotized: bool,
+    pub active: bool,
+    pub sealed: Option<f32>,
+    pub hypnosis_stack: Vec<Hypnosis>,
+}
+
+impl HypnoState {
+    pub fn fire(&mut self) -> Option<Hypnosis> {
+        if self.hypnosis_stack.len() <= 1 {
+            self.active = false;
+        } else {
+            self.active = true;
+        }
+        if self.hypnosis_stack.len() > 0 {
+            let top = self.hypnosis_stack.get(0).cloned();
+            self.hypnosis_stack.remove(0);
+            top
+        } else {
+            self.desway();
+            None
+        }
+    }
+
+    pub fn pop_suggestion(&mut self, active: bool) -> Option<Hypnosis> {
+        if self.hypnosis_stack.len() > 0 {
+            if active {
+                if self.hypnosis_stack.len() == 1 {
+                    self.active = false;
+                } else if !self.active {
+                    self.active = true;
+                }
+            }
+            self.hypnosis_stack.pop()
+        } else {
+            None
+        }
+    }
+
+    pub fn push_suggestion(&mut self, suggestion: Hypnosis) {
+        self.hypnosis_stack.push(suggestion);
+        self.active = false;
+        self.hypnotized = true;
+        self.sealed = None;
+    }
+
+    pub fn get_next_hypno_aff(&self) -> Option<FType> {
+        if !self.active {
+            return None;
+        }
+        if let Some(Hypnosis::Aff(aff)) = self.hypnosis_stack.get(0) {
+            Some(*aff)
+        } else {
+            None
+        }
+    }
+
+    pub fn activate(&mut self) {
+        self.active = true;
+        self.sealed = None;
+    }
+
+    pub fn hypnotize(&mut self) {
+        self.hypnotized = true;
+        self.active = false;
+        self.sealed = None;
+    }
+
+    pub fn desway(&mut self) {
+        self.hypnotized = false;
+        self.active = false;
+        self.sealed = None;
+        self.hypnosis_stack = Vec::new();
+    }
+
+    pub fn seal(&mut self, length: f32) {
+        self.sealed = Some(length);
+        self.hypnotized = false;
+        self.active = false;
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct AgentState {
     pub balances: [CType; BType::SIZE as usize],
@@ -857,10 +1009,11 @@ pub struct AgentState {
     pub max_stats: [CType; SType::SIZE as usize],
     pub flags: FlagSet,
     pub limb_damage: LimbSet,
-    pub hypnosis_stack: Vec<Hypnosis>,
+    pub hypno_state: HypnoState,
     pub relapses: RelapseState,
     pub parrying: Option<LType>,
     pub wield_state: WieldState,
+    pub dodge_state: DodgeState,
 }
 
 impl PartialEq for AgentState {
@@ -895,7 +1048,7 @@ impl AgentState {
 
     pub fn will_be_rebounding(&self, qeb: f32) -> bool {
         if self.is(FType::Rebounding)
-            || (self.is(FType::AssumedRebounding) && self.get_balance(BType::Rebounding) > -1.5)
+            || (self.is(FType::AssumedRebounding) && self.get_balance(BType::Rebounding) > -1.0)
         {
             true
         } else if !self.balanced(BType::Rebounding) {
@@ -1106,6 +1259,7 @@ impl AgentState {
     }
 
     pub fn regenerate(&mut self) {
+        println!("Regenerating");
         self.limb_damage.2 = true;
     }
 
@@ -1121,29 +1275,6 @@ impl AgentState {
             }
         }
         count
-    }
-
-    pub fn pop_suggestion(&mut self) -> Option<Hypnosis> {
-        if self.hypnosis_stack.len() > 0 {
-            self.hypnosis_stack.pop()
-        } else {
-            None
-        }
-    }
-
-    pub fn push_suggestion(&mut self, suggestion: Hypnosis) {
-        self.hypnosis_stack.push(suggestion);
-    }
-
-    pub fn get_next_hypno_aff(&self) -> Option<FType> {
-        if !self.is(FType::Snapped) {
-            return None;
-        }
-        if let Some(Hypnosis::Aff(aff)) = self.hypnosis_stack.get(0) {
-            Some(*aff)
-        } else {
-            None
-        }
     }
 
     pub fn wield_multi(&mut self, left: Option<String>, right: Option<String>) {

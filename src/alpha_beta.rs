@@ -1,6 +1,7 @@
 use crate::classes::Class;
 use crate::observables::ActionPlan;
 use crate::timeline::Timeline;
+use crate::topper::db::DatabaseModule;
 use std::collections::HashMap;
 
 pub trait ActionPlanner {
@@ -11,6 +12,7 @@ pub trait ActionPlanner {
         actor: &String,
         target: &String,
         strategy: &str,
+        db: Option<&DatabaseModule>,
     ) -> ActionPlan;
 }
 
@@ -29,15 +31,22 @@ struct SimulationIterator<'s, D: ActionPlanner> {
     duelist: &'s Duelist<D>,
     target: &'s String,
     index: usize,
+    db: Option<&'s DatabaseModule>,
 }
 
 impl<'s, D: ActionPlanner> SimulationIterator<'s, D> {
-    pub fn new(timeline: &'s Timeline, duelist: &'s Duelist<D>, target: &'s String) -> Self {
+    pub fn new(
+        timeline: &'s Timeline,
+        duelist: &'s Duelist<D>,
+        target: &'s String,
+        db: Option<&'s DatabaseModule>,
+    ) -> Self {
         SimulationIterator {
             timeline,
             duelist,
             target,
             index: 0,
+            db,
         }
     }
 }
@@ -52,6 +61,7 @@ impl<'s, D: ActionPlanner> Iterator for SimulationIterator<'s, D> {
                 &self.duelist.name,
                 self.target,
                 strategy,
+                self.db,
             );
             let mut new_timeline = self.timeline.branch();
             if let Some(timeslice) = action_plan.get_time_slice(&new_timeline) {

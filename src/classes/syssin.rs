@@ -56,7 +56,7 @@ mod timeline_tests {
                     target: "Benedicto".to_string(),
                     annotation: "".to_string(),
                 }),
-                Observation::Dodges,
+                Observation::Dodges("Benedicto".to_string()),
             ],
             lines: vec![],
             prompt: Prompt::Blackout,
@@ -557,7 +557,7 @@ mod timeline_tests {
         assert_eq!(seur_state.balanced(BType::Equil), false);
         let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
         assert_eq!(
-            bene_state.hypnosis_stack.get(0),
+            bene_state.hypno_state.hypnosis_stack.get(0),
             Some(&Hypnosis::Aff(FType::Stupidity))
         );
     }
@@ -1152,37 +1152,34 @@ pub fn handle_combat_action(
         }
         "Hypnotise" => {
             let mut you = agent_states.get_agent(&combat_action.target);
-            you.set_flag(FType::Hypnotized, true);
+            you.hypno_state.hypnotize();
             agent_states.set_agent(&combat_action.target, you);
         }
         "Desway" => {
             let mut you = agent_states.get_agent(&combat_action.target);
-            you.set_flag(FType::Hypnotized, false);
+            you.hypno_state.desway();
             agent_states.set_agent(&combat_action.target, you);
         }
         "Seal" => {
             let mut me = agent_states.get_agent(&combat_action.caster);
             let mut you = agent_states.get_agent(&combat_action.target);
             apply_or_infer_balance(&mut me, (BType::Equil, 3.0), after);
-            you.set_flag(FType::Hypnotized, false);
-            you.set_flag(FType::Snapped, false);
+            you.hypno_state.seal(3.0);
             agent_states.set_agent(&combat_action.caster, me);
             agent_states.set_agent(&combat_action.target, you);
         }
         "Suggest" => {
             let mut me = agent_states.get_agent(&combat_action.caster);
             let mut you = agent_states.get_agent(&combat_action.target);
-            you.set_flag(FType::Hypnotized, true);
-            you.set_flag(FType::Snapped, false);
             apply_or_infer_balance(&mut me, (BType::Equil, 2.25), after);
-            you.push_suggestion(infer_suggestion(&combat_action.target, agent_states));
+            you.hypno_state
+                .push_suggestion(infer_suggestion(&combat_action.target, agent_states));
             agent_states.set_agent(&combat_action.caster, me);
             agent_states.set_agent(&combat_action.target, you);
         }
         "Fizzle" => {
             let mut me = agent_states.get_agent(&combat_action.target);
-            me.pop_suggestion();
-            me.set_flag(FType::Hypnotized, true);
+            me.hypno_state.pop_suggestion(false);
             agent_states.set_agent(&combat_action.target, me);
         }
         "Snap" => {
@@ -1190,11 +1187,15 @@ pub fn handle_combat_action(
                 agent_states.get_player_hint(&combat_action.caster, &"snap".into())
             {
                 let mut you = agent_states.get_agent(&target);
-                start_hypnosis(&mut you);
+                if you.hypno_state.sealed.is_some() {
+                    you.hypno_state.activate();
+                }
                 agent_states.set_agent(&target, you);
             } else if !combat_action.target.eq(&"".to_string()) {
                 let mut you = agent_states.get_agent(&combat_action.target);
-                start_hypnosis(&mut you);
+                if you.hypno_state.sealed.is_some() {
+                    you.hypno_state.activate();
+                }
                 agent_states.set_agent(&combat_action.target, you);
             }
         }
@@ -1272,6 +1273,23 @@ lazy_static! {
         FType::Allergies,
         FType::Dizziness,
         FType::Vomiting,
+        FType::LeftLegBroken,
+        FType::RightLegBroken,
+    ];
+}
+
+lazy_static! {
+    static ref MONK_STACK: Vec<FType> = vec![
+        FType::Allergies,
+        FType::Weariness,
+        FType::Paresis,
+        FType::Stupidity,
+        FType::Dizziness,
+        FType::Clumsiness,
+        FType::Vomiting,
+        FType::Asthma,
+        FType::LeftArmBroken,
+        FType::RightArmBroken,
         FType::LeftLegBroken,
         FType::RightLegBroken,
     ];
@@ -1390,7 +1408,7 @@ lazy_static! {
 }
 
 lazy_static! {
-    pub static ref SOFT_STACK: Vec<FType> = vec![FType::Asthma, FType::Anorexia, FType::Slickness,];
+    pub static ref SOFT_STACK: Vec<FType> = vec![FType::Slickness, FType::Asthma, FType::Anorexia];
 }
 
 lazy_static! {
@@ -1437,6 +1455,7 @@ lazy_static! {
         val.insert("aggro".into(), AGGRO_STACK.to_vec());
         val.insert("salve".into(), SALVE_STACK.to_vec());
         val.insert("peace".into(), PEACE_STACK.to_vec());
+        val.insert("Monk".into(), MONK_STACK.to_vec());
         val.insert("Luminary".into(), LUMI_STACK.to_vec());
         val.insert("lumi".into(), LUMI_STACK.to_vec());
         val.insert("yedan".into(), YEDAN_STACK.to_vec());
@@ -1462,7 +1481,7 @@ lazy_static! {
     static ref FAST_HYPNO: Vec<Hypnosis> = vec![
         Hypnosis::Aff(FType::Hypochondria),
         Hypnosis::Aff(FType::Impatience),
-        Hypnosis::Aff(FType::Lethargy),
+        Hypnosis::Aff(FType::Loneliness),
         Hypnosis::Aff(FType::Hypochondria),
     ];
 }
@@ -1485,10 +1504,6 @@ pub fn get_hypno_str(target: &String, hypno: &Hypnosis) -> String {
     }
 }
 
-pub fn start_hypnosis(who: &mut AgentState) {
-    who.set_flag(FType::Snapped, true);
-}
-
 pub fn get_top_hypno<'s>(
     me: &String,
     target_name: &String,
@@ -1496,14 +1511,14 @@ pub fn get_top_hypno<'s>(
     hypnos: &Vec<Hypnosis>,
 ) -> Option<Box<ActiveTransition>> {
     let mut hypno_idx = 0;
-    for i in 0..target.hypnosis_stack.len() {
-        if target.hypnosis_stack.get(i) == hypnos.get(hypno_idx) {
+    for i in 0..target.hypno_state.hypnosis_stack.len() {
+        if target.hypno_state.hypnosis_stack.get(i) == hypnos.get(hypno_idx) {
             hypno_idx += 1;
         }
     }
     if hypno_idx < hypnos.len() {
         if let Some(next_hypno) = hypnos.get(hypno_idx) {
-            if !target.is(FType::Hypnotized) {
+            if !target.hypno_state.hypnotized {
                 Some(Box::new(SeparatorAction::pair(
                     Box::new(HypnotiseAction::new(&me, &target_name)),
                     Box::new(SuggestAction::new(&me, &target_name, next_hypno.clone())),
@@ -1522,7 +1537,7 @@ pub fn get_top_hypno<'s>(
                 hypnos.len()
             )
         }
-    } else if target.is(FType::Hypnotized) {
+    } else if target.hypno_state.hypnotized {
         Some(Box::new(SealAction::new(&me, &target_name, 3)))
     } else {
         None
@@ -1586,7 +1601,10 @@ fn should_bedazzle(
 
 fn should_regenerate(timeline: &Timeline, me: &String) -> bool {
     let me = timeline.state.borrow_agent(me);
-    if let Some((_limb, damage, regenerating)) = me.get_restoring() {
+    if me.balanced(BType::Regenerate) {
+        false
+    } else if let Some((_limb, damage, regenerating)) = me.get_restoring() {
+        println!("{:?} {:?}", damage, regenerating);
         !regenerating && damage > 4000
     } else {
         false
@@ -1624,9 +1642,23 @@ fn go_for_thin_blood(_timeline: &Timeline, you: &AgentState, _strategy: &String)
     }
     (buffer_count >= 2 || (buffer_count >= 1 && !you.is(FType::Fangbarrier)))
         && !you.is(FType::ThinBlood)
+        && (!you.is(FType::Fangbarrier) || you.get_balance(BType::Tree) > 6.0)
+        && (!you.is(FType::Fangbarrier) || you.aff_count() > 4)
 }
 
-pub fn should_lock(you: &AgentState, lockers: &Vec<&str>) -> bool {
+pub fn should_lock(me: Option<&AgentState>, you: &AgentState, lockers: &Vec<&str>) -> bool {
+    if let Some(me) = me {
+        if lockers.len() == 2
+            && you.dodge_state.can_dodge_at(me.get_qeb_balance())
+            && you.affs_count(&vec![
+                FType::Hypochondria,
+                FType::Clumsiness,
+                FType::Weariness,
+            ]) < 1
+        {
+            return false;
+        }
+    }
     (!you.can_focus(true) || you.is(FType::Stupidity) || you.get_balance(BType::Focus) > 2.5)
         && (!you.can_tree(true) || you.get_balance(BType::Tree) > 2.5)
         && lockers.len() < 3
@@ -1712,9 +1744,10 @@ pub fn get_stack<'s>(
     timeline: &Timeline,
     target: &String,
     strategy: &String,
+    db: Option<&DatabaseModule>,
 ) -> Option<&'s Vec<FType>> {
     if strategy.eq("class") {
-        if let Some(class) = timeline.get_class(target) {
+        if let Some(class) = db.and_then(|db| db.get_class(target)) {
             let class_name = format!("{:?}", class);
             if STACKING_STRATEGIES.contains_key(&class_name) {
                 return STACKING_STRATEGIES.get(&class_name);
@@ -1737,17 +1770,11 @@ pub fn get_balance_attack<'s>(
     who_am_i: &String,
     target: &String,
     strategy: &String,
+    db: Option<&DatabaseModule>,
 ) -> Box<dyn ActiveTransition> {
-    if let Some(stack) = get_stack(timeline, target, strategy) {
+    if let Some(stack) = get_stack(timeline, target, strategy, db) {
         let me = timeline.state.borrow_agent(who_am_i);
         let you = timeline.state.borrow_agent(target);
-        println!(
-            "{:?} {:?} {:?} {:?}",
-            you.balanced(BType::Rebounding),
-            you.next_balance(vec![BType::Rebounding, BType::Balance].iter()),
-            you.is(FType::AssumedRebounding),
-            you.will_be_rebounding(me.get_qeb_balance()),
-        );
         if needs_shrugging(&timeline, who_am_i) {
             return Box::new(ShruggingAction::shrug_asthma(who_am_i.to_string()));
         } else if needs_restore(&timeline, who_am_i) {
@@ -1789,7 +1816,7 @@ pub fn get_balance_attack<'s>(
             let mut venoms = get_venoms(stack.to_vec(), 2, &you);
             let lockers = get_venoms(SOFT_STACK.to_vec(), 3, &you);
             let mut priority_buffer = false;
-            if should_lock(&you, &lockers) {
+            if should_lock(Some(&me), &you, &lockers) {
                 println!("Locking!");
                 add_buffers(&mut venoms, &lockers);
                 priority_buffer = true;
@@ -1821,21 +1848,26 @@ pub fn get_balance_attack<'s>(
                 } else if you.is(FType::Paresis) || you.is(FType::Paralysis) {
                     let mut hypno_buffers = vec![];
                     if you.is(FType::Impatience)
-                        || you.get_next_hypno_aff() == Some(FType::Impatience)
+                        || you.hypno_state.get_next_hypno_aff() == Some(FType::Impatience)
                     {
+                        if you.is(FType::Impatience) {
+                            hypno_buffers.push(FType::Stupidity);
+                        }
                         hypno_buffers.push(FType::Shyness);
                     }
                     if you.is(FType::Impatience)
                         && (you.is(FType::Loneliness)
-                            || you.get_next_hypno_aff() == Some(FType::Loneliness))
+                            || you.hypno_state.get_next_hypno_aff() == Some(FType::Loneliness))
                     {
                         hypno_buffers.push(FType::Recklessness);
                     }
                     if you.is(FType::Generosity)
-                        || you.get_next_hypno_aff() == Some(FType::Generosity)
+                        || you.hypno_state.get_next_hypno_aff() == Some(FType::Generosity)
                     {
                         hypno_buffers.push(FType::Peace);
-                        hypno_buffers.push(FType::Stupidity);
+                        if !you.is(FType::Impatience) {
+                            hypno_buffers.push(FType::Stupidity);
+                        }
                     }
                     let hypno_buffers = get_venoms(hypno_buffers, 1, &you);
                     add_buffers(&mut venoms, &hypno_buffers);
@@ -1912,23 +1944,21 @@ pub fn get_shadow_attack<'s>(
     if strategy == "pre" {
         Box::new(Inactivity)
     } else {
-        if !strategy.eq("salve") {
-            let you = timeline.state.borrow_agent(target);
-            if !should_void(timeline)
-                || you.is(FType::Void)
-                || you.is(FType::Weakvoid)
-                || you.is(FType::Snapped)
-            {
-                if you.lock_duration().is_some() {
-                    Box::new(SleightAction::new(me, &target, &"blank"))
-                } else {
-                    Box::new(SleightAction::new(me, &target, &"dissipate"))
-                }
+        let you = timeline.state.borrow_agent(target);
+        if !should_void(timeline)
+            || you.is(FType::Void)
+            || you.is(FType::Weakvoid)
+            || you.hypno_state.active
+        {
+            if you.lock_duration().is_some() {
+                Box::new(SleightAction::new(me, &target, &"blank"))
+            } else if strategy == "salve" {
+                Box::new(SleightAction::new(me, &target, &"abrasion"))
             } else {
-                Box::new(SleightAction::new(me, &target, &"void"))
+                Box::new(SleightAction::new(me, &target, &"dissipate"))
             }
         } else {
-            Box::new(SleightAction::new(me, &target, &"abrasion"))
+            Box::new(SleightAction::new(me, &target, &"void"))
         }
     }
 }
@@ -1936,8 +1966,7 @@ pub fn get_shadow_attack<'s>(
 pub fn get_snap(timeline: &Timeline, me: &String, target: &String, _strategy: &String) -> bool {
     let you = timeline.state.borrow_agent(target);
     if get_top_hypno(me, target, &you, &HARD_HYPNO.to_vec()).is_none()
-        && !you.is(FType::Snapped)
-        && !you.is(FType::Hypnotized)
+        && you.hypno_state.sealed.is_some()
     {
         return true;
     } else {
@@ -1950,13 +1979,14 @@ pub fn get_action_plan(
     me: &String,
     target: &String,
     strategy: &String,
+    db: Option<&DatabaseModule>,
 ) -> ActionPlan {
     let mut action_plan = ActionPlan::new(me);
-    let mut balance = get_balance_attack(timeline, me, target, strategy);
+    let mut balance = get_balance_attack(timeline, me, target, strategy, db);
     if should_regenerate(&timeline, me) {
         balance = Box::new(RegenerateAction::new(me.to_string()));
     }
-    if let Some(parry) = get_needed_parry(timeline, me, target, strategy) {
+    if let Some(parry) = get_needed_parry(timeline, me, target, strategy, db) {
         balance = Box::new(SeparatorAction::pair(
             Box::new(ParryAction::new(me.to_string(), parry)),
             balance,
@@ -1993,12 +2023,18 @@ impl ActionPlanner for SyssinActionPlanner {
         actor: &String,
         target: &String,
         strategy: &str,
+        db: Option<&DatabaseModule>,
     ) -> ActionPlan {
-        get_action_plan(timeline, actor, target, &strategy.to_string())
+        get_action_plan(timeline, actor, target, &strategy.to_string(), db)
     }
 }
 
-pub fn get_attack(timeline: &Timeline, target: &String, strategy: &String) -> String {
-    let action_plan = get_action_plan(&timeline, &timeline.who_am_i(), &target, &strategy);
+pub fn get_attack(
+    timeline: &Timeline,
+    target: &String,
+    strategy: &String,
+    db: Option<&DatabaseModule>,
+) -> String {
+    let action_plan = get_action_plan(&timeline, &timeline.who_am_i(), &target, &strategy, db);
     action_plan.get_inputs(&timeline)
 }

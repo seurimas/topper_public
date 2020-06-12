@@ -1,11 +1,13 @@
 use crate::curatives::MENTAL_AFFLICTIONS;
 use crate::observables::*;
 use crate::timeline::*;
+use crate::topper::db::DatabaseModule;
 use crate::topper::*;
 use crate::types::*;
 use std::collections::HashMap;
 pub mod carnifex;
 use num_enum::TryFromPrimitive;
+pub mod luminary;
 pub mod syssin;
 pub mod zealot;
 use serde::Serialize;
@@ -50,7 +52,7 @@ impl Class {
             "Templar" => Some(Class::Templar),
             "Zealot" => Some(Class::Zealot),
             // Spinesreach
-            "Archivists" => Some(Class::Archivists),
+            "Archivist" => Some(Class::Archivists),
             "Sciomancer" => Some(Class::Sciomancer),
             "Syssin" => Some(Class::Syssin),
             // Unaffiliated
@@ -131,12 +133,16 @@ pub fn has_special_cure(class: &Class, affliction: FType) -> bool {
 pub fn is_affected_by(class: &Class, affliction: FType) -> bool {
     match (affliction, class) {
         (FType::Clumsiness, Class::Syssin) => true,
-        (FType::Clumsiness, Class::Templar) => true,
         (FType::Clumsiness, Class::Carnifex) => true,
-        (FType::Clumsiness, Class::Wayfarer) => true,
-        (FType::Clumsiness, Class::Monk) => true,
+        (FType::Clumsiness, Class::Sentinel) => true,
         (FType::Peace, Class::Luminary) => true,
+        (FType::Disfigurement, Class::Sentinel) => true,
+        (FType::Disfigurement, Class::Carnifex) => true,
         (FType::Disfigurement, Class::Archivists) => true,
+        (FType::Lethargy, Class::Syssin) => true,
+        (FType::Lethargy, Class::Sentinel) => true,
+        (FType::Lethargy, Class::Carnifex) => true,
+        (FType::Lethargy, Class::Templar) => true,
         _ => false,
     }
 }
@@ -145,15 +151,21 @@ pub fn handle_sent(command: &String, agent_states: &mut TimelineState) {
     syssin::handle_sent(command, agent_states);
 }
 
-pub fn get_attack(topper: &mut Topper, target: &String, strategy: &String) -> String {
-    if let Some(class) = topper.get_timeline().get_my_class() {
+pub fn get_attack(
+    timeline: &Timeline,
+    me: &String,
+    target: &String,
+    strategy: &String,
+    db: Option<&DatabaseModule>,
+) -> String {
+    if let Some(class) = db.and_then(|db| db.get_class(me)) {
         match class {
-            Class::Zealot => zealot::get_attack(topper, target, strategy),
-            Class::Syssin => syssin::get_attack(&topper.get_timeline(), target, strategy),
-            _ => syssin::get_attack(&topper.get_timeline(), target, strategy),
+            Class::Zealot => zealot::get_attack(timeline, target, strategy),
+            Class::Syssin => syssin::get_attack(timeline, target, strategy, db),
+            _ => syssin::get_attack(timeline, target, strategy, db),
         }
     } else {
-        syssin::get_attack(&topper.get_timeline(), target, strategy)
+        syssin::get_attack(timeline, target, strategy, db)
     }
 }
 
@@ -162,8 +174,9 @@ pub fn get_needed_parry(
     me: &String,
     target: &String,
     strategy: &String,
+    db: Option<&DatabaseModule>,
 ) -> Option<LType> {
-    if let Ok(parry) = get_preferred_parry(timeline, me, target, strategy) {
+    if let Ok(parry) = get_preferred_parry(timeline, me, target, strategy, db) {
         let me = timeline.state.borrow_agent(me);
         if let Some(current) = me.parrying {
             if current == parry {
@@ -179,13 +192,31 @@ pub fn get_needed_parry(
     }
 }
 
+pub fn get_restore_parry(timeline: &Timeline, me: &String) -> Option<LType> {
+    let me = timeline.state.borrow_agent(me);
+    if let Some((restoring, _duration, _regenerating)) = me.get_restoring() {
+        if restoring == LType::LeftLegDamage {
+            Some(LType::RightLegDamage)
+        } else if restoring == LType::RightLegDamage {
+            Some(LType::LeftLegDamage)
+        } else {
+            None
+        }
+    } else {
+        None
+    }
+}
+
 pub fn get_preferred_parry(
     timeline: &Timeline,
     me: &String,
     target: &String,
     strategy: &String,
+    db: Option<&DatabaseModule>,
 ) -> Result<LType, String> {
-    if let Some(class) = timeline.get_class(target) {
+    if let Some(parry) = get_restore_parry(timeline, me) {
+        Ok(parry)
+    } else if let Some(class) = db.and_then(|db| db.get_class(target)) {
         match class {
             Class::Zealot => zealot::get_preferred_parry(timeline, me, target, strategy),
             Class::Wayfarer => Ok(LType::RightLegDamage),
@@ -211,6 +242,9 @@ pub fn handle_combat_action(
         }
         "Purification" | "Zeal" | "Psionics" => {
             zealot::handle_combat_action(combat_action, agent_states, before, after)
+        }
+        "Spirituality" | "Devotion" | "Illumination" => {
+            luminary::handle_combat_action(combat_action, agent_states, before, after)
         }
         "Survival" => match combat_action.skill.as_ref() {
             "Focus" => {

@@ -18,13 +18,13 @@ pub struct PlayerStats {
 }
 
 fn get_hypno_warning(state: &AgentState) -> Option<String> {
-    if let Some(aff) = state.get_next_hypno_aff() {
+    if let Some(aff) = state.hypno_state.get_next_hypno_aff() {
         Some(format!("<magenta>Next aff: <red>{:?}", aff))
-    } else if state.hypnosis_stack.len() > 0 {
+    } else if state.hypno_state.hypnotized || state.hypno_state.sealed.is_some() {
         Some(format!(
             "<magenta>Stack size: <red>{} {}",
-            state.hypnosis_stack.len(),
-            if !state.is(FType::Hypnotized) {
+            state.hypno_state.hypnosis_stack.len(),
+            if state.hypno_state.sealed.is_some() {
                 "SEALED"
             } else {
                 ""
@@ -38,7 +38,7 @@ fn get_hypno_warning(state: &AgentState) -> Option<String> {
 fn get_lock_warning(state: &AgentState) -> Option<String> {
     use crate::classes::get_venoms;
     use crate::classes::syssin::{should_lock, SOFT_STACK};
-    if should_lock(state, &get_venoms(SOFT_STACK.to_vec(), 3, &state)) {
+    if should_lock(None, state, &get_venoms(SOFT_STACK.to_vec(), 3, &state)) {
         Some(format!("<pink>Close to a lock!"))
     } else {
         None
@@ -156,12 +156,12 @@ pub fn get_battle_stats(
     let mut lines = Vec::new();
     let my_stats = PlayerStats::for_player(
         &timeline.state.borrow_me(),
-        db.get_class(timeline.who_am_i()),
+        db.get_class(&timeline.who_am_i()),
     );
     let target_stats = if let Some(target) = target {
         Some(PlayerStats::for_player(
             &timeline.state.borrow_agent(target),
-            db.get_class(target.to_string()),
+            db.get_class(target),
         ))
     } else {
         None

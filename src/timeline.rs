@@ -104,12 +104,13 @@ pub enum Observation {
     // Action-related
     Connects(String),
     Devenoms(String),
+    ParryStart(String, String),
     Parry(String, String),
     Absorbed(String, String),
     DiscernedAfflict(String),
     Rebounds,
     Diverts,
-    Dodges,
+    Dodges(String),
     OtherAfflicted(String, String),
     DiscernedCure(String, String),
     LostRebound(String),
@@ -323,6 +324,11 @@ impl TimelineState {
                 println!("{} {}", who, affliction);
                 self.set_flag_for_agent(who, affliction, true)?;
             }
+            Observation::Dodges(who) => {
+                let mut me = self.get_agent(who);
+                me.dodge_state.register_dodge();
+                self.set_agent(who, me)
+            }
             Observation::Stripped(defense) => {
                 self.set_flag_for_agent(&self.me.clone(), defense, false)?;
             }
@@ -351,6 +357,12 @@ impl TimelineState {
             }
             Observation::LimbDone(what) => {
                 self.finish_agent_restore(&self.me.clone(), what)?;
+            }
+            Observation::ParryStart(who, what) => {
+                let mut me = self.get_agent(who);
+                let limb = get_limb_damage(what)?;
+                me.set_parrying(limb);
+                self.set_agent(who, me);
             }
             Observation::Parry(who, what) => {
                 let mut me = self.get_agent(who);
@@ -503,14 +515,6 @@ impl Timeline {
     pub fn who_am_i(&self) -> String {
         self.state.me.clone()
     }
-
-    pub fn get_my_class(&self) -> Option<Class> {
-        self.state.classes.get(&self.state.me).cloned()
-    }
-
-    pub fn get_class(&self, who: &str) -> Option<Class> {
-        self.state.classes.get(who).cloned()
-    }
 }
 
 lazy_static! {
@@ -538,32 +542,13 @@ pub fn apply_or_infer_suggestion(
     who: &mut AgentState,
     after: &Vec<Observation>,
 ) -> Result<(), String> {
-    if let Some(Observation::DiscernedAfflict(affliction)) = after.get(1) {
-        println!("Discerned correct!");
+    let top_hypno = who.hypno_state.fire();
+    if let Some(Observation::OtherAfflicted(_who, affliction)) = after.get(1) {
         if let Some(affliction) = FType::from_name(affliction) {
             who.set_flag(affliction, true);
         }
-    } else if let Some(Observation::DiscernedAfflict(affliction)) = after.get(1) {
-        println!(
-            "Expected {:?} but got {:?}!",
-            who.hypnosis_stack.get(0),
-            affliction
-        );
-        if let Some(affliction) = FType::from_name(affliction) {
-            who.set_flag(affliction, true);
-        }
-    } else if let Some(Hypnosis::Aff(_affliction)) = who.hypnosis_stack.get(0) {
-        println!(
-            "Expected {:?} but got {:?}!",
-            who.hypnosis_stack.get(0),
-            after.get(0)
-        );
-    }
-    if who.hypnosis_stack.len() > 0 {
-        who.hypnosis_stack.remove(0);
-    }
-    if who.hypnosis_stack.len() == 0 {
-        who.set_flag(FType::Snapped, false);
+    } else if let Some(Hypnosis::Aff(_affliction)) = who.hypno_state.hypnosis_stack.get(0) {
+        println!("Expected {:?} but got {:?}!", top_hypno, after.get(0));
     }
     Ok(())
 }
@@ -639,10 +624,11 @@ pub fn apply_weapon_hits(
         } else if let Some(captures) = CALLED_VENOM.captures(&venom_hints) {
             venoms.push(captures.get(1).unwrap().as_str().to_string());
         }
-        if (Some(&Observation::Dodges) == observations.get(0))
-            || (Some(&Observation::Dodges) == observations.get(1))
-        {
-            println!("Found dodge!");
+        if let Some(Observation::Dodges(_)) = observations.get(0) {
+            println!("Dodged");
+            venoms.pop();
+        } else if let Some(Observation::Dodges(_)) = observations.get(0) {
+            println!("Dodged");
             venoms.pop();
         }
         println!("Caught {:?}", venoms);
