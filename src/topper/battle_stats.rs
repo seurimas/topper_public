@@ -10,6 +10,7 @@ use std::collections::HashMap;
 #[derive(Serialize)]
 pub struct PlayerStats {
     afflictions: Vec<String>,
+    limbs: HashMap<String, LimbState>,
     balances: HashMap<String, f32>,
     warnings: Vec<String>,
     lock_duration: Option<f32>,
@@ -53,6 +54,7 @@ impl PlayerStats {
     pub fn new() -> Self {
         PlayerStats {
             afflictions: Vec::new(),
+            limbs: HashMap::new(),
             warnings: Vec::new(),
             balances: HashMap::new(),
             lock_duration: None,
@@ -68,6 +70,19 @@ impl PlayerStats {
             } else {
                 afflictions.push(format!("{:?}", aff));
             }
+        }
+        let mut limbs = HashMap::new();
+        for limb in vec![
+            LType::HeadDamage,
+            LType::TorsoDamage,
+            LType::LeftArmDamage,
+            LType::RightArmDamage,
+            LType::LeftLegDamage,
+            LType::RightLegDamage,
+        ]
+        .iter()
+        {
+            limbs.insert(limb.to_string(), state.get_limb_state(*limb));
         }
         let mut warnings = Vec::new();
         if let Some(warning) = get_hypno_warning(&state) {
@@ -95,6 +110,7 @@ impl PlayerStats {
             });
         PlayerStats {
             afflictions,
+            limbs,
             warnings,
             balances,
             lock_duration,

@@ -220,10 +220,10 @@ pub fn get_preferred_parry(
         match class {
             Class::Zealot => zealot::get_preferred_parry(timeline, me, target, strategy),
             Class::Wayfarer => Ok(LType::RightLegDamage),
-            _ => Ok(LType::HeadDamage),
+            _ => Ok(LType::TorsoDamage),
         }
     } else {
-        Ok(LType::HeadDamage)
+        Ok(LType::TorsoDamage)
     }
 }
 
@@ -267,7 +267,9 @@ pub fn handle_combat_action(
             "Shield" => {
                 let mut me = agent_states.get_agent(&combat_action.caster);
                 me.set_flag(FType::Shielded, true);
-                apply_or_infer_balance(&mut me, (BType::Equil, 4.0), after);
+                if !combat_action.annotation.eq("proc") {
+                    apply_or_infer_balance(&mut me, (BType::Equil, 4.0), after);
+                }
                 agent_states.set_agent(&combat_action.caster, me);
                 Ok(())
             }
@@ -464,7 +466,9 @@ fn add_venom_from_plan(item: &VenomPlan, target: &AgentState, venoms: &mut Vec<&
             }
         }
         VenomPlan::OnTree(aff) => {
-            if target.balanced(BType::Tree) && is_susceptible(target, aff) {
+            if (target.balanced(BType::Tree) || target.get_balance(BType::Tree) < 1.5)
+                && is_susceptible(target, aff)
+            {
                 if let Some(venom) = AFFLICT_VENOMS.get(aff) {
                     venoms.push(*venom);
                 }
@@ -474,7 +478,6 @@ fn add_venom_from_plan(item: &VenomPlan, target: &AgentState, venoms: &mut Vec<&
             if let (Some(priority_venom), Some(secondary_venom)) =
                 (AFFLICT_VENOMS.get(priority), AFFLICT_VENOMS.get(secondary))
             {
-                println!("{} {}", priority_venom, secondary_venom);
                 if target.is(*priority) && !target.is(*secondary) {
                     venoms.push(secondary_venom);
                 } else if !target.is(*priority) && target.is(*secondary) {

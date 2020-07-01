@@ -84,6 +84,7 @@ impl SimpleCureAction {
 pub enum Observation {
     // Basic actions
     CombatAction(CombatAction),
+    Proc(CombatAction),
     SimpleCureAction(SimpleCureAction),
     DualWield {
         who: String,
@@ -106,11 +107,13 @@ pub enum Observation {
     Devenoms(String),
     ParryStart(String, String),
     Parry(String, String),
+    Break(String, String),
     Absorbed(String, String),
     DiscernedAfflict(String),
     Rebounds,
     Diverts,
     Dodges(String),
+    Misses(String),
     OtherAfflicted(String, String),
     DiscernedCure(String, String),
     LostRebound(String),
@@ -133,6 +136,8 @@ pub enum Observation {
     LimbDamage(String, f32),
     LimbHeal(String, f32),
     LimbDone(String),
+    Fall(String),
+    Stand(String),
     Sent(String),
 }
 
@@ -308,6 +313,9 @@ impl TimelineState {
                 }
                 handle_combat_action(combat_action, self, before, after)?;
             }
+            Observation::Proc(combat_action) => {
+                handle_combat_action(combat_action, self, before, after)?;
+            }
             Observation::SimpleCureAction(simple_cure) => {
                 handle_simple_cure_action(simple_cure, self, before, after)?;
             }
@@ -318,7 +326,11 @@ impl TimelineState {
                 self.set_flag_for_agent(&self.me.clone(), affliction, false)?;
             }
             Observation::Afflicted(affliction) => {
-                self.set_flag_for_agent(&self.me.clone(), affliction, true)?;
+                if affliction.eq("sapped_strength") {
+                    self.tick_counter_up_for_agent(&self.me.clone(), affliction);
+                } else {
+                    self.set_flag_for_agent(&self.me.clone(), affliction, true)?;
+                }
             }
             Observation::OtherAfflicted(who, affliction) => {
                 println!("{} {}", who, affliction);
@@ -358,6 +370,15 @@ impl TimelineState {
             Observation::LimbDone(what) => {
                 self.finish_agent_restore(&self.me.clone(), what)?;
             }
+            Observation::Stand(who) => {
+                self.set_flag_for_agent(who, &"prone".to_string(), false);
+                if self.get_agent(who).is(FType::Backstrain) {
+                    self.adjust_agent_limb(who, &"torso".to_string(), 10.0);
+                }
+            }
+            Observation::Fall(who) => {
+                self.set_flag_for_agent(who, &"prone".to_string(), true);
+            }
             Observation::ParryStart(who, what) => {
                 let mut me = self.get_agent(who);
                 let limb = get_limb_damage(what)?;
@@ -369,6 +390,10 @@ impl TimelineState {
                 let limb = get_limb_damage(what)?;
                 me.set_parrying(limb);
                 self.set_agent(who, me);
+                if self.get_agent(who).is(FType::SoreWrist) {
+                    self.adjust_agent_limb(who, &"left arm".to_string(), 5.0);
+                    self.adjust_agent_limb(who, &"right arm".to_string(), 5.0);
+                }
             }
             Observation::Wield { who, what, hand } => {
                 let left = if hand.eq("left") {
@@ -408,13 +433,9 @@ impl TimelineState {
             Observation::Relapse(who) => {
                 if before.len() == 0 {
                     // Just don't do the next check.
-                } else if let Some(Observation::Relapse(last_relapse)) =
-                    before.get(before.len() - 1)
-                {
-                    if last_relapse.eq(who) {
-                        // We've already handled this block.
-                        return Ok(());
-                    }
+                } else if before.contains(&Observation::Relapse(who.to_string())) {
+                    // We've already handled this block.
+                    return Ok(());
                 }
                 let mut you = self.get_agent(who);
                 apply_or_infer_relapse(&mut you, after)?;
@@ -639,6 +660,56 @@ pub fn apply_weapon_hits(
     Ok(())
 }
 
+pub fn attack_hit(observations: &Vec<Observation>) -> bool {
+    for (i, observation) in observations.iter().enumerate() {
+        match (i, observation) {
+            (0, Observation::CombatAction(_)) => {}
+            (_, Observation::CombatAction(_)) => {
+                // If we see another combat message, assume we're good to apply limb damage.
+                return true;
+            }
+            (_, Observation::Dodges(_)) => {
+                // Attack dodged.
+                return false;
+            }
+            (_, Observation::Misses(_)) => {
+                // Attack missed.
+                return false;
+            }
+            (_, Observation::Parry(_, _)) => {
+                return false;
+            }
+            _ => {}
+        }
+    }
+    return true;
+}
+
+pub fn apply_limb_damage(
+    target: &mut AgentState,
+    expected_value: (LType, f32),
+    observations: &Vec<Observation>,
+) -> Result<(), String> {
+    for (i, observation) in observations.iter().enumerate() {
+        match (i, observation) {
+            (0, Observation::CombatAction(_)) => {}
+            (_, Observation::CombatAction(_)) => {
+                // If we see another combat message, assume we're good to apply limb damage.
+                break;
+            }
+            (_, Observation::LimbDamage(limb, amount)) => {
+                // If we find actual limb damage, we're the target and don't need to infer.
+                return Ok(());
+            }
+            _ => {}
+        }
+    }
+    if attack_hit(observations) {
+        target.adjust_limb(expected_value.0, (expected_value.1 * 100.0) as CType);
+    }
+    Ok(())
+}
+
 pub fn apply_or_infer_relapse(
     who: &mut AgentState,
     after: &Vec<Observation>,
@@ -675,6 +746,23 @@ pub fn apply_or_infer_relapse(
 }
 
 pub fn apply_or_infer_balance(
+    who: &mut AgentState,
+    expected_value: (BType, f32),
+    observations: &Vec<Observation>,
+) {
+    for observation in observations.iter() {
+        match observation {
+            Observation::Balance(btype, duration) => {
+                who.set_balance(BType::from_name(&btype), *duration);
+                return;
+            }
+            _ => {}
+        }
+    }
+    who.set_balance(expected_value.0, expected_value.1);
+}
+
+pub fn apply_or_infer_combo_balance(
     who: &mut AgentState,
     expected_value: (BType, f32),
     observations: &Vec<Observation>,
