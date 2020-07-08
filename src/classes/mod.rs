@@ -139,6 +139,7 @@ pub fn is_affected_by(class: &Class, affliction: FType) -> bool {
         (FType::Disfigurement, Class::Sentinel) => true,
         (FType::Disfigurement, Class::Carnifex) => true,
         (FType::Disfigurement, Class::Archivists) => true,
+        (FType::Disfigurement, Class::Indorani) => true,
         (FType::Lethargy, Class::Syssin) => true,
         (FType::Lethargy, Class::Sentinel) => true,
         (FType::Lethargy, Class::Carnifex) => true,
@@ -160,7 +161,7 @@ pub fn get_attack(
 ) -> String {
     if let Some(class) = db.and_then(|db| db.get_class(me)) {
         match class {
-            Class::Zealot => zealot::get_attack(timeline, target, strategy),
+            Class::Zealot => zealot::get_attack(timeline, target, strategy, db),
             Class::Syssin => syssin::get_attack(timeline, target, strategy, db),
             _ => syssin::get_attack(timeline, target, strategy, db),
         }

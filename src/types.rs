@@ -31,7 +31,10 @@ pub enum BType {
 
     // Cooldowns
     Wrath,
+    Firefist,
     Pendulum,
+    Disable,
+    Disabled,
 
     // Timers
     Hypnosis,
@@ -124,7 +127,7 @@ impl LType {
 }
 
 pub fn get_limb_damage(what: &String) -> Result<LType, String> {
-    match what.as_ref() {
+    match what.to_ascii_lowercase().as_ref() {
         "head" => Ok(LType::HeadDamage),
         "torso" => Ok(LType::TorsoDamage),
         "left arm" => Ok(LType::LeftArmDamage),
@@ -742,6 +745,9 @@ impl LimbState {
         }
         i32::max((damage / 30.0) as i32, 0)
     }
+    pub fn hits_to_break(&self, damage: f32) -> i32 {
+        f32::ceil((33.33 - self.damage) / damage) as i32
+    }
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -878,13 +884,19 @@ impl LimbSet {
 
     pub fn complete_restore(&mut self, broken: Option<LType>) {
         if broken == self.restoring || broken == None {
-            let expected_heal = if self.regenerating { 3000 } else { 4500 };
+            let expected_heal = if self.regenerating { 4500 } else { 3000 };
             if let Some(broken) = self.restoring {
-                self.damage[broken as usize] = self.damage[broken as usize]
+                let new_damage = self.damage[broken as usize]
                     - i32::min(self.damage[broken as usize], expected_heal);
+                println!(
+                    "{} -> {} ({:?})",
+                    self.damage[broken as usize], new_damage, self.restore_timer
+                );
+                self.damage[broken as usize] = new_damage;
             }
             self.regenerating = false;
             self.restoring = None;
+            self.restore_timer = None;
         }
     }
 
@@ -906,6 +918,24 @@ impl LimbSet {
         }
         self.curing = Some(aff);
         self.restore_timer = Some(400);
+    }
+
+    pub fn get_limbs_damage(&self, limbs: Vec<LType>) -> f32 {
+        let mut total = 0;
+        for limb in limbs.iter() {
+            total = total + self.damage[*limb as usize];
+        }
+        total as f32 / 100.0
+    }
+
+    pub fn get_total_damage(&self) -> f32 {
+        (self.damage[0]
+            + self.damage[1]
+            + self.damage[2]
+            + self.damage[3]
+            + self.damage[4]
+            + self.damage[5]) as f32
+            / 100.0
     }
 }
 
@@ -1387,6 +1417,14 @@ impl AgentState {
         }
     }
 
+    pub fn set_limb_damage(&mut self, limb: LType, value: CType) {
+        let old_value = self.limb_damage.damage[limb as usize];
+        if old_value < value - 200 || old_value > value + 200 {
+            println!("{:?} {} -> {}", limb, old_value, value);
+        }
+        self.limb_damage.damage[limb as usize] = value;
+    }
+
     pub fn get_limbs_state(&self) -> LimbsState {
         LimbsState {
             head: self.get_limb_state(LType::HeadDamage),
@@ -1552,6 +1590,24 @@ impl AgentState {
 
     pub fn rotate_limbs(&mut self, counter: bool) {
         self.limb_damage.rotate(counter);
+        let dislocated_left_arm = self.is(FType::LeftArmDislocated);
+        if counter {
+            self.set_flag(FType::LeftArmDislocated, self.is(FType::RightArmDislocated));
+            self.set_flag(
+                FType::RightArmDislocated,
+                self.is(FType::RightLegDislocated),
+            );
+            self.set_flag(FType::RightLegDislocated, self.is(FType::LeftLegDislocated));
+            self.set_flag(FType::LeftLegDislocated, dislocated_left_arm);
+        } else {
+            self.set_flag(FType::LeftArmDislocated, self.is(FType::LeftLegDislocated));
+            self.set_flag(FType::LeftLegDislocated, self.is(FType::RightLegDislocated));
+            self.set_flag(
+                FType::RightLegDislocated,
+                self.is(FType::RightArmDislocated),
+            );
+            self.set_flag(FType::RightArmDislocated, dislocated_left_arm);
+        }
     }
 
     pub fn restore_count(&self) -> CType {

@@ -1601,7 +1601,7 @@ lazy_static! {
             Box::new(VenomPlan::Stick(FType::Clumsiness))
         ),
         VenomPlan::Stalest(FType::Paresis, FType::Allergies),
-        VenomPlan::Stalest(FType::Weariness, FType::Disfigurement),
+        VenomPlan::Stalest(FType::Disfigurement, FType::Weariness),
         VenomPlan::Stalest(FType::Slickness, FType::Anorexia),
         VenomPlan::Stalest(FType::LeftLegBroken, FType::LeftArmBroken),
         VenomPlan::Stalest(FType::RightLegBroken, FType::RightLegBroken),

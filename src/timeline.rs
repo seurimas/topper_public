@@ -120,8 +120,11 @@ pub enum Observation {
     LostShield(String),
     LostFangBarrier(String),
     PurgeVenom(String, String),
+    FlameShield(String),
     Fangbarrier,
     Shield,
+    WoundStart(String),
+    Wound(String, f32),
     // First-Aid simples
     Afflicted(String),
     Cured(String),
@@ -325,6 +328,11 @@ impl TimelineState {
             Observation::Cured(affliction) => {
                 self.set_flag_for_agent(&self.me.clone(), affliction, false)?;
             }
+            Observation::FlameShield(who) => {
+                if self.get_agent(who).get_count(FType::Ablaze) <= 1 {
+                    self.set_flag_for_agent(who, &"Ablaze".to_string(), false)?;
+                }
+            }
             Observation::Afflicted(affliction) => {
                 if affliction.eq("sapped_strength") {
                     self.tick_counter_up_for_agent(&self.me.clone(), affliction);
@@ -340,6 +348,20 @@ impl TimelineState {
                 let mut me = self.get_agent(who);
                 me.dodge_state.register_dodge();
                 self.set_agent(who, me)
+            }
+            Observation::WoundStart(who) => {
+                let mut me = self.get_agent(who);
+                for after in after.iter() {
+                    match after {
+                        Observation::Wound(limb, damage) => {
+                            if let Ok(limb) = get_limb_damage(limb) {
+                                me.set_limb_damage(limb, (damage * 100.0) as CType);
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                self.set_agent(who, me);
             }
             Observation::Stripped(defense) => {
                 self.set_flag_for_agent(&self.me.clone(), defense, false)?;
