@@ -310,6 +310,31 @@ pub fn handle_combat_action(
             }
             _ => Ok(()),
         },
+        "Aff" => match combat_action.skill.as_ref() {
+            "ablaze" => {
+                let (minimum_stacks, maximum_stacks) = match combat_action.annotation.as_ref() {
+                    "Flames" => (2, 4),
+                    "Hot flames" => (5, 8),
+                    "White-hot flames" => (9, 12),
+                    "Deadly flames" => (13, 120),
+                    _ => (1, 120),
+                };
+                for_agent_closure(
+                    agent_states,
+                    &combat_action.caster,
+                    Box::new(move |you| {
+                        you.tick_flag_up(FType::Ablaze);
+                        if you.get_count(FType::Ablaze) < minimum_stacks {
+                            you.set_count(FType::Ablaze, minimum_stacks);
+                        } else if you.get_count(FType::Ablaze) > maximum_stacks {
+                            you.set_count(FType::Ablaze, maximum_stacks);
+                        }
+                    }),
+                );
+                Ok(())
+            }
+            _ => Ok(()),
+        },
         _ => Ok(()),
     }
 }

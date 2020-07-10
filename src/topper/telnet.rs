@@ -47,11 +47,13 @@ pub fn proxy(receive_lines: Receiver<String>) {
 
     for stream in listener.incoming() {
         let stream = stream.unwrap();
+        let addr = stream.peer_addr();
         println!("Found connection!");
 
         println!(
-            "Connection: {:?}",
-            handle_connection(stream, &receive_lines)
+            "Connection: {:?} ({:?})",
+            handle_connection(stream, &receive_lines),
+            addr,
         );
     }
 }

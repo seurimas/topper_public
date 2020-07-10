@@ -107,7 +107,8 @@ pub enum Observation {
     Devenoms(String),
     ParryStart(String, String),
     Parry(String, String),
-    Break(String, String),
+    Damaged(String, String),
+    Mangled(String, String),
     Absorbed(String, String),
     DiscernedAfflict(String),
     Rebounds,
@@ -280,7 +281,7 @@ impl TimelineState {
     fn adjust_agent_limb(&mut self, who: &String, what: &String, val: f32) -> Result<(), String> {
         let mut me = self.get_agent(who);
         let limb = get_limb_damage(what)?;
-        me.adjust_limb(limb, (val * 100.0) as CType);
+        me.limb_damage.adjust_limb(limb, (val * 100.0) as CType);
         self.set_agent(who, me);
         Ok(())
     }
@@ -384,6 +385,7 @@ impl TimelineState {
                 }
             }
             Observation::LimbDamage(what, much) => {
+                println!("{} {}", what, much);
                 self.adjust_agent_limb(&self.me.clone(), what, *much)?;
             }
             Observation::LimbHeal(what, much) => {
@@ -395,7 +397,18 @@ impl TimelineState {
             Observation::Stand(who) => {
                 self.set_flag_for_agent(who, &"prone".to_string(), false);
                 if self.get_agent(who).is(FType::Backstrain) {
-                    self.adjust_agent_limb(who, &"torso".to_string(), 10.0);
+                    let after = after.clone();
+                    for_agent_closure(
+                        self,
+                        who,
+                        Box::new(move |you| {
+                            apply_limb_damage(
+                                you,
+                                (LType::TorsoDamage, 10.0, you.is(FType::Stiffness)),
+                                &after,
+                            );
+                        }),
+                    );
                 }
             }
             Observation::Fall(who) => {
@@ -413,8 +426,23 @@ impl TimelineState {
                 me.set_parrying(limb);
                 self.set_agent(who, me);
                 if self.get_agent(who).is(FType::SoreWrist) {
-                    self.adjust_agent_limb(who, &"left arm".to_string(), 5.0);
-                    self.adjust_agent_limb(who, &"right arm".to_string(), 5.0);
+                    let after = after.clone();
+                    for_agent_closure(
+                        self,
+                        who,
+                        Box::new(move |you| {
+                            apply_limb_damage(
+                                you,
+                                (LType::LeftArmDamage, 5.0, you.is(FType::Stiffness)),
+                                &after,
+                            );
+                            apply_limb_damage(
+                                you,
+                                (LType::LeftArmDamage, 5.0, you.is(FType::Stiffness)),
+                                &after,
+                            );
+                        }),
+                    );
                 }
             }
             Observation::Wield { who, what, hand } => {
@@ -490,9 +518,6 @@ impl TimelineState {
                 let next = after.remove(0);
                 before.push(next);
             }
-        }
-        if let Prompt::Stats(prompt) = &slice.prompt {
-            self.set_flag_for_agent(&self.me.clone(), &"prone".to_string(), prompt.prone)?;
         }
         Ok(())
     }
@@ -707,11 +732,42 @@ pub fn attack_hit(observations: &Vec<Observation>) -> bool {
     return true;
 }
 
+pub fn limb_damaged(observations: &Vec<Observation>, limb: LType) -> bool {
+    let limb_string = limb.to_string();
+    for (i, observation) in observations.iter().enumerate() {
+        match (i, observation) {
+            (_, Observation::Damaged(_who, what)) => {
+                if limb_string.eq(what) {
+                    return true;
+                }
+            }
+            _ => {}
+        }
+    }
+    return false;
+}
+
+pub fn limb_mangled(observations: &Vec<Observation>, limb: LType) -> bool {
+    let limb_string = limb.to_string();
+    for (i, observation) in observations.iter().enumerate() {
+        match (i, observation) {
+            (_, Observation::Mangled(_who, what)) => {
+                if limb_string.eq(what) {
+                    return true;
+                }
+            }
+            _ => {}
+        }
+    }
+    return false;
+}
+
 pub fn apply_limb_damage(
     target: &mut AgentState,
-    expected_value: (LType, f32),
+    expected_value: (LType, f32, bool),
     observations: &Vec<Observation>,
 ) -> Result<(), String> {
+    let (limb_hit, damage_dealt, should_break) = expected_value;
     for (i, observation) in observations.iter().enumerate() {
         match (i, observation) {
             (0, Observation::CombatAction(_)) => {}
@@ -727,7 +783,49 @@ pub fn apply_limb_damage(
         }
     }
     if attack_hit(observations) {
-        target.adjust_limb(expected_value.0, (expected_value.1 * 100.0) as CType);
+        target
+            .limb_damage
+            .adjust_limb(limb_hit, (damage_dealt * 100.0) as CType);
+        if should_break {
+            if limb_damaged(observations, limb_hit) {
+                if target.limb_damage.get_damage(limb_hit) <= DAMAGED_VALUE {
+                    println!(
+                        "{:?} break at {}",
+                        limb_hit,
+                        target.limb_damage.get_damage(limb_hit)
+                    );
+                }
+                target.limb_damage.set_limb_damaged(limb_hit, true);
+            } else if !target.limb_damage.damaged(limb_hit)
+                && target.limb_damage.get_damage(limb_hit) > DAMAGED_VALUE
+            {
+                println!(
+                    "No {:?} break at {}",
+                    limb_hit,
+                    target.limb_damage.get_damage(limb_hit)
+                );
+                target.set_limb_damage(limb_hit, DAMAGED_VALUE);
+            }
+            if limb_mangled(observations, limb_hit) {
+                if target.limb_damage.get_damage(limb_hit) <= MANGLED_VALUE {
+                    println!(
+                        "{:?} mangle at {}",
+                        limb_hit,
+                        target.limb_damage.get_damage(limb_hit)
+                    );
+                }
+                target.limb_damage.set_limb_damaged(expected_value.0, true);
+            } else if !target.limb_damage.mangled(limb_hit)
+                && target.limb_damage.get_damage(limb_hit) > MANGLED_VALUE
+            {
+                println!(
+                    "No {:?} mangle at {}",
+                    limb_hit,
+                    target.limb_damage.get_damage(limb_hit)
+                );
+                target.set_limb_damage(limb_hit, MANGLED_VALUE);
+            }
+        }
     }
     Ok(())
 }
@@ -915,7 +1013,15 @@ pub fn apply_or_infer_cure(
                 } else if let Some(order) =
                     SALVE_CURE_ORDERS.get(&(salve_name.to_string(), salve_loc.to_string()))
                 {
-                    remove_in_order(order.to_vec())(who);
+                    if let Ok(limb) = get_limb_damage(salve_loc) {
+                        if !who.limb_damage.damaged(limb) {
+                            remove_in_order(order.to_vec())(who);
+                        } else {
+                            println!("{} fizzled on {}", salve_name, salve_loc);
+                        }
+                    } else {
+                        remove_in_order(order.to_vec())(who);
+                    }
                 } else {
                     return Err(format!("Could not find {} on {}", salve_name, salve_loc));
                 }
@@ -936,4 +1042,20 @@ pub fn apply_or_infer_cure(
         }
     }
     Ok(found_cures)
+}
+
+pub fn for_agent(agent_states: &mut TimelineState, target: &String, act: fn(&mut AgentState)) {
+    let mut you = agent_states.get_agent(target);
+    act(&mut you);
+    agent_states.set_agent(target, you);
+}
+
+pub fn for_agent_closure(
+    agent_states: &mut TimelineState,
+    target: &String,
+    act: Box<dyn Fn(&mut AgentState)>,
+) {
+    let mut you = agent_states.get_agent(target);
+    act(&mut you);
+    agent_states.set_agent(target, you);
 }
