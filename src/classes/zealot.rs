@@ -1,4 +1,4 @@
-use crate::classes::{is_affected_by, Class};
+use crate::classes::{get_needed_parry, is_affected_by, Class};
 use crate::curatives::MENTAL_AFFLICTIONS;
 use crate::timeline::*;
 use crate::topper::db::DatabaseModule;
@@ -55,6 +55,13 @@ const PUMMEL_DAMAGE: f32 = 9.5;
 const WANEKICK_DAMAGE: f32 = 9.0;
 const CLAWTWIST_DAMAGE: f32 = 8.5;
 const SUNKICK_DAMAGE: f32 = 6.0;
+const HEELRUSH_ONE_DAMAGE: f32 = 5.5;
+const HEELRUSH_TWO_DAMAGE: f32 = 8.0;
+const HEELRUSH_THREE_DAMAGE: f32 = 11.0;
+const HEELRUSH_DAMAGE: f32 = HEELRUSH_ONE_DAMAGE + HEELRUSH_TWO_DAMAGE + HEELRUSH_THREE_DAMAGE;
+const DIREBLOW_WEAK_DAMAGE: f32 = 10.0;
+const DIREBLOW_STRONG_DAMAGE: f32 = 20.0;
+const SWAGGER_LIMIT: u8 = 3;
 
 pub fn handle_combat_action(
     combat_action: &CombatAction,
@@ -142,6 +149,73 @@ pub fn handle_combat_action(
                 you.zenith_state.initiate()
             });
         }
+        "Heelrush" => {
+            apply_combo_balance(
+                agent_states,
+                &combat_action.caster,
+                (BType::Balance, 3.5),
+                after,
+            );
+
+            if let Ok(limb) = get_limb_damage(&combat_action.annotation) {
+                attack_limb_damage(
+                    agent_states,
+                    &combat_action.target,
+                    (limb, HEELRUSH_ONE_DAMAGE, true),
+                    after,
+                );
+            }
+        }
+        "Heelrush Two" => {
+            if let Ok(limb) = get_limb_damage(&combat_action.annotation) {
+                println!("{:?}", limb);
+                attack_limb_damage(
+                    agent_states,
+                    &combat_action.target,
+                    (limb, HEELRUSH_TWO_DAMAGE, true),
+                    after,
+                );
+            }
+        }
+        "Heelrush Three" => {
+            if let Ok(limb) = get_limb_damage(&combat_action.annotation) {
+                println!("{:?}", limb);
+                attack_limb_damage(
+                    agent_states,
+                    &combat_action.target,
+                    (limb, HEELRUSH_THREE_DAMAGE, true),
+                    after,
+                );
+            }
+        }
+        "Direblow Weak" => {
+            attack_limb_damage(
+                agent_states,
+                &combat_action.target,
+                (LType::TorsoDamage, DIREBLOW_WEAK_DAMAGE, true),
+                after,
+            );
+            attack_afflictions(
+                agent_states,
+                &combat_action.target,
+                vec![FType::Lightwound],
+                after,
+            );
+        }
+        "Direblow Strong" => {
+            attack_limb_damage(
+                agent_states,
+                &combat_action.target,
+                (LType::TorsoDamage, DIREBLOW_STRONG_DAMAGE, true),
+                after,
+            );
+            attack_afflictions(
+                agent_states,
+                &combat_action.target,
+                vec![FType::Lightwound, FType::Deepwound],
+                after,
+            );
+        }
         "Pummel" => {
             apply_combo_balance(
                 agent_states,
@@ -222,7 +296,7 @@ pub fn handle_combat_action(
             attack_afflictions(
                 agent_states,
                 &combat_action.target,
-                vec![FType::Prone],
+                vec![FType::Fallen],
                 after,
             );
         }
@@ -364,10 +438,17 @@ pub fn handle_combat_action(
                 me.set_balance(BType::Wrath, 30.0);
             });
         }
-        "Dullr" => {
+        "Dull" => {
             for_agent(agent_states, &combat_action.target, |me| {
                 me.set_flag(FType::Indifference, true);
             });
+        }
+        "Immolation" => {
+            if combat_action.annotation.eq("failure") {
+                for_agent(agent_states, &combat_action.target, |me| {
+                    me.set_flag(FType::Ablaze, false);
+                });
+            }
         }
         "Recover" => {
             for_agent(agent_states, &combat_action.caster, |me| {
@@ -429,11 +510,14 @@ fn value_pendulum(
                 after_rotate_state.complete_restore(None);
                 let mut after_base_state = you.limb_damage.clone();
                 after_base_state.complete_restore(None);
-                (after_rotate_state
-                    .get_limbs_damage(vec![LType::LeftLegDamage, LType::RightLegDamage])
-                    - after_base_state
-                        .get_limbs_damage(vec![LType::LeftLegDamage, LType::RightLegDamage]))
-                    + (after_rotate_state.get_total_damage() - after_base_state.get_total_damage())
+                let rotated_legs = after_rotate_state
+                    .get_limbs_damage(vec![LType::LeftLegDamage, LType::RightLegDamage]);
+                let unrotated_legs = after_base_state
+                    .get_limbs_damage(vec![LType::LeftLegDamage, LType::RightLegDamage]);
+                let change =
+                    after_rotate_state.get_total_damage() - after_base_state.get_total_damage();
+                println!("{} {} {}", rotated_legs, unrotated_legs, change);
+                (rotated_legs - unrotated_legs) + change
             } else {
                 0.0
             }
@@ -445,8 +529,62 @@ fn value_pendulum(
     }
 }
 
+fn psi_percent(me: &AgentState) -> f32 {
+    me.get_stat(SType::SP) as f32 * 100.0 / 3000.0
+}
+
+fn can_kick(me: &AgentState) -> bool {
+    !me.is(FType::Paralysis)
+        && !me.limb_damage.broken(LType::LeftLegDamage)
+        && !me.limb_damage.broken(LType::RightLegDamage)
+        && (!me.limb_damage.broken(LType::LeftArmDamage)
+            || !me.limb_damage.broken(LType::RightArmDamage))
+}
+
+fn can_punch(me: &AgentState) -> bool {
+    me.get_count(FType::SappedStrength) < SWAGGER_LIMIT && !me.is(FType::Paralysis)
+}
+
 fn db_class(db: Option<(&DatabaseModule, &String)>) -> Option<Class> {
     db.and_then(|(db, who)| db.get_class(who))
+}
+
+fn value_disable(
+    disable: Option<&str>,
+    me: &AgentState,
+    you: &AgentState,
+    db: Option<(&DatabaseModule, &String)>,
+) -> f32 {
+    if !me.balanced(BType::Disable) {
+        0.0
+    } else if (Some("tarot aeon") == disable || disable.is_none())
+        && !me.is(FType::Speed)
+        && (me.is(FType::Asthma) || me.is(FType::Clumsiness) || me.is(FType::Weariness))
+        && Some(Class::Indorani) == db_class(db)
+    {
+        1.0
+    } else {
+        0.0
+    }
+}
+
+fn value_swagger(me: &AgentState, you: &AgentState, db: Option<(&DatabaseModule, &String)>) -> f32 {
+    if me.is(FType::Swagger) {
+        0.0
+    } else if me.get_count(FType::SappedStrength) < SWAGGER_LIMIT {
+        if Some(Class::Luminary) == db_class(db)
+            && (!me.is(FType::Paresis)
+                || (me.is(FType::Paresis)
+                    && !me.balanced(BType::Tree)
+                    && me.get_balance(BType::ParesisParalysis) > 2.0))
+        {
+            0.0
+        } else {
+            1.0
+        }
+    } else {
+        0.0
+    }
 }
 
 lazy_static! {
@@ -460,36 +598,41 @@ lazy_static! {
         ("light pipes;;cinder", |me, you, _db| {
             (ComboType::Free, 1.0)
         }),
-        ("psi disable {} tarot aeon", |me, you, db| {
+        ("psi torrent", |me, you, db| {
             (
                 ComboType::Free,
-                if me.is(FType::Speed) || !me.balanced(BType::Disable) {
-                    0.0
-                } else if me.is(FType::Asthma)
-                    || me.is(FType::Clumsiness)
-                    || me.is(FType::Weariness)
-                {
-                    if let Some(Class::Indorani) = db_class(db) {
-                        1.0
-                    } else {
-                        0.0
-                    }
+                if value_disable(None, me, you, db) > 0.0 && me.get_stat(SType::SP) < 1000 {
+                    2.0
                 } else {
                     0.0
                 },
             )
         }),
-        ("swagger", |me, you, _db| {
+        ("psi disable {} tarot aeon", |me, you, db| {
             (
                 ComboType::Free,
-                if me.is(FType::Swagger) {
-                    0.0
-                } else if me.get_count(FType::SappedStrength) < 5 {
-                    1.0
+                value_disable(Some("tarot aeon"), me, you, db),
+            )
+        }),
+        ("psi dull {}", |me, you, db| {
+            (
+                ComboType::Full,
+                if you.get_restore_time_left() - me.get_qeb_balance() > 2.0
+                    && !you.is(FType::Indifference)
+                    && !you.is(FType::Stuttering)
+                    && !you.is(FType::BlurryVision)
+                    && me.get_stat(SType::SP) > 200
+                    && !me.is(FType::Zenith)
+                    && psi_percent(me) < 50.0
+                {
+                    40.0
                 } else {
                     0.0
                 },
             )
+        }),
+        ("swagger", |me, you, db| {
+            (ComboType::Free, value_swagger(me, you, db))
         }),
         ("enact firefist", |me, you, _db| {
             let target_limbs = you.get_limbs_state();
@@ -497,7 +640,7 @@ lazy_static! {
                 ComboType::Free,
                 if me.is(FType::Firefist) || !me.balanced(BType::Firefist) {
                     0.0
-                } else if target_limbs.torso.damage > 25.0 {
+                } else if me.is(FType::Zenith) && can_punch(me) {
                     1.0
                 } else {
                     0.0
@@ -507,7 +650,7 @@ lazy_static! {
         ("enact immolation {}", |me, you, _db| {
             (
                 ComboType::Full,
-                if you.get_count(FType::Ablaze) > 12 {
+                if you.get_count(FType::Ablaze) > 12 && !you.is(FType::Shielded) {
                     1000.0
                 } else {
                     0.0
@@ -520,12 +663,14 @@ lazy_static! {
                 if you.is(FType::Shielded) { 100.0 } else { 0.0 },
             )
         }),
-        ("respiration hold", |me, you, _db| {
+        ("respiration hold", |me, you, db| {
             (
                 ComboType::Full,
-                if me.get_count(FType::SappedStrength) >= 5 {
+                if me.get_count(FType::SappedStrength) >= SWAGGER_LIMIT {
                     100.0
-                } else if !me.is(FType::Swagger) && me.get_count(FType::SappedStrength) == 4 {
+                } else if value_swagger(me, you, db) > 0.0
+                    && me.get_count(FType::SappedStrength) == SWAGGER_LIMIT - 1
+                {
                     100.0
                 } else {
                     0.0
@@ -566,6 +711,16 @@ lazy_static! {
                 },
             )
         }),
+        ("enact heatspear {};;enact scorch {}", |me, you, _db| {
+            (
+                ComboType::ZenithEq,
+                if !you.is(FType::Ablaze) && me.is(FType::Firefist) {
+                    110.0
+                } else {
+                    0.0
+                },
+            )
+        }),
         ("enact scorch {}", |me, you, _db| {
             (
                 ComboType::ZenithEq,
@@ -575,7 +730,14 @@ lazy_static! {
         ("enact heatspear {}", |me, you, _db| {
             let target_limbs = you.get_limbs_state();
             (
-                ComboType::ZenithEq,
+                if !you.is(FType::Heatspear)
+                    && you.get_count(FType::Ablaze) > 6
+                    && !me.is(FType::Zenith)
+                {
+                    ComboType::Full
+                } else {
+                    ComboType::ZenithEq
+                },
                 if you.is(FType::Ablaze) && !you.is(FType::Heatspear) {
                     if target_limbs.torso.damage > 33.3 {
                         200.0
@@ -616,7 +778,7 @@ lazy_static! {
         ("risekick", |me, you, _db| {
             (
                 ComboType::ComboFirst,
-                if me.is(FType::Prone) && me.can_stand() {
+                if me.is(FType::Fallen) && can_kick(me) {
                     100.0
                 } else {
                     0.0
@@ -627,13 +789,10 @@ lazy_static! {
             let target_limbs = you.get_limbs_state();
             (
                 ComboType::ComboAny,
-                if !you.is(FType::MuscleSpasms)
-                    && !you.is(FType::Stiffness)
-                    && you.limb_damage.restore_timer.is_some()
-                {
-                    30.0
+                if !you.is(FType::MuscleSpasms) && !you.is(FType::Stiffness) && can_punch(me) {
+                    15.0 + (target_limbs.restores_to_zeroes() as f32 * 10.0)
                 } else if !you.is(FType::MuscleSpasms) && target_limbs.restores_to_zeroes() > 1 {
-                    20.0
+                    10.0 + (target_limbs.restores_to_zeroes() as f32 * 10.0)
                 } else {
                     0.0
                 },
@@ -643,9 +802,10 @@ lazy_static! {
             let target_limbs = you.get_limbs_state();
             (
                 ComboType::ComboAny,
-                if !you.is(FType::Prone)
+                if !you.is(FType::Fallen)
                     && (target_limbs.left_leg.broken || target_limbs.right_leg.broken)
                     && target_limbs.restores_to_zeroes() >= 1
+                    && can_punch(me)
                 {
                     30.0
                 } else {
@@ -661,19 +821,34 @@ lazy_static! {
                     && !target_limbs.torso.is_restoring
                     && !target_limbs.torso.is_parried
                     && target_limbs.restores_to_zeroes() >= 1
+                    && can_punch(me)
                 {
                     20.0
+                } else if me.is(FType::Zenith) || you.is(FType::Heatspear) {
+                    15.0
                 } else if target_limbs.torso.damage > 33.3
                     && you.is(FType::Heatspear)
                     && !target_limbs.torso.is_parried
                 {
                     40.0
                 } else {
+                    2.0
+                },
+            )
+        }),
+        ("sunkick", |me, you, _db| {
+            let target_limb = you.get_limb_state(LType::HeadDamage);
+            (
+                ComboType::ComboAny,
+                if me.is(FType::Zenith) || you.is(FType::Heatspear) {
+                    0.0
+                } else if !target_limb.is_restoring && !target_limb.is_parried && can_kick(me) {
+                    30.0
+                } else {
                     0.0
                 },
             )
         }),
-        ("sunkick", |me, you, _db| { (ComboType::ComboAny, 5.0) }),
         ("clawtwist", |me, you, _db| {
             let target_limb = you.get_limb_state(LType::TorsoDamage);
             (
@@ -685,17 +860,37 @@ lazy_static! {
                 {
                     40.0
                 } else {
+                    2.0
+                },
+            )
+        }),
+        ("heelrush torso", |me, you, _db| {
+            let target_limbs = you.get_limbs_state();
+            (
+                ComboType::ComboSecond,
+                if you.get_restore_time_left() > 1.0
+                    && you.is(FType::Indifference)
+                    && can_kick(me)
+                    && !me.is(FType::Zenith)
+                {
+                    80.0 - target_limbs.torso.damage - (me.aff_count() as f32 * 10.0)
+                } else {
                     0.0
                 },
             )
         }),
         ("dislocate left arm", |me, you, _db| {
             let target_limbs = you.get_limbs_state();
+            let mut restores = target_limbs.restores_to_zeroes();
+            if you.is(FType::Heatspear) {
+                restores = restores + 1;
+            }
             (
                 ComboType::ComboAny,
-                if (target_limbs.restores_to_zeroes() > 1 || you.is(FType::Heatspear))
+                if restores > 1
                     && !target_limbs.left_arm.is_parried
                     && !you.is(FType::LeftArmDislocated)
+                    && can_punch(me)
                 {
                     30.0 - target_limbs.left_arm.damage
                 } else {
@@ -705,11 +900,16 @@ lazy_static! {
         }),
         ("dislocate right arm", |me, you, _db| {
             let target_limbs = you.get_limbs_state();
+            let mut restores = target_limbs.restores_to_zeroes();
+            if you.is(FType::Heatspear) {
+                restores = restores + 1;
+            }
             (
                 ComboType::ComboAny,
-                if (target_limbs.restores_to_zeroes() > 1 || you.is(FType::Heatspear))
+                if restores > 1
                     && !target_limbs.right_arm.is_parried
                     && !you.is(FType::RightArmDislocated)
+                    && can_punch(me)
                 {
                     30.0 - target_limbs.right_arm.damage
                 } else {
@@ -719,11 +919,16 @@ lazy_static! {
         }),
         ("dislocate left leg", |me, you, _db| {
             let target_limbs = you.get_limbs_state();
+            let mut restores = target_limbs.restores_to_zeroes();
+            if you.is(FType::Heatspear) {
+                restores = restores + 1;
+            }
             (
                 ComboType::ComboAny,
-                if (target_limbs.restores_to_zeroes() > 1 || you.is(FType::Heatspear))
+                if restores > 1
                     && !target_limbs.left_leg.is_parried
                     && !you.is(FType::LeftLegDislocated)
+                    && can_punch(me)
                 {
                     30.0 - target_limbs.left_leg.damage
                 } else {
@@ -733,11 +938,16 @@ lazy_static! {
         }),
         ("dislocate right leg", |me, you, _db| {
             let target_limbs = you.get_limbs_state();
+            let mut restores = target_limbs.restores_to_zeroes();
+            if you.is(FType::Heatspear) {
+                restores = restores + 1;
+            }
             (
                 ComboType::ComboAny,
-                if (target_limbs.restores_to_zeroes() > 1 || you.is(FType::Heatspear))
+                if restores > 1
                     && !target_limbs.right_leg.is_parried
                     && !you.is(FType::RightLegDislocated)
+                    && can_punch(me)
                 {
                     30.0 - target_limbs.right_leg.damage
                 } else {
@@ -753,6 +963,7 @@ lazy_static! {
                     && !target_limb.is_restoring
                     && !target_limb.is_parried
                     && !target_limb.is_dislocated
+                    && can_punch(me)
                 {
                     if me.is(FType::Firefist) && !you.is(FType::Ablaze) {
                         15.0
@@ -774,6 +985,7 @@ lazy_static! {
                     && !target_limb.is_restoring
                     && !target_limb.is_parried
                     && !target_limb.is_dislocated
+                    && can_punch(me)
                 {
                     if me.is(FType::Firefist) && !you.is(FType::Ablaze) {
                         15.0
@@ -795,7 +1007,7 @@ lazy_static! {
                     && !target_limb.is_restoring
                     && !target_limb.is_parried
                     && !target_limb.is_dislocated
-                    && me.can_stand()
+                    && can_kick(me)
                 {
                     if target_limb.hits_to_break(WANEKICK_DAMAGE) <= 2 {
                         20.0
@@ -815,7 +1027,7 @@ lazy_static! {
                     && !target_limb.is_restoring
                     && !target_limb.is_parried
                     && !target_limb.is_dislocated
-                    && me.can_stand()
+                    && can_kick(me)
                 {
                     if target_limb.hits_to_break(WANEKICK_DAMAGE) <= 2 {
                         20.0
@@ -836,6 +1048,7 @@ lazy_static! {
                     && !target_limb.is_restoring
                     && !target_limb.is_parried
                     && !target_limb.is_dislocated
+                    && can_punch(me)
                 {
                     if me.is(FType::Firefist) && !you.is(FType::Ablaze) {
                         15.0
@@ -856,6 +1069,7 @@ lazy_static! {
                     && !target_limb.is_restoring
                     && !target_limb.is_parried
                     && !target_limb.is_dislocated
+                    && can_punch(me)
                 {
                     if me.is(FType::Firefist) && !you.is(FType::Ablaze) {
                         15.0
@@ -876,7 +1090,7 @@ lazy_static! {
                     && !target_limb.is_restoring
                     && !target_limb.is_parried
                     && !target_limb.is_dislocated
-                    && me.can_stand()
+                    && can_kick(me)
                 {
                     10.0
                 } else {
@@ -893,7 +1107,7 @@ lazy_static! {
                     && !target_limb.is_restoring
                     && !target_limb.is_parried
                     && !target_limb.is_dislocated
-                    && me.can_stand()
+                    && can_kick(me)
                 {
                     10.0
                 } else {
@@ -948,7 +1162,7 @@ lazy_static! {
                     0.0
                 } else if target_limbs.torso.welt {
                     50.0
-                } else if !you.is(FType::Backstrain) && you.is(FType::Prone) {
+                } else if !you.is(FType::Backstrain) && you.is(FType::Fallen) {
                     40.0
                 } else {
                     0.0
@@ -958,7 +1172,7 @@ lazy_static! {
         ("hackles {} jawcrack", |me, you, db| {
             (
                 ComboType::Hackles,
-                if you.is(FType::Indifference) {
+                if you.is(FType::Indifference) || me.get_balance(BType::Secondary) > 3.0 {
                     0.0
                 } else if you.limb_damage.restore_timer.is_some()
                     && !you.is(FType::BlurryVision)
@@ -981,7 +1195,9 @@ lazy_static! {
             let target_limbs = you.get_limbs_state();
             (
                 ComboType::Hackles,
-                if target_limbs.head.welt {
+                if me.get_balance(BType::Secondary) > 3.0 {
+                    0.0
+                } else if target_limbs.head.welt {
                     50.0
                 } else if you.limb_damage.restore_timer.is_some() && !you.is(FType::Whiplash) {
                     15.0
@@ -994,7 +1210,9 @@ lazy_static! {
             let target_limbs = you.get_limbs_state();
             (
                 ComboType::Hackles,
-                if target_limbs.left_arm.welt | target_limbs.right_arm.welt {
+                if me.get_balance(BType::Secondary) > 3.0 {
+                    0.0
+                } else if target_limbs.left_arm.welt | target_limbs.right_arm.welt {
                     50.0
                 } else if you.limb_damage.restore_timer.is_some() && !you.is(FType::SoreWrist) {
                     20.0
@@ -1007,7 +1225,9 @@ lazy_static! {
             let target_limbs = you.get_limbs_state();
             (
                 ComboType::Hackles,
-                if target_limbs.left_leg.welt | target_limbs.right_leg.welt {
+                if me.get_balance(BType::Secondary) > 3.0 {
+                    0.0
+                } else if target_limbs.left_leg.welt | target_limbs.right_leg.welt {
                     50.0
                 } else if you.limb_damage.restore_timer.is_some()
                     && !you.is(FType::SoreAnkle)
@@ -1023,11 +1243,13 @@ lazy_static! {
             let target_limbs = you.get_limbs_state();
             (
                 ComboType::Hackles,
-                if target_limbs.torso.welt {
+                if me.get_balance(BType::Secondary) > 3.0 {
+                    0.0
+                } else if target_limbs.torso.welt {
                     50.0
                 } else if you.limb_damage.restore_timer.is_some()
                     && !you.is(FType::Backstrain)
-                    && you.is(FType::Prone)
+                    && you.is(FType::Fallen)
                 {
                     40.0
                 } else {
@@ -1039,10 +1261,12 @@ lazy_static! {
             let target_limbs = you.get_limbs_state();
             (
                 ComboType::Hackles,
-                if target_limbs.torso.broken && you.is(FType::Heatspear) {
+                if me.get_balance(BType::Secondary) > 3.0 {
+                    0.0
+                } else if target_limbs.torso.broken && you.is(FType::Heatspear) {
                     40.0
                 } else if you.is(FType::Heatspear) {
-                    20.0
+                    15.0 + you.get_count(FType::Ablaze) as f32 * 2.0
                 } else {
                     0.0
                 },
@@ -1170,9 +1394,9 @@ pub fn get_balance_attack(
         }
     }
     let combo_action = match combo {
-        (Some(first), None, Some(last)) => format!("flow {} {} {}", target, first, last),
-        (Some(first), Some(last), None) => format!("flow {} {} {}", target, first, last),
-        (None, Some(first), Some(last)) => format!("flow {} {} {}", target, first, last),
+        (Some(first), None, Some(last)) => format!("flow {} {} {};;dash d", target, first, last),
+        (Some(first), Some(last), None) => format!("flow {} {} {};;dash d", target, first, last),
+        (None, Some(first), Some(last)) => format!("flow {} {} {};;dash d", target, first, last),
         _ => "".to_string(),
     };
     let mut full_combo = match (combo_action.as_ref(), eq) {
@@ -1182,9 +1406,12 @@ pub fn get_balance_attack(
     };
     if let Some(free_act) = free_act {
         full_combo = format!("{};;{}", free_act, full_combo);
-        if me.is(FType::Prone) && !full_combo.contains("risekick") {
-            full_combo = format!("stand;;{}", full_combo);
-        }
+    }
+    if me.is(FType::Fallen) && !full_combo.contains("risekick") {
+        full_combo = format!("stand;;{}", full_combo);
+    }
+    if let Some(parry) = get_needed_parry(timeline, &timeline.who_am_i(), target, strategy, db) {
+        full_combo = format!("fend {};;{}", parry.to_string(), full_combo);
     }
     if let Some(hackles) = hackles {
         format!("qs {}%%qeb {}", hackles, full_combo)

@@ -12,7 +12,7 @@ pub mod syssin;
 pub mod zealot;
 use serde::Serialize;
 
-#[derive(Debug, Serialize, Clone, Display, TryFromPrimitive)]
+#[derive(Debug, Serialize, Clone, Display, TryFromPrimitive, PartialEq)]
 #[repr(u8)]
 pub enum Class {
     Carnifex,
@@ -221,6 +221,21 @@ pub fn get_preferred_parry(
         match class {
             Class::Zealot => zealot::get_preferred_parry(timeline, me, target, strategy),
             Class::Wayfarer => Ok(LType::RightLegDamage),
+            Class::Shapeshifter => {
+                let me = timeline.state.borrow_agent(me);
+                let limbs_state = me.get_limbs_state();
+                if limbs_state.left_leg.broken && !limbs_state.left_leg.damaged {
+                    Ok(LType::LeftLegDamage)
+                } else if limbs_state.right_leg.broken && !limbs_state.right_leg.damaged {
+                    Ok(LType::RightLegDamage)
+                } else if limbs_state.left_arm.broken && !limbs_state.left_arm.damaged {
+                    Ok(LType::LeftArmDamage)
+                } else if limbs_state.right_arm.broken && !limbs_state.right_arm.damaged {
+                    Ok(LType::RightArmDamage)
+                } else {
+                    Ok(LType::HeadDamage)
+                }
+            }
             _ => Ok(LType::TorsoDamage),
         }
     } else {
@@ -272,6 +287,12 @@ pub fn handle_combat_action(
                     apply_or_infer_balance(&mut me, (BType::Equil, 4.0), after);
                 }
                 agent_states.set_agent(&combat_action.caster, me);
+                Ok(())
+            }
+            "Hammer" => {
+                for_agent(agent_states, &combat_action.target, |you| {
+                    you.set_flag(FType::Shielded, false);
+                });
                 Ok(())
             }
             "Tree" => {
@@ -331,6 +352,28 @@ pub fn handle_combat_action(
                         }
                     }),
                 );
+                Ok(())
+            }
+            "dizziness" => {
+                for_agent(agent_states, &combat_action.caster, |you| {
+                    you.set_flag(FType::Fallen, true);
+                    you.set_flag(FType::Dizziness, true);
+                });
+                Ok(())
+            }
+            "stupidity" => {
+                for_agent(agent_states, &combat_action.caster, |you| {
+                    you.set_flag(FType::Fallen, true);
+                    you.set_flag(FType::Stupidity, true);
+                });
+                Ok(())
+            }
+            "broken legs" => {
+                for_agent(agent_states, &combat_action.caster, |you| {
+                    you.set_flag(FType::Fallen, true);
+                    you.set_flag(FType::LeftLegBroken, true);
+                    you.set_flag(FType::RightLegBroken, true);
+                });
                 Ok(())
             }
             _ => Ok(()),

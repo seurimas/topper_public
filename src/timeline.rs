@@ -13,6 +13,7 @@ use std::collections::HashMap;
 pub struct PromptStats {
     pub health: CType,
     pub mana: CType,
+    pub sp: CType,
     pub equilibrium: bool,
     pub balance: bool,
     pub shadow: bool,
@@ -342,6 +343,15 @@ impl TimelineState {
                 }
             }
             Observation::OtherAfflicted(who, affliction) => {
+                if before.len() > 0 {
+                    if let Some(Observation::DiscernedCure(b_who, b_afflict)) =
+                        before.get(before.len() - 1)
+                    {
+                        if b_who.eq(who) && b_afflict.eq(affliction) {
+                            return Ok(());
+                        }
+                    }
+                }
                 println!("{} {}", who, affliction);
                 self.set_flag_for_agent(who, affliction, true)?;
             }
@@ -395,7 +405,7 @@ impl TimelineState {
                 self.finish_agent_restore(&self.me.clone(), what)?;
             }
             Observation::Stand(who) => {
-                self.set_flag_for_agent(who, &"prone".to_string(), false);
+                self.set_flag_for_agent(who, &"fallen".to_string(), false);
                 if self.get_agent(who).is(FType::Backstrain) {
                     let after = after.clone();
                     for_agent_closure(
@@ -412,7 +422,7 @@ impl TimelineState {
                 }
             }
             Observation::Fall(who) => {
-                self.set_flag_for_agent(who, &"prone".to_string(), true);
+                self.set_flag_for_agent(who, &"fallen".to_string(), true);
             }
             Observation::ParryStart(who, what) => {
                 let mut me = self.get_agent(who);
@@ -518,6 +528,16 @@ impl TimelineState {
                 let next = after.remove(0);
                 before.push(next);
             }
+        }
+        if let Prompt::Stats(stats) = &slice.prompt {
+            let sp = stats.sp;
+            for_agent_closure(
+                self,
+                &slice.me,
+                Box::new(move |you| {
+                    you.set_stat(SType::SP, sp);
+                }),
+            );
         }
         Ok(())
     }

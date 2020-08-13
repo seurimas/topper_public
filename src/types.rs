@@ -41,6 +41,7 @@ pub enum BType {
     Fangbarrier,
     Rebounding,
     Void,
+    ParesisParalysis,
 
     UNKNOWN,
     SIZE,
@@ -63,6 +64,7 @@ impl BType {
 pub enum SType {
     Health,
     Mana,
+    SP,
     Sips,
     Shields,
 
@@ -440,7 +442,7 @@ pub enum FType {
     // Special
     Disrupted,
     Fear,
-    Prone,
+    Fallen,
     Itchy,
 
     // Writhes
@@ -746,8 +748,8 @@ pub struct LimbSet {
     pub regenerating: bool,
 }
 
-pub const DAMAGED_VALUE: CType = 3333;
-pub const MANGLED_VALUE: CType = 6666;
+pub const DAMAGED_VALUE: CType = 3332;
+pub const MANGLED_VALUE: CType = 6665;
 
 #[derive(Clone, Debug, Serialize)]
 pub struct LimbState {
@@ -793,6 +795,29 @@ impl LimbsState {
             + self.right_arm.restores_to_zero()
             + self.left_leg.restores_to_zero()
             + self.right_leg.restores_to_zero()
+    }
+
+    pub fn damages(&self) -> i32 {
+        let mut acc = 0;
+        if self.head.damaged {
+            acc += 1;
+        }
+        if self.torso.damaged {
+            acc += 1;
+        }
+        if self.left_arm.damaged {
+            acc += 1;
+        }
+        if self.right_arm.damaged {
+            acc += 1;
+        }
+        if self.left_leg.damaged {
+            acc += 1;
+        }
+        if self.right_leg.damaged {
+            acc += 1;
+        }
+        acc
     }
 }
 
@@ -1466,6 +1491,9 @@ impl AgentState {
         if (flag == FType::Weakvoid || flag == FType::Void) && value == true {
             self.set_balance(BType::Void, 10.0);
         }
+        if value && flag == FType::Paresis {
+            self.set_balance(BType::ParesisParalysis, 4.0);
+        }
         if flag == FType::Zenith {
             if value {
                 self.zenith_state.activate();
@@ -1666,6 +1694,16 @@ impl AgentState {
             && !(self.is(FType::LeftArmBroken) && self.is(FType::RightArmBroken))
     }
 
+    pub fn is_prone(&self) -> bool {
+        self.is(FType::Fallen)
+            || self.is(FType::Frozen)
+            || self.is(FType::Indifference)
+            || self.is(FType::Asleep)
+            || self.is(FType::Stun)
+            || self.is(FType::Paralysis)
+            || self.is(FType::WritheBind)
+    }
+
     pub fn can_stand(&self) -> bool {
         !self.is(FType::LeftLegBroken) && !self.is(FType::RightLegBroken)
     }
@@ -1688,8 +1726,21 @@ impl AgentState {
             && self.is(FType::Heatspear)
         {
             self.limb_damage.start_restore_cure(FType::Heatspear);
+        } else if damage == LType::TorsoDamage
+            && !self.limb_damage.limbs[LType::TorsoDamage as usize].damaged
+            && self.is(FType::Deepwound)
+        {
+            self.limb_damage.start_restore_cure(FType::Deepwound);
         } else {
             self.limb_damage.start_restore(damage);
+        }
+    }
+
+    pub fn get_restore_time_left(&self) -> f32 {
+        if let Some(timer) = self.limb_damage.restore_timer {
+            timer as f32 / BALANCE_SCALE
+        } else {
+            0.0
         }
     }
 

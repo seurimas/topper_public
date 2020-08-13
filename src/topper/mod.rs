@@ -14,6 +14,7 @@ use serde_json::from_str;
 use std::io;
 use std::sync::mpsc::Sender;
 use std::thread;
+use std::time::{Duration, Instant};
 
 #[derive(Deserialize)]
 pub enum TopperRequest {
@@ -169,9 +170,9 @@ impl Topper {
     }
 
     pub fn parse_request_or_event(&mut self, line: &String) -> Result<TopperResponse, String> {
-        info!("{}", line);
+        let start = Instant::now();
         let parsed = from_str(line);
-        match parsed {
+        let result = match parsed {
             Ok(topper_msg) => {
                 let module_msg = self
                     .core_module
@@ -208,7 +209,13 @@ impl Topper {
                 }
             }
             Err(error) => Err(error.to_string()),
+        };
+        let millis = start.elapsed().as_millis();
+        info!("({}) {}", millis, line);
+        if millis > 50 {
+            println!("{} millis to process...", millis);
         }
+        result
     }
 }
 

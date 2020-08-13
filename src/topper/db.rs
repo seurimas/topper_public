@@ -105,6 +105,9 @@ impl DatabaseModule {
                 serde_json::from_str(str_val).ok()
             })
     }
+    
+
+    
 
     fn send_api_request(&self, who: &String, priority: u64) -> bool {
         let last_bytes = self.get("api_last", who).unwrap_or((&[0; 16]).into());
