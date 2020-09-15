@@ -20,6 +20,7 @@ use std::time::{Duration, Instant};
 pub enum TopperRequest {
     Target(String),
     BattleStats(CType),
+    Plan(String),
     Attack(String),
     Hint(String, String, String),
     Assume(String, String, bool),
@@ -148,7 +149,7 @@ impl Topper {
             timeline_module: TimelineModule::new(),
             core_module: TopperCore::new(),
             telnet_module: TelnetModule::new(send_lines),
-            battlestats_module: BattleStatsModule,
+            battlestats_module: BattleStatsModule::new(),
             database_module: DatabaseModule::new("topper.db"),
         }
     }

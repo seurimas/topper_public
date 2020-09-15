@@ -1,4 +1,4 @@
-use crate::classes::Class;
+use crate::classes::{get_attack, Class};
 use crate::curatives::FirstAid;
 use crate::timeline::*;
 use crate::topper::db::DatabaseModule;
@@ -120,7 +120,15 @@ impl PlayerStats {
     }
 }
 
-pub struct BattleStatsModule;
+pub struct BattleStatsModule {
+    plan: Option<String>,
+}
+
+impl BattleStatsModule {
+    pub fn new() -> Self {
+        BattleStatsModule { plan: None }
+    }
+}
 
 impl<'s> TopperModule<'s> for BattleStatsModule {
     type Siblings = (&'s Timeline, &'s Option<String>, &'s DatabaseModule);
@@ -132,8 +140,14 @@ impl<'s> TopperModule<'s> for BattleStatsModule {
         match message {
             TopperMessage::Request(request) => match request {
                 TopperRequest::BattleStats(_) => Ok(TopperResponse::battle_stats(
-                    get_battle_stats(timeline, target, db),
+                    get_battle_stats(timeline, target, db, &self.plan),
                 )),
+                TopperRequest::Plan(plan) => {
+                    self.plan = Some(plan.to_string());
+                    Ok(TopperResponse::battle_stats(get_battle_stats(
+                        timeline, target, db, &self.plan,
+                    )))
+                }
                 _ => Ok(TopperResponse::silent()),
             },
             _ => Ok(TopperResponse::silent()),
@@ -146,6 +160,7 @@ pub struct BattleStats {
     pub feed: Vec<String>,
     pub my_stats: PlayerStats,
     pub target_stats: Option<PlayerStats>,
+    pub plan: String,
 }
 
 fn format_self_limbs(state: &AgentState) -> String {
@@ -168,6 +183,7 @@ pub fn get_battle_stats(
     timeline: &Timeline,
     target: &Option<String>,
     db: &DatabaseModule,
+    plan: &Option<String>,
 ) -> BattleStats {
     let mut lines = Vec::new();
     let my_stats = PlayerStats::for_player(
@@ -188,6 +204,15 @@ pub fn get_battle_stats(
         let target = timeline.state.borrow_agent(target);
         lines.push(format_target_limbs(&target));
     }
+    let plan_str = if let (Some(plan), Some(target)) = (plan, target) {
+        if !plan.eq("") {
+            get_attack(timeline, &timeline.who_am_i(), target, &plan, Some(db))
+        } else {
+            "".to_string()
+        }
+    } else {
+        "".to_string()
+    };
     for timeslice in timeline.slices.iter().rev() {
         for observation in timeslice.observations.iter().rev() {
             if lines_available <= 0 {
@@ -225,5 +250,6 @@ pub fn get_battle_stats(
         feed: lines,
         my_stats,
         target_stats,
+        plan: plan_str,
     }
 }

@@ -224,6 +224,7 @@ pub enum FType {
     Zenith,
     Firefist,
     Swagger,
+    Wrath,
 
     // Antipsychotic
     Sadness,
@@ -989,7 +990,7 @@ impl LimbSet {
         }
     }
 
-    pub fn get_damage(&mut self, broken: LType) -> CType {
+    pub fn get_damage(&self, broken: LType) -> CType {
         self.limbs[broken as usize].damage
     }
 

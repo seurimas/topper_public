@@ -470,21 +470,27 @@ pub fn is_susceptible(target: &AgentState, affliction: &FType) -> bool {
     !target.is(*affliction) && !(*affliction == FType::Paresis && target.is(FType::Paralysis))
 }
 
-pub fn get_venoms(afflictions: Vec<FType>, count: usize, target: &AgentState) -> Vec<&'static str> {
-    let mut venoms = Vec::new();
-    for affliction in afflictions.iter() {
-        if !target.is(*affliction) & !(*affliction == FType::Paresis && target.is(FType::Paralysis))
-        {
-            if let Some(venom) = AFFLICT_VENOMS.get(affliction) {
-                venoms.push(*venom);
+macro_rules! affliction_stacker {
+    ($name:ident, $stack:expr, $returned:ty) => {
+        pub fn $name(afflictions: Vec<FType>, count: usize, target: &AgentState) -> Vec<$returned> {
+            let mut venoms = Vec::new();
+            for affliction in afflictions.iter() {
+                if !target.is(*affliction)
+                    & !(*affliction == FType::Paresis && target.is(FType::Paralysis))
+                {
+                    if let Some(venom) = $stack.get(affliction) {
+                        venoms.push(*venom);
+                    }
+                    if count == venoms.len() {
+                        break;
+                    }
+                }
             }
-            if count == venoms.len() {
-                break;
-            }
+            venoms
         }
-    }
-    venoms
+    };
 }
+affliction_stacker!(get_venoms, AFFLICT_VENOMS, &'static str);
 
 pub fn add_buffers<'s>(ready: &mut Vec<&'s str>, buffers: &Vec<&'s str>) {
     for buffer in buffers.iter() {

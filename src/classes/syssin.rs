@@ -703,7 +703,7 @@ mod action_tests {
         );
         assert_eq!(
             qeb,
-            "qeb parry head;;bedazzle Benedicto;;hypnotise Benedicto;;suggest Benedicto Hypochondria%%qs shadow sleight void Benedicto",
+            "qeb parry torso;;bedazzle Benedicto;;hypnotise Benedicto;;suggest Benedicto Hypochondria%%qs shadow sleight void Benedicto",
         );
     }
 
@@ -718,7 +718,7 @@ mod action_tests {
         );
         assert_eq!(
             qeb,
-            "qeb parry head;;envenom whip with curare;;flay Benedicto;;hypnotise Benedicto;;suggest Benedicto Hypochondria%%qs shadow sleight void Benedicto",
+            "qeb parry torso;;envenom whip with curare;;flay Benedicto;;hypnotise Benedicto;;suggest Benedicto Hypochondria%%qs shadow sleight void Benedicto",
         );
     }
 }
@@ -1416,6 +1416,23 @@ lazy_static! {
 }
 
 lazy_static! {
+    static ref KILL_STACK: Vec<FType> = vec![
+        FType::Allergies,
+        FType::Vomiting,
+        FType::Sensitivity,
+        FType::Recklessness,
+        FType::Asthma,
+        FType::Paresis,
+        FType::Slickness,
+        FType::Anorexia,
+        FType::LeftLegBroken,
+        FType::LeftArmBroken,
+        FType::RightLegBroken,
+        FType::RightArmBroken,
+    ];
+}
+
+lazy_static! {
     static ref FIRE_STACK: Vec<FType> = vec![
         FType::Paresis,
         FType::Clumsiness,
@@ -1442,6 +1459,8 @@ lazy_static! {
         FType::Allergies,
         FType::Dizziness,
         FType::Vomiting,
+        FType::Weariness,
+        FType::Slickness,
         FType::LeftLegBroken,
         FType::RightLegBroken,
     ];
@@ -1638,6 +1657,19 @@ lazy_static! {
 }
 
 lazy_static! {
+    static ref ZEALOT_STACK: Vec<VenomPlan> = vec![
+        VenomPlan::Stick(FType::Clumsiness),
+        VenomPlan::Stick(FType::Asthma),
+        VenomPlan::Stalest(FType::Allergies, FType::Vomiting),
+        VenomPlan::Stalest(FType::Weariness, FType::Stupidity),
+        VenomPlan::Stalest(FType::Slickness, FType::Anorexia),
+        VenomPlan::Stalest(FType::LeftLegBroken, FType::LeftArmBroken),
+        VenomPlan::Stalest(FType::RightLegBroken, FType::RightLegBroken),
+        VenomPlan::Stalest(FType::Sensitivity, FType::Dizziness),
+    ];
+}
+
+lazy_static! {
     static ref SYSSIN_STACK: Vec<VenomPlan> = vec![
         VenomPlan::Stick(FType::Paresis),
         VenomPlan::Stick(FType::Clumsiness),
@@ -1672,10 +1704,6 @@ lazy_static! {
     static ref LUMINARY_STACK: Vec<VenomPlan> = vec![
         VenomPlan::OnTree(FType::Paresis),
         VenomPlan::Stick(FType::Asthma),
-        VenomPlan::IfDo(
-            FType::Impatience,
-            Box::new(VenomPlan::Stick(FType::Stupidity)),
-        ),
         VenomPlan::IfNotDo(
             FType::Hypochondria,
             Box::new(VenomPlan::Stick(FType::Clumsiness))
@@ -1693,9 +1721,9 @@ lazy_static! {
     static ref SHAMAN_STACK: Vec<VenomPlan> = vec![
         VenomPlan::Stick(FType::Allergies),
         VenomPlan::Stick(FType::Paresis),
-        VenomPlan::Stalest(FType::Vomiting, FType::Sensitivity),
+        VenomPlan::Stalest(FType::Vomiting, FType::Stupidity),
         VenomPlan::Stalest(FType::Asthma, FType::Clumsiness),
-        VenomPlan::Stalest(FType::Peace, FType::Stupidity),
+        VenomPlan::Stalest(FType::Peace, FType::Weariness),
         VenomPlan::Stalest(FType::Slickness, FType::Anorexia),
         VenomPlan::Stalest(FType::LeftLegBroken, FType::LeftArmBroken),
         VenomPlan::Stalest(FType::RightLegBroken, FType::RightArmBroken),
@@ -1749,6 +1777,7 @@ lazy_static! {
         val.insert("phys".into(), get_simple_plan(PHYS_STACK.to_vec()));
         val.insert("gank".into(), get_simple_plan(GANK_STACK.to_vec()));
         val.insert("fire".into(), get_simple_plan(FIRE_STACK.to_vec()));
+        val.insert("kill".into(), get_simple_plan(KILL_STACK.to_vec()));
         val.insert("aggro".into(), get_simple_plan(AGGRO_STACK.to_vec()));
         val.insert("salve".into(), get_simple_plan(SALVE_STACK.to_vec()));
         val.insert("peace".into(), get_simple_plan(PEACE_STACK.to_vec()));
@@ -1759,7 +1788,9 @@ lazy_static! {
         val.insert("Wayfarer".into(), WAYFARER_STACK.to_vec());
         val.insert("Syssin".into(), SYSSIN_STACK.to_vec());
         val.insert("Shaman".into(), SHAMAN_STACK.to_vec());
+        val.insert("Templar".into(), get_simple_plan(PHYS_STACK.to_vec()));
         val.insert("Indorani".into(), INDORANI_STACK.to_vec());
+        val.insert("Zealot".into(), ZEALOT_STACK.to_vec());
         val.insert("yedan".into(), get_simple_plan(YEDAN_STACK.to_vec()));
         val.insert("bedazzle".into(), get_simple_plan(BEDAZZLE_STACK.to_vec()));
         val.insert("thin".into(), THIN_STACK.to_vec());
@@ -1952,7 +1983,6 @@ fn should_regenerate(timeline: &Timeline, me: &String) -> bool {
     if me.balanced(BType::Regenerate) {
         false
     } else if let Some((_limb, damage, regenerating)) = me.get_restoring() {
-        println!("{:?} {:?}", damage, regenerating);
         !regenerating && damage > 4000
     } else {
         false
@@ -2173,23 +2203,19 @@ pub fn get_balance_attack<'s>(
                 ));
             }
         } else {
-            println!("{}", you.flags);
             let mut venoms = get_venoms_from_plan(stack.to_vec(), 2, &you);
             let lockers = get_venoms(SOFT_STACK.to_vec(), 3, &you);
             let mut priority_buffer = false;
             if !strategy.eq("slit") && should_lock(Some(&me), &you, &lockers) {
-                println!("Locking!");
                 add_buffers(&mut venoms, &lockers);
                 priority_buffer = true;
             } else if !strategy.eq("slit") && lockers.len() == 0 {
                 let buffer = get_venoms(LOCK_BUFFER_STACK.to_vec(), 2, &you);
-                println!("Lock Buffering! {:?} {:?}", venoms, buffer);
                 add_buffers(&mut venoms, &buffer);
                 priority_buffer = buffer.len() > 0;
             }
             if !priority_buffer {
                 if go_for_thin_blood(timeline, &you, strategy) {
-                    println!("Thinning!");
                     if you.is(FType::Fangbarrier) {
                         return Box::new(FlayAction::fangbarrier(
                             who_am_i.to_string(),
@@ -2207,7 +2233,6 @@ pub fn get_balance_attack<'s>(
                     buffer.insert(buffer.len(), "voyria");
                 }
                 if you.is(FType::ThinBlood) && buffer.len() > 0 {
-                    println!("Buffering! {:?} {:?}", venoms, buffer);
                     add_buffers(&mut venoms, &buffer);
                 } else if !you.can_tree(false) {
                     let mut hypno_buffers = vec![];
@@ -2216,8 +2241,9 @@ pub fn get_balance_attack<'s>(
                     {
                         if you.is(FType::Impatience) {
                             hypno_buffers.push(FType::Stupidity);
+                        } else {
+                            hypno_buffers.push(FType::Shyness);
                         }
-                        hypno_buffers.push(FType::Shyness);
                     }
                     if you.is(FType::Impatience)
                         && (you.is(FType::Loneliness)
@@ -2248,7 +2274,6 @@ pub fn get_balance_attack<'s>(
             let v2 = venoms.pop();
             let v1 = venoms.pop();
             if should_bedazzle(&me, &you, &strategy, false) {
-                println!("Bedazzling!");
                 return Box::new(BedazzleAction::new(who_am_i, &target));
             } else if should_slit(&me, &you, &strategy) && v1.is_some() {
                 return Box::new(SlitAction::new(
