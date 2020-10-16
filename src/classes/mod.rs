@@ -8,9 +8,10 @@ use std::collections::HashMap;
 pub mod carnifex;
 use num_enum::TryFromPrimitive;
 pub mod luminary;
+pub mod sentinel;
 pub mod syssin;
 pub mod zealot;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Clone, Display, TryFromPrimitive, PartialEq)]
 #[repr(u8)]
@@ -163,6 +164,7 @@ pub fn get_attack(
         match class {
             Class::Zealot => zealot::get_attack(timeline, target, strategy, db),
             Class::Syssin => syssin::get_attack(timeline, target, strategy, db),
+            Class::Sentinel => sentinel::get_attack(timeline, target, strategy, db),
             _ => syssin::get_attack(timeline, target, strategy, db),
         }
     } else {
@@ -208,6 +210,22 @@ pub fn get_restore_parry(timeline: &Timeline, me: &String) -> Option<LType> {
     }
 }
 
+pub fn get_top_parry(timeline: &Timeline, me: &String) -> Option<LType> {
+    let me = timeline.state.borrow_agent(me);
+    let mut top_non_restoring = None;
+    for limb in LIMBS.to_vec() {
+        let limb_state = me.get_limb_state(limb);
+        if let Some((top_damage, _top_limb)) = top_non_restoring {
+            if !limb_state.is_restoring && limb_state.damage > top_damage {
+                top_non_restoring = Some((limb_state.damage, limb));
+            }
+        } else if !limb_state.is_restoring && limb_state.damage > 1.0 {
+            top_non_restoring = Some((limb_state.damage, limb));
+        }
+    }
+    top_non_restoring.map(|top| top.1)
+}
+
 pub fn get_preferred_parry(
     timeline: &Timeline,
     me: &String,
@@ -219,11 +237,9 @@ pub fn get_preferred_parry(
         Ok(parry)
     } else if let Some(class) = db.and_then(|db| db.get_class(target)) {
         match class {
-            Class::Zealot => zealot::get_preferred_parry(timeline, me, target, strategy),
-            Class::Wayfarer => Ok(LType::RightLegDamage),
             Class::Shapeshifter => {
-                let me = timeline.state.borrow_agent(me);
-                let limbs_state = me.get_limbs_state();
+                let myself = timeline.state.borrow_agent(me);
+                let limbs_state = myself.get_limbs_state();
                 if limbs_state.left_leg.broken && !limbs_state.left_leg.damaged {
                     Ok(LType::LeftLegDamage)
                 } else if limbs_state.right_leg.broken && !limbs_state.right_leg.damaged {
@@ -233,13 +249,13 @@ pub fn get_preferred_parry(
                 } else if limbs_state.right_arm.broken && !limbs_state.right_arm.damaged {
                     Ok(LType::RightArmDamage)
                 } else {
-                    Ok(LType::HeadDamage)
+                    Ok(get_top_parry(timeline, me).unwrap_or(LType::HeadDamage))
                 }
             }
-            _ => Ok(LType::TorsoDamage),
+            _ => Ok(get_top_parry(timeline, me).unwrap_or(LType::HeadDamage)),
         }
     } else {
-        Ok(LType::TorsoDamage)
+        Ok(get_top_parry(timeline, me).unwrap_or(LType::HeadDamage))
     }
 }
 
@@ -258,6 +274,9 @@ pub fn handle_combat_action(
         }
         "Purification" | "Zeal" | "Psionics" => {
             zealot::handle_combat_action(combat_action, agent_states, before, after)
+        }
+        "Dhuriv" | "Woodlore" | "Tracking" => {
+            sentinel::handle_combat_action(combat_action, agent_states, before, after)
         }
         "Spirituality" | "Devotion" | "Illumination" => {
             luminary::handle_combat_action(combat_action, agent_states, before, after)
@@ -383,7 +402,7 @@ pub fn handle_combat_action(
 }
 
 lazy_static! {
-    static ref AFFLICT_VENOMS: HashMap<FType, &'static str> = {
+    pub static ref AFFLICT_VENOMS: HashMap<FType, &'static str> = {
         let mut val = HashMap::new();
         val.insert(FType::Clumsiness, "xentio");
         val.insert(FType::Blindness, "oleander");
@@ -470,6 +489,7 @@ pub fn is_susceptible(target: &AgentState, affliction: &FType) -> bool {
     !target.is(*affliction) && !(*affliction == FType::Paresis && target.is(FType::Paralysis))
 }
 
+#[macro_export]
 macro_rules! affliction_stacker {
     ($name:ident, $stack:expr, $returned:ty) => {
         pub fn $name(afflictions: Vec<FType>, count: usize, target: &AgentState) -> Vec<$returned> {
@@ -507,14 +527,26 @@ pub fn add_buffers<'s>(ready: &mut Vec<&'s str>, buffers: &Vec<&'s str>) {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum VenomPlan {
     Stick(FType),
     StickThisIfThat(FType, FType),
     OnTree(FType),
-    Stalest(FType, FType),
+    OneOf(FType, FType),
     IfDo(FType, Box<VenomPlan>),
     IfNotDo(FType, Box<VenomPlan>),
+}
+
+impl VenomPlan {
+    pub fn affliction(&self) -> FType {
+        match self {
+            VenomPlan::Stick(aff)
+            | VenomPlan::StickThisIfThat(aff, _)
+            | VenomPlan::OnTree(aff)
+            | VenomPlan::OneOf(aff, _) => *aff,
+            VenomPlan::IfDo(_pred, plan) | VenomPlan::IfNotDo(_pred, plan) => plan.affliction(),
+        }
+    }
 }
 
 pub fn get_simple_plan(afflictions: Vec<FType>) -> Vec<VenomPlan> {
@@ -524,80 +556,80 @@ pub fn get_simple_plan(afflictions: Vec<FType>) -> Vec<VenomPlan> {
         .collect()
 }
 
-fn add_venom_from_plan(item: &VenomPlan, target: &AgentState, venoms: &mut Vec<&'static str>) {
-    match item {
-        VenomPlan::Stick(aff) => {
-            if is_susceptible(target, aff) {
-                if let Some(venom) = AFFLICT_VENOMS.get(aff) {
-                    venoms.push(*venom);
-                }
-            }
-        }
-        VenomPlan::StickThisIfThat(this, that) => {
-            if target.is(*this) && is_susceptible(target, that) {
-                if let Some(venom) = AFFLICT_VENOMS.get(that) {
-                    venoms.push(*venom);
-                }
-            }
-        }
-        VenomPlan::OnTree(aff) => {
-            if (target.balanced(BType::Tree) || target.get_balance(BType::Tree) < 1.5)
-                && is_susceptible(target, aff)
-            {
-                if let Some(venom) = AFFLICT_VENOMS.get(aff) {
-                    venoms.push(*venom);
-                }
-            }
-        }
-        VenomPlan::Stalest(priority, secondary) => {
-            if let (Some(priority_venom), Some(secondary_venom)) =
-                (AFFLICT_VENOMS.get(priority), AFFLICT_VENOMS.get(secondary))
-            {
-                if target.is(*priority) && !target.is(*secondary) {
-                    venoms.push(secondary_venom);
-                } else if !target.is(*priority) && target.is(*secondary) {
-                    venoms.push(priority_venom);
-                } else if !target.is(*priority) && !target.is(*secondary) {
-                    if let Some(stalest) = target.relapses.stalest(vec![
-                        priority_venom.to_string(),
-                        secondary_venom.to_string(),
-                    ]) {
-                        if stalest.eq(priority_venom) {
-                            venoms.push(priority_venom);
-                        } else {
-                            venoms.push(secondary_venom);
+#[macro_export]
+macro_rules! affliction_plan_stacker {
+    ($add_name:ident, $get_name:ident, $stack:expr, $returned:ty) => {
+        pub fn $add_name(item: &VenomPlan, target: &AgentState, venoms: &mut Vec<$returned>) {
+            match item {
+                VenomPlan::Stick(aff) => {
+                    if is_susceptible(target, aff) {
+                        if let Some(venom) = $stack.get(aff) {
+                            venoms.push(*venom);
                         }
+                    }
+                }
+                VenomPlan::StickThisIfThat(this, that) => {
+                    if target.is(*this) && is_susceptible(target, that) {
+                        if let Some(venom) = $stack.get(that) {
+                            venoms.push(*venom);
+                        }
+                    }
+                }
+                VenomPlan::OnTree(aff) => {
+                    if (target.balanced(BType::Tree) || target.get_balance(BType::Tree) < 1.5)
+                        && is_susceptible(target, aff)
+                    {
+                        if let Some(venom) = $stack.get(aff) {
+                            venoms.push(*venom);
+                        }
+                    }
+                }
+                VenomPlan::OneOf(priority, secondary) => {
+                    if let (Some(priority_venom), Some(secondary_venom)) =
+                        ($stack.get(priority), $stack.get(secondary))
+                    {
+                        if target.is(*priority) && !target.is(*secondary) {
+                            venoms.push(*secondary_venom);
+                        } else if !target.is(*priority) {
+                            venoms.push(*priority_venom);
+                        }
+                    }
+                }
+                VenomPlan::IfDo(when, plan) => {
+                    if target.is(*when) {
+                        $add_name(plan, target, venoms);
+                    }
+                }
+                VenomPlan::IfNotDo(when, plan) => {
+                    if !target.is(*when) {
+                        $add_name(plan, target, venoms);
                     }
                 }
             }
         }
-        VenomPlan::IfDo(when, plan) => {
-            if target.is(*when) {
-                add_venom_from_plan(plan, target, venoms);
-            }
-        }
-        VenomPlan::IfNotDo(when, plan) => {
-            if !target.is(*when) {
-                add_venom_from_plan(plan, target, venoms);
-            }
-        }
-    }
-}
 
-pub fn get_venoms_from_plan(
-    plan: Vec<VenomPlan>,
-    count: usize,
-    target: &AgentState,
-) -> Vec<&'static str> {
-    let mut venoms = Vec::new();
-    for item in plan.iter() {
-        add_venom_from_plan(item, target, &mut venoms);
-        if count == venoms.len() {
-            break;
+        pub fn $get_name(
+            plan: &Vec<VenomPlan>,
+            count: usize,
+            target: &AgentState,
+        ) -> Vec<$returned> {
+            let mut venoms = Vec::new();
+            for item in plan.iter() {
+                $add_name(item, target, &mut venoms);
+                if count == venoms.len() {
+                    break;
+                }
+            }
+            venoms
         }
-    }
-    venoms
+    };
 }
+affliction_plan_stacker!(
+    add_venom_from_plan,
+    get_venoms_from_plan,
+    AFFLICT_VENOMS,
+    &'static str
+);
 
 pub struct RestoreAction {
     caster: String,
@@ -675,5 +707,54 @@ impl ActiveTransition for RegenerateAction {
     }
     fn act(&self, timeline: &Timeline) -> ActivateResult {
         Ok(format!("regenerate"))
+    }
+}
+
+pub struct ShieldAction {
+    caster: String,
+}
+
+impl ShieldAction {
+    pub fn new(caster: &str) -> Self {
+        ShieldAction {
+            caster: caster.to_string(),
+        }
+    }
+}
+
+impl ActiveTransition for ShieldAction {
+    fn simulate(&self, timeline: &Timeline) -> Vec<ProbableEvent> {
+        vec![ProbableEvent::new(
+            vec![Observation::CombatAction(CombatAction {
+                caster: self.caster.clone(),
+                category: "Tattoos".to_string(),
+                skill: "Shield".to_string(),
+                target: "".to_string(),
+                annotation: "".to_string(),
+            })],
+            1,
+        )]
+    }
+    fn act(&self, timeline: &Timeline) -> ActivateResult {
+        Ok(format!("stand;;touch shield"))
+    }
+}
+
+pub struct Action {
+    command: String,
+}
+
+impl Action {
+    pub fn new(command: String) -> Self {
+        Action { command }
+    }
+}
+
+impl ActiveTransition for Action {
+    fn simulate(&self, timeline: &Timeline) -> Vec<ProbableEvent> {
+        vec![]
+    }
+    fn act(&self, timeline: &Timeline) -> ActivateResult {
+        Ok(self.command.clone())
     }
 }

@@ -179,19 +179,15 @@ impl TimeSlice {
 pub struct TimelineState {
     agent_states: HashMap<String, AgentState>,
     free_hints: HashMap<String, String>,
-    classes: HashMap<String, Class>,
     time: CType,
     pub me: String,
 }
 
 impl TimelineState {
     pub fn new() -> Self {
-        let mut classes = HashMap::new();
-        classes.insert("Haven".to_string(), Class::Luminary);
         TimelineState {
             agent_states: HashMap::new(),
             free_hints: HashMap::new(),
-            classes,
             time: 0,
             me: "".to_string(),
         }
@@ -312,10 +308,6 @@ impl TimelineState {
                 handle_sent(command, self);
             }
             Observation::CombatAction(combat_action) => {
-                if let Some(known_class) = get_skill_class(&combat_action.category) {
-                    self.classes
-                        .insert(combat_action.caster.clone(), known_class);
-                }
                 handle_combat_action(combat_action, self, before, after)?;
             }
             Observation::Proc(combat_action) => {
@@ -702,6 +694,10 @@ pub fn apply_weapon_hits(
                         apply_venom(target, venom)?;
                     }
                 }
+            } else if let Some(Observation::CombatAction(_)) = observations.get(i) {
+                if i > 0 {
+                    break;
+                }
             }
         }
     } else if let Some(venom_hints) = venom_hints {
@@ -834,7 +830,7 @@ pub fn apply_limb_damage(
                         target.limb_damage.get_damage(limb_hit)
                     );
                 }
-                target.limb_damage.set_limb_damaged(expected_value.0, true);
+                target.limb_damage.set_limb_mangled(expected_value.0, true);
             } else if !target.limb_damage.mangled(limb_hit)
                 && target.limb_damage.get_damage(limb_hit) > MANGLED_VALUE
             {
@@ -1078,4 +1074,55 @@ pub fn for_agent_closure(
     let mut you = agent_states.get_agent(target);
     act(&mut you);
     agent_states.set_agent(target, you);
+}
+
+pub fn attack_afflictions(
+    agent_states: &mut TimelineState,
+    target: &String,
+    affs: Vec<FType>,
+    after: &Vec<Observation>,
+) {
+    if attack_hit(after) {
+        let mut you = agent_states.get_agent(target);
+        for aff in affs.iter() {
+            you.set_flag(*aff, true);
+        }
+        agent_states.set_agent(target, you);
+    }
+}
+
+pub fn attack_strip(
+    agent_states: &mut TimelineState,
+    target: &String,
+    defs: Vec<FType>,
+    after: &Vec<Observation>,
+) {
+    if attack_hit(after) {
+        let mut you = agent_states.get_agent(target);
+        for def in defs.iter() {
+            you.set_flag(*def, false);
+        }
+        agent_states.set_agent(target, you);
+    }
+}
+
+pub fn attack_strip_or_afflict(
+    agent_states: &mut TimelineState,
+    target: &String,
+    aff_defs: Vec<FType>,
+    after: &Vec<Observation>,
+) {
+    if attack_hit(after) {
+        let mut you = agent_states.get_agent(target);
+        for aff_def in aff_defs.iter() {
+            if !aff_def.is_affliction() && you.is(*aff_def) {
+                you.set_flag(*aff_def, false);
+                break;
+            } else if aff_def.is_affliction() && !you.is(*aff_def) {
+                you.set_flag(*aff_def, true);
+                break;
+            }
+        }
+        agent_states.set_agent(target, you);
+    }
 }

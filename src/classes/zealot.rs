@@ -36,21 +36,6 @@ fn attack_limb_damage(
     agent_states.set_agent(target, you);
 }
 
-fn attack_afflictions(
-    agent_states: &mut TimelineState,
-    target: &String,
-    affs: Vec<FType>,
-    after: &Vec<Observation>,
-) {
-    if attack_hit(after) {
-        let mut you = agent_states.get_agent(target);
-        for aff in affs.iter() {
-            you.set_flag(*aff, true);
-        }
-        agent_states.set_agent(target, you);
-    }
-}
-
 const PUMMEL_DAMAGE: f32 = 9.5;
 const WANEKICK_DAMAGE: f32 = 9.0;
 const CLAWTWIST_DAMAGE: f32 = 8.5;

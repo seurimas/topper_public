@@ -1,9 +1,9 @@
-use crate::classes::get_attack;
+use crate::classes::{get_attack, VenomPlan};
 use crate::topper::battle_stats::*;
 use crate::topper::db::DatabaseModule;
 use crate::topper::telnet::TelnetModule;
 use crate::topper::timeline::{TimeSlice, Timeline, TimelineModule};
-use crate::types::CType;
+use crate::types::{CType, Hypnosis};
 mod battle_stats;
 pub mod db;
 pub mod telnet;
@@ -26,6 +26,10 @@ pub enum TopperRequest {
     Assume(String, String, bool),
     Reset(String),
     Api(String),
+    // DB Methods
+    Inspect(String, String),
+    SetPriority(String, usize, Option<VenomPlan>),
+    SetHypnosis(String, usize, Option<Hypnosis>),
 }
 
 #[derive(Deserialize)]

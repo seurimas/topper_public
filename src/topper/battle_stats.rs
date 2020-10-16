@@ -1,5 +1,4 @@
 use crate::classes::{get_attack, Class};
-use crate::curatives::FirstAid;
 use crate::timeline::*;
 use crate::topper::db::DatabaseModule;
 use crate::topper::{TopperMessage, TopperModule, TopperRequest, TopperResponse};
@@ -14,7 +13,6 @@ pub struct PlayerStats {
     balances: HashMap<String, f32>,
     warnings: Vec<String>,
     lock_duration: Option<f32>,
-    first_aid_cure: Option<String>,
     class: String,
 }
 
@@ -46,10 +44,6 @@ fn get_lock_warning(state: &AgentState) -> Option<String> {
     }
 }
 
-lazy_static! {
-    static ref DEFAULT_FIRST_AID: FirstAid = { FirstAid::new() };
-}
-
 impl PlayerStats {
     pub fn new() -> Self {
         PlayerStats {
@@ -58,7 +52,6 @@ impl PlayerStats {
             warnings: Vec::new(),
             balances: HashMap::new(),
             lock_duration: None,
-            first_aid_cure: None,
             class: "".to_string(),
         }
     }
@@ -114,7 +107,6 @@ impl PlayerStats {
             warnings,
             balances,
             lock_duration,
-            first_aid_cure: None,
             class: class.map_or_else(|| "Unknown".to_string(), |class| format!("{}", class)),
         }
     }

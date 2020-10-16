@@ -28,6 +28,7 @@ pub enum BType {
 
     // Misc
     ClassCure1,
+    ClassCure2, // Fitness
 
     // Cooldowns
     Wrath,
@@ -172,7 +173,17 @@ pub fn get_damage_barrier(aff: &String) -> Result<(LType, CType), String> {
 
 // Flags
 #[derive(
-    Debug, PartialEq, PartialOrd, Eq, Hash, Clone, Copy, TryFromPrimitive, Deserialize, EnumString,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Hash,
+    Clone,
+    Copy,
+    TryFromPrimitive,
+    EnumString,
+    Serialize,
+    Deserialize,
 )]
 #[repr(u16)]
 pub enum FType {
@@ -227,7 +238,7 @@ pub enum FType {
     Wrath,
 
     // Antipsychotic
-    Sadness,
+    Sadness, // MUST BE FIRST AFFLICTION
     Confusion,
     Dementia,
     Hallucinations,
@@ -390,6 +401,7 @@ pub enum FType {
     // Restoration Head
     Voidgaze,
     MauledFace,
+    SmashedThroat,
 
     // Restoration Torso
     CollapsedLung,
@@ -724,7 +736,7 @@ impl Clone for FlagSet {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Hypnosis {
     Aff(FType),
     Action(String),
@@ -877,7 +889,7 @@ impl fmt::Display for LimbSet {
 }
 
 lazy_static! {
-    static ref LIMBS: Vec<LType> = vec![
+    pub static ref LIMBS: Vec<LType> = vec![
         LType::HeadDamage,
         LType::TorsoDamage,
         LType::LeftArmDamage,
@@ -1676,12 +1688,15 @@ impl AgentState {
         ignore_bal || self.balanced(BType::Renew)
     }
 
-    pub fn can_tree(&self, ignore_bal: bool) -> bool {
+    pub fn can_touch(&self) -> bool {
         !self.is(FType::Paresis)
             && !self.is(FType::Paralysis)
             && !(self.is(FType::LeftArmBroken) && self.is(FType::RightArmBroken))
             && !self.is(FType::NumbArms)
-            && (ignore_bal || self.balanced(BType::Tree))
+    }
+
+    pub fn can_tree(&self, ignore_bal: bool) -> bool {
+        self.can_touch() && (ignore_bal || self.balanced(BType::Tree))
     }
 
     pub fn can_focus(&self, ignore_bal: bool) -> bool {

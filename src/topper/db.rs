@@ -1,8 +1,10 @@
-use crate::classes::Class;
+use crate::classes::{VenomPlan, Class};
+use crate::types::{Hypnosis};
 use sled::{open, Db, IVec};
 use std::path::Path;
 use serde::{Serialize, Deserialize};
 use serde::de::DeserializeOwned;
+use serde_json::to_string_pretty;
 use reqwest::Response;
 use std::convert::{TryInto, TryFrom};
 use std::thread::JoinHandle;
@@ -105,9 +107,6 @@ impl DatabaseModule {
                 serde_json::from_str(str_val).ok()
             })
     }
-    
-
-    
 
     fn send_api_request(&self, who: &String, priority: u64) -> bool {
         let last_bytes = self.get("api_last", who).unwrap_or((&[0; 16]).into());
@@ -156,6 +155,64 @@ impl DatabaseModule {
             None
         }
     }
+
+    pub fn get_venom_plan(&self, stack_name: &String) -> Option<Vec<VenomPlan>> {
+        self.get_json::<Vec<VenomPlan>>("stacks", stack_name)
+    }
+
+    fn set_venom_plan(&self, stack_name: &String, stack: Vec<VenomPlan>) {
+        self.insert_json::<Vec<VenomPlan>>("stacks", stack_name, stack);
+    }
+
+    pub fn get_hypno_plan(&self, stack_name: &String) -> Option<Vec<Hypnosis>> {
+        self.get_json::<Vec<Hypnosis>>("hypnosis", stack_name)
+    }
+
+    fn set_hypno_plan(&self, stack_name: &String, stack: Vec<Hypnosis>) {
+        self.insert_json::<Vec<Hypnosis>>("hypnosis", stack_name, stack);
+    }
+}
+
+fn insert_in_stack<T: Serialize + Clone>(old_stack: &mut Vec<T>, index: usize, item: &T, unique: bool) {
+    if let Ok(item_str) = serde_json::to_string(&item) {
+        let mut old_index = None;
+        for idx in 0..old_stack.len() {
+            let plan_item = old_stack.get(idx).unwrap();
+            if let Ok(plan_item_str) = serde_json::to_string(plan_item) {
+                if item_str.eq(&plan_item_str) && unique {
+                    old_index = Some(idx);
+                    break;
+                }
+            } else {
+            }
+        }
+        if let Some(old_index) = old_index {
+            old_stack.remove(old_index);
+            if index >= old_stack.len() {
+                old_stack.push(item.clone());
+            } else if index > old_index {
+                old_stack.insert(index - 1, item.clone());
+            } else {
+                old_stack.insert(index, item.clone());
+            }
+        } else if index <= old_stack.len() {
+            old_stack.insert(index, item.clone());
+        } else {
+            old_stack.push(item.clone());
+        }
+    }
+}
+
+fn update_stack<T: Serialize + Clone>(stack_name: &String, old_stack: &mut Vec<T>, index: usize, item: &Option<T>, unique: bool) {
+    if let Some(item) = item {
+        insert_in_stack(old_stack, index, item, unique);
+    } else {
+        if index < old_stack.len() {
+            old_stack.remove(index);
+        } else {
+            println!("Stack {} has only {} items, but tried to remove {}", stack_name, old_stack.len(), index);
+        }
+    }
 }
 
 impl<'s> TopperModule<'s> for DatabaseModule {
@@ -169,6 +226,57 @@ impl<'s> TopperModule<'s> for DatabaseModule {
         match message {
             TopperMessage::Request(TopperRequest::Api(who)) => {
                 self.send_api_request(who, 300);
+                Ok(TopperResponse::silent())
+            }
+            TopperMessage::Request(TopperRequest::Inspect(tree, key)) => {
+                match tree.as_ref() {
+                    "stacks" => {
+                        if let Some(plan) = self.get_venom_plan(key) {
+                            if let Ok(plan_str) = to_string_pretty(&plan) {
+                                println!("{}", plan_str);
+                            }
+                        } else {
+                            println!("Strategy {} not found", key);
+                        }
+                    }
+                    "hypnosis" => {
+                        if let Some(plan) = self.get_hypno_plan(key) {
+                            if let Ok(plan_str) = to_string_pretty(&plan) {
+                                println!("{}", plan_str);
+                            }
+                        } else {
+                            println!("Hypno strategy {} not found", key);
+                        }
+                    }
+                    "character" => {
+                        if let Some(character) = self.get_json::<CharacterApiResponse>("character", key) {
+                            if let Ok(character_str) = to_string_pretty(&character) {
+                                println!("{}", character_str);
+                            }
+                        } else {
+                            println!("Character {} not found", key);
+                        }
+                    }
+                    _ => {}
+                }
+                Ok(TopperResponse::silent())
+            }
+            TopperMessage::Request(TopperRequest::SetHypnosis(stack, index, hypno)) => {
+                let mut old_stack = self.get_hypno_plan(stack).unwrap_or_default();
+                update_stack(stack, &mut old_stack, *index, hypno, false);
+                if let Ok(stack_str) = to_string_pretty(&old_stack) {
+                    println!("{}", stack_str);
+                }
+                self.set_hypno_plan(stack, old_stack);
+                Ok(TopperResponse::silent())
+            }
+            TopperMessage::Request(TopperRequest::SetPriority(stack, index, venom_plan)) => {
+                let mut old_stack = self.get_venom_plan(stack).unwrap_or_default();
+                update_stack(stack, &mut old_stack, *index, venom_plan, true);
+                if let Ok(stack_str) = to_string_pretty(&old_stack) {
+                    println!("{}", stack_str);
+                }
+                self.set_venom_plan(stack, old_stack);
                 Ok(TopperResponse::silent())
             }
             TopperMessage::Event(event) => {
