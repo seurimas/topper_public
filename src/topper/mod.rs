@@ -3,11 +3,13 @@ use crate::topper::battle_stats::*;
 use crate::topper::db::DatabaseModule;
 use crate::topper::telnet::TelnetModule;
 use crate::topper::timeline::{TimeSlice, Timeline, TimelineModule};
+use crate::topper::web_ui::WebModule;
 use crate::types::{CType, Hypnosis};
 mod battle_stats;
 pub mod db;
 pub mod telnet;
 mod timeline;
+mod web_ui;
 use log::info;
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
@@ -30,6 +32,8 @@ pub enum TopperRequest {
     Inspect(String, String),
     SetPriority(String, usize, Option<VenomPlan>),
     SetHypnosis(String, usize, Option<Hypnosis>),
+    // Web Methods
+    OpenWeb,
 }
 
 #[derive(Deserialize)]
@@ -145,6 +149,7 @@ pub struct Topper {
     telnet_module: TelnetModule,
     battlestats_module: BattleStatsModule,
     database_module: DatabaseModule,
+    web_module: WebModule,
 }
 
 impl Topper {
@@ -155,6 +160,7 @@ impl Topper {
             telnet_module: TelnetModule::new(send_lines),
             battlestats_module: BattleStatsModule::new(),
             database_module: DatabaseModule::new("topper.db"),
+            web_module: WebModule::new(),
         }
     }
 
@@ -192,7 +198,8 @@ impl Topper {
                             &self.database_module,
                         ),
                     )?)
-                    .then(self.database_module.handle_message(&topper_msg, ())?);
+                    .then(self.database_module.handle_message(&topper_msg, ())?)
+                    .then(self.web_module.handle_message(&topper_msg, ())?);
                 match topper_msg {
                     TopperMessage::Request(request) => match request {
                         TopperRequest::Attack(strategy) => {

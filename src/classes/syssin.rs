@@ -631,6 +631,34 @@ mod timeline_tests {
     }
 
     #[test]
+    fn test_bite_countercurrent() {
+        let mut timeline = Timeline::new();
+        let dstab_slice = TimeSlice {
+            observations: vec![
+                Observation::CombatAction(CombatAction {
+                    caster: "Seurimas".to_string(),
+                    category: "Assassination".to_string(),
+                    skill: "Bite".to_string(),
+                    target: "Benedicto".to_string(),
+                    annotation: "scytherus".to_string(),
+                }),
+                Observation::PurgeVenom("Benedicto".into(), "scytherus".into()),
+            ],
+            lines: vec![],
+            prompt: Prompt::Blackout,
+            time: 0,
+            me: "Seurimas".into(),
+        };
+        timeline.push_time_slice(dstab_slice);
+        let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
+        assert_eq!(seur_state.balanced(BType::Balance), false);
+        assert_eq!(seur_state.is(FType::ThinBlood), false);
+        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        assert_eq!(bene_state.balanced(BType::Balance), true);
+        assert_eq!(bene_state.is(FType::ThinBlood), false);
+    }
+
+    #[test]
     fn test_bite_parry() {
         let mut timeline = Timeline::new();
         let dstab_slice = TimeSlice {
@@ -1248,6 +1276,10 @@ pub fn handle_combat_action(
                     apply_venom(&mut you, &combat_action.annotation)?;
                 }
             } else if let Some(Observation::Absorbed(who, _what)) = after.get(1) {
+                if !who.eq(&combat_action.target) {
+                    apply_venom(&mut you, &combat_action.annotation)?;
+                }
+            } else if let Some(Observation::PurgeVenom(who, _what)) = after.get(1) {
                 if !who.eq(&combat_action.target) {
                     apply_venom(&mut you, &combat_action.annotation)?;
                 }
