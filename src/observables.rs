@@ -1,9 +1,10 @@
-use crate::timeline::{Observation, TimeSlice, Timeline};
-use crate::types::{BType, CType};
+use crate::timeline::aetolia::{AetObservation, AetTimeSlice, AetTimeline};
+use crate::timeline::CType;
+use crate::types::BType;
 use std::collections::HashMap;
 
 // A list of states and their relative weights.
-pub type ActiveEvent = Vec<Observation>;
+pub type ActiveEvent = Vec<AetObservation>;
 pub struct ProbableEvent(ActiveEvent, u32);
 pub type Activator = String;
 pub type ActivatorFailure = String;
@@ -19,8 +20,8 @@ impl ProbableEvent {
 }
 
 pub trait ActiveTransition {
-    fn act(&self, timline: &Timeline) -> ActivateResult;
-    fn simulate(&self, timline: &Timeline) -> Vec<ProbableEvent>;
+    fn act(&self, timline: &AetTimeline) -> ActivateResult;
+    fn simulate(&self, timline: &AetTimeline) -> Vec<ProbableEvent>;
 }
 
 pub struct ActionPlan {
@@ -60,7 +61,7 @@ impl ActionPlan {
         self.other.insert(bal, action);
     }
 
-    pub fn get_inputs(&self, timeline: &Timeline) -> String {
+    pub fn get_inputs(&self, timeline: &AetTimeline) -> String {
         let mut inputs = "".to_string();
         if let Some(Ok(qeb)) = self.qeb.as_ref().map(|action| action.act(&timeline)) {
             inputs = format!("qeb {}", qeb);
@@ -77,7 +78,7 @@ impl ActionPlan {
 
     fn get_next_balance(
         &self,
-        timeline: &Timeline,
+        timeline: &AetTimeline,
     ) -> Option<(&Box<dyn ActiveTransition>, BType, CType)> {
         let mut next_balance = None;
         let me = timeline.state.borrow_agent(&self.who);
@@ -104,10 +105,10 @@ impl ActionPlan {
         next_balance
     }
 
-    pub fn get_time_slice(&self, timeline: &Timeline) -> Option<TimeSlice> {
+    pub fn get_time_slice(&self, timeline: &AetTimeline) -> Option<AetTimeSlice> {
         if let Some((transition, balance, time)) = self.get_next_balance(timeline) {
             if let Some(ProbableEvent(observations, _)) = transition.simulate(timeline).first() {
-                Some(TimeSlice::simulation(observations.to_vec(), time))
+                Some(AetTimeSlice::simulation(observations.to_vec(), time))
             } else {
                 None
             }
@@ -120,10 +121,10 @@ impl ActionPlan {
 pub struct Inactivity;
 
 impl ActiveTransition for Inactivity {
-    fn act(&self, timline: &Timeline) -> ActivateResult {
+    fn act(&self, timline: &AetTimeline) -> ActivateResult {
         Ok(format!(""))
     }
-    fn simulate(&self, timline: &Timeline) -> Vec<ProbableEvent> {
+    fn simulate(&self, timline: &AetTimeline) -> Vec<ProbableEvent> {
         vec![]
     }
 }
@@ -137,14 +138,14 @@ impl SeparatorAction {
 }
 
 impl ActiveTransition for SeparatorAction {
-    fn act(&self, timeline: &Timeline) -> ActivateResult {
+    fn act(&self, timeline: &AetTimeline) -> ActivateResult {
         Ok(format!(
             "{};;{}",
             self.0.act(&timeline)?,
             self.1.act(&timeline)?
         ))
     }
-    fn simulate(&self, timeline: &Timeline) -> Vec<ProbableEvent> {
+    fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
         let mut results = vec![];
         for ProbableEvent(simulate_first, weight_first) in self.0.simulate(&timeline).iter() {
             for ProbableEvent(simulate_second, weight_second) in self.1.simulate(&timeline).iter() {

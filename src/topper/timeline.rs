@@ -1,20 +1,24 @@
+use crate::timeline::aetolia::{AetObservation, AetPrompt};
 use crate::timeline::*;
 pub use crate::timeline::{TimeSlice, Timeline};
 use crate::topper::{TopperMessage, TopperModule, TopperRequest, TopperResponse};
+use crate::types::AgentState;
 
-pub struct TimelineModule {
-    pub timeline: Timeline,
+pub struct TimelineModule<O, P, A> {
+    pub timeline: Timeline<O, P, A>,
 }
 
-impl TimelineModule {
+impl<O, P, A: BaseAgentState + Clone> TimelineModule<O, P, A> {
     pub fn new() -> Self {
         TimelineModule {
-            timeline: Timeline::new(),
+            timeline: Timeline::<O, P, A>::new(),
         }
     }
 }
 
-impl<'s> TopperModule<'s> for TimelineModule {
+pub type AetTimelineModule = TimelineModule<AetObservation, AetPrompt, AgentState>;
+
+impl<'s> TopperModule<'s> for AetTimelineModule {
     type Siblings = ();
     fn handle_message(
         &mut self,
@@ -22,7 +26,7 @@ impl<'s> TopperModule<'s> for TimelineModule {
         siblings: Self::Siblings,
     ) -> Result<TopperResponse, String> {
         match message {
-            TopperMessage::Event(timeslice) => {
+            TopperMessage::AetEvent(timeslice) => {
                 self.timeline.push_time_slice(timeslice.clone())?;
                 Ok(TopperResponse::silent())
             }

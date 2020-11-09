@@ -1,7 +1,7 @@
 use crate::alpha_beta::ActionPlanner;
 use crate::classes::*;
 use crate::observables::*;
-use crate::timeline::*;
+use crate::timeline::aetolia::*;
 use crate::topper::*;
 use crate::types::*;
 use regex::Regex;
@@ -13,12 +13,12 @@ mod timeline_tests {
 
     #[test]
     fn test_dstab_3p() {
-        let mut timeline = Timeline::new();
+        let mut timeline = AetTimeline::new();
         timeline
             .state
             .add_player_hint(&"Savas", &"CALLED_VENOMS", "kalmia slike".to_string());
-        let dstab_slice = TimeSlice {
-            observations: vec![Observation::CombatAction(CombatAction {
+        let dstab_slice = AetTimeSlice {
+            observations: vec![AetObservation::CombatAction(CombatAction {
                 caster: "Savas".to_string(),
                 category: "Assassination".to_string(),
                 skill: "Doublestab".to_string(),
@@ -43,20 +43,20 @@ mod timeline_tests {
 
     #[test]
     fn test_dstab_3p_dodge() {
-        let mut timeline = Timeline::new();
+        let mut timeline = AetTimeline::new();
         timeline
             .state
             .add_player_hint(&"Savas", &"CALLED_VENOMS", "kalmia slike".to_string());
-        let dstab_slice = TimeSlice {
+        let dstab_slice = AetTimeSlice {
             observations: vec![
-                Observation::CombatAction(CombatAction {
+                AetObservation::CombatAction(CombatAction {
                     caster: "Savas".to_string(),
                     category: "Assassination".to_string(),
                     skill: "Doublestab".to_string(),
                     target: "Benedicto".to_string(),
                     annotation: "".to_string(),
                 }),
-                Observation::Dodges("Benedicto".to_string()),
+                AetObservation::Dodges("Benedicto".to_string()),
             ],
             lines: vec![],
             prompt: Prompt::Blackout,
@@ -76,18 +76,18 @@ mod timeline_tests {
 
     #[test]
     fn test_dstab() {
-        let mut timeline = Timeline::new();
-        let dstab_slice = TimeSlice {
+        let mut timeline = AetTimeline::new();
+        let dstab_slice = AetTimeSlice {
             observations: vec![
-                Observation::CombatAction(CombatAction {
+                AetObservation::CombatAction(CombatAction {
                     caster: "Seurimas".to_string(),
                     category: "Assassination".to_string(),
                     skill: "Doublestab".to_string(),
                     target: "Benedicto".to_string(),
                     annotation: "".to_string(),
                 }),
-                Observation::Devenoms("slike".into()),
-                Observation::Devenoms("kalmia".into()),
+                AetObservation::Devenoms("slike".into()),
+                AetObservation::Devenoms("kalmia".into()),
             ],
             lines: vec![],
             prompt: Prompt::Blackout,
@@ -108,17 +108,17 @@ mod timeline_tests {
     #[test]
     fn test_dstab_salve() {
         let mut timeline = Timeline::new();
-        let dstab_slice = TimeSlice {
+        let dstab_slice = AetTimeSlice {
             observations: vec![
-                Observation::CombatAction(CombatAction {
+                AetObservation::CombatAction(CombatAction {
                     caster: "Seurimas".to_string(),
                     category: "Assassination".to_string(),
                     skill: "Doublestab".to_string(),
                     target: "Benedicto".to_string(),
                     annotation: "".to_string(),
                 }),
-                Observation::Devenoms("epseth".into()),
-                Observation::Devenoms("epteth".into()),
+                AetObservation::Devenoms("epseth".into()),
+                AetObservation::Devenoms("epteth".into()),
             ],
             lines: vec![],
             prompt: Prompt::Blackout,
@@ -138,18 +138,18 @@ mod timeline_tests {
 
     #[test]
     fn test_dstab_absorbed() {
-        let mut timeline = Timeline::new();
-        let dstab_slice = TimeSlice {
+        let mut timeline = AetTimeline::new();
+        let dstab_slice = AetTimeSlice {
             observations: vec![
-                Observation::CombatAction(CombatAction {
+                AetObservation::CombatAction(CombatAction {
                     caster: "Seurimas".to_string(),
                     category: "Assassination".to_string(),
                     skill: "Doublestab".to_string(),
                     target: "Benedicto".to_string(),
                     annotation: "".to_string(),
                 }),
-                Observation::Absorbed("Benedicto".into(), "Remnant".into()),
-                Observation::Devenoms("kalmia".into()),
+                AetObservation::Absorbed("Benedicto".into(), "Remnant".into()),
+                AetObservation::Devenoms("kalmia".into()),
             ],
             lines: vec![],
             prompt: Prompt::Blackout,
@@ -169,12 +169,12 @@ mod timeline_tests {
 
     #[test]
     fn test_flay_general() {
-        let mut timeline = Timeline::new();
-        let dstab_slice = TimeSlice {
+        let mut timeline = AetTimeline::new();
+        let dstab_slice = AetTimeSlice {
             observations: vec![
-                Observation::Gained("Benedicto".to_string(), "rebounding".to_string()),
-                Observation::Sent("flay benedicto".into()),
-                Observation::CombatAction(CombatAction {
+                AetObservation::Gained("Benedicto".to_string(), "rebounding".to_string()),
+                AetObservation::Sent("flay benedicto".into()),
+                AetObservation::CombatAction(CombatAction {
                     caster: "Seurimas".to_string(),
                     category: "Assassination".to_string(),
                     skill: "Flay".to_string(),
@@ -200,12 +200,12 @@ mod timeline_tests {
 
     #[test]
     fn test_flay_specific() {
-        let mut timeline = Timeline::new();
-        let dstab_slice = TimeSlice {
+        let mut timeline = AetTimeline::new();
+        let dstab_slice = AetTimeSlice {
             observations: vec![
-                Observation::Gained("Benedicto".to_string(), "rebounding".to_string()),
-                Observation::Sent("flay Benedicto speed".into()),
-                Observation::CombatAction(CombatAction {
+                AetObservation::Gained("Benedicto".to_string(), "rebounding".to_string()),
+                AetObservation::Sent("flay Benedicto speed".into()),
+                AetObservation::CombatAction(CombatAction {
                     caster: "Seurimas".to_string(),
                     category: "Assassination".to_string(),
                     skill: "Flay".to_string(),
@@ -231,21 +231,21 @@ mod timeline_tests {
 
     #[test]
     fn test_void_1p() {
-        let mut timeline = Timeline::new();
+        let mut timeline = AetTimeline::new();
         timeline
             .state
             .set_flag_for_agent(&"Seurimas".to_string(), &"void".to_string(), true);
         timeline
             .state
             .set_flag_for_agent(&"Seurimas".to_string(), &"stupidity".to_string(), true);
-        let dstab_slice = TimeSlice {
+        let dstab_slice = AetTimeSlice {
             observations: vec![
-                Observation::SimpleCureAction(SimpleCureAction {
+                AetObservation::SimpleCureAction(SimpleCureAction {
                     cure_type: SimpleCure::Pill("euphoriant".to_string()),
                     caster: "Seurimas".to_string(),
                 }),
-                Observation::Cured("void".to_string()),
-                Observation::Afflicted("weakvoid".to_string()),
+                AetObservation::Cured("void".to_string()),
+                AetObservation::Afflicted("weakvoid".to_string()),
             ],
             lines: vec![],
             prompt: Prompt::Blackout,
@@ -267,20 +267,20 @@ mod timeline_tests {
 
     #[test]
     fn test_void() {
-        let mut timeline = Timeline::new();
+        let mut timeline = AetTimeline::new();
         timeline
             .state
             .set_flag_for_agent(&"Benedicto".to_string(), &"void".to_string(), true);
         timeline
             .state
             .set_flag_for_agent(&"Benedicto".to_string(), &"stupidity".to_string(), true);
-        let dstab_slice = TimeSlice {
+        let dstab_slice = AetTimeSlice {
             observations: vec![
-                Observation::SimpleCureAction(SimpleCureAction {
+                AetObservation::SimpleCureAction(SimpleCureAction {
                     cure_type: SimpleCure::Pill("euphoriant".to_string()),
                     caster: "Benedicto".to_string(),
                 }),
-                Observation::DiscernedCure("Benedicto".to_string(), "void".to_string()),
+                AetObservation::DiscernedCure("Benedicto".to_string(), "void".to_string()),
             ],
             lines: vec![],
             prompt: Prompt::Blackout,
@@ -302,20 +302,20 @@ mod timeline_tests {
 
     #[test]
     fn test_weakvoid() {
-        let mut timeline = Timeline::new();
+        let mut timeline = AetTimeline::new();
         timeline
             .state
             .set_flag_for_agent(&"Benedicto".to_string(), &"weakvoid".to_string(), true);
         timeline
             .state
             .set_flag_for_agent(&"Benedicto".to_string(), &"stupidity".to_string(), true);
-        let dstab_slice = TimeSlice {
+        let dstab_slice = AetTimeSlice {
             observations: vec![
-                Observation::SimpleCureAction(SimpleCureAction {
+                AetObservation::SimpleCureAction(SimpleCureAction {
                     cure_type: SimpleCure::Pill("euphoriant".to_string()),
                     caster: "Benedicto".to_string(),
                 }),
-                Observation::DiscernedCure("Benedicto".to_string(), "weakvoid".to_string()),
+                AetObservation::DiscernedCure("Benedicto".to_string(), "weakvoid".to_string()),
             ],
             lines: vec![],
             prompt: Prompt::Blackout,
@@ -337,19 +337,19 @@ mod timeline_tests {
 
     #[test]
     fn test_dstab_purge() {
-        let mut timeline = Timeline::new();
-        let dstab_slice = TimeSlice {
+        let mut timeline = AetTimeline::new();
+        let dstab_slice = AetTimeSlice {
             observations: vec![
-                Observation::CombatAction(CombatAction {
+                AetObservation::CombatAction(CombatAction {
                     caster: "Seurimas".to_string(),
                     category: "Assassination".to_string(),
                     skill: "Doublestab".to_string(),
                     target: "Benedicto".to_string(),
                     annotation: "".to_string(),
                 }),
-                Observation::Devenoms("slike".into()),
-                Observation::Devenoms("kalmia".into()),
-                Observation::PurgeVenom("Benedicto".into(), "kalmia".into()),
+                AetObservation::Devenoms("slike".into()),
+                AetObservation::Devenoms("kalmia".into()),
+                AetObservation::PurgeVenom("Benedicto".into(), "kalmia".into()),
             ],
             lines: vec![],
             prompt: Prompt::Blackout,
@@ -369,9 +369,9 @@ mod timeline_tests {
 
     #[test]
     fn test_dstab_relapse() {
-        let mut timeline = Timeline::new();
-        let bite_slice = TimeSlice {
-            observations: vec![Observation::CombatAction(CombatAction {
+        let mut timeline = AetTimeline::new();
+        let bite_slice = AetTimeSlice {
+            observations: vec![AetObservation::CombatAction(CombatAction {
                 caster: "Seurimas".to_string(),
                 category: "Assassination".to_string(),
                 skill: "Bite".to_string(),
@@ -383,30 +383,30 @@ mod timeline_tests {
             time: 0,
             me: "Seurimas".into(),
         };
-        let dstab_slice = TimeSlice {
+        let dstab_slice = AetTimeSlice {
             observations: vec![
-                Observation::CombatAction(CombatAction {
+                AetObservation::CombatAction(CombatAction {
                     caster: "Seurimas".to_string(),
                     category: "Assassination".to_string(),
                     skill: "Doublestab".to_string(),
                     target: "Benedicto".to_string(),
                     annotation: "".to_string(),
                 }),
-                Observation::Devenoms("slike".into()),
-                Observation::Devenoms("kalmia".into()),
+                AetObservation::Devenoms("slike".into()),
+                AetObservation::Devenoms("kalmia".into()),
             ],
             lines: vec![],
             prompt: Prompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
         };
-        let cure_slice = TimeSlice {
+        let cure_slice = AetTimeSlice {
             observations: vec![
-                Observation::SimpleCureAction(SimpleCureAction {
+                AetObservation::SimpleCureAction(SimpleCureAction {
                     caster: "Benedicto".into(),
                     cure_type: SimpleCure::Pill("decongestant".into()),
                 }),
-                Observation::SimpleCureAction(SimpleCureAction {
+                AetObservation::SimpleCureAction(SimpleCureAction {
                     caster: "Benedicto".into(),
                     cure_type: SimpleCure::Salve("epidermal".into(), "head".into()),
                 }),
@@ -416,10 +416,10 @@ mod timeline_tests {
             time: 0,
             me: "Seurimas".into(),
         };
-        let relapse_slice = TimeSlice {
+        let relapse_slice = AetTimeSlice {
             observations: vec![
-                Observation::Relapse("Benedicto".into()),
-                Observation::Relapse("Benedicto".into()),
+                AetObservation::Relapse("Benedicto".into()),
+                AetObservation::Relapse("Benedicto".into()),
             ],
             lines: vec![],
             prompt: Prompt::Blackout,
@@ -450,9 +450,9 @@ mod timeline_tests {
 
     #[test]
     fn test_dstab_relapse_clever() {
-        let mut timeline = Timeline::new();
-        let bite_slice = TimeSlice {
-            observations: vec![Observation::CombatAction(CombatAction {
+        let mut timeline = AetTimeline::new();
+        let bite_slice = AetTimeSlice {
+            observations: vec![AetObservation::CombatAction(CombatAction {
                 caster: "Seurimas".to_string(),
                 category: "Assassination".to_string(),
                 skill: "Bite".to_string(),
@@ -465,30 +465,30 @@ mod timeline_tests {
             me: "Seurimas".into(),
         };
         timeline.push_time_slice(bite_slice);
-        let dstab_slice = TimeSlice {
+        let dstab_slice = AetTimeSlice {
             observations: vec![
-                Observation::CombatAction(CombatAction {
+                AetObservation::CombatAction(CombatAction {
                     caster: "Seurimas".to_string(),
                     category: "Assassination".to_string(),
                     skill: "Doublestab".to_string(),
                     target: "Benedicto".to_string(),
                     annotation: "".to_string(),
                 }),
-                Observation::Devenoms("slike".into()),
-                Observation::Devenoms("kalmia".into()),
+                AetObservation::Devenoms("slike".into()),
+                AetObservation::Devenoms("kalmia".into()),
             ],
             lines: vec![],
             prompt: Prompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
         };
-        let cure_slice = TimeSlice {
+        let cure_slice = AetTimeSlice {
             observations: vec![
-                Observation::SimpleCureAction(SimpleCureAction {
+                AetObservation::SimpleCureAction(SimpleCureAction {
                     caster: "Benedicto".into(),
                     cure_type: SimpleCure::Pill("decongestant".into()),
                 }),
-                Observation::SimpleCureAction(SimpleCureAction {
+                AetObservation::SimpleCureAction(SimpleCureAction {
                     caster: "Benedicto".into(),
                     cure_type: SimpleCure::Salve("epidermal".into(), "head".into()),
                 }),
@@ -498,10 +498,10 @@ mod timeline_tests {
             time: 0,
             me: "Seurimas".into(),
         };
-        let relapse_slice_1 = TimeSlice {
+        let relapse_slice_1 = AetTimeSlice {
             observations: vec![
-                Observation::Relapse("Benedicto".into()),
-                Observation::SimpleCureAction(SimpleCureAction {
+                AetObservation::Relapse("Benedicto".into()),
+                AetObservation::SimpleCureAction(SimpleCureAction {
                     caster: "Benedicto".into(),
                     cure_type: SimpleCure::Salve("epidermal".into(), "head".into()),
                 }),
@@ -511,8 +511,8 @@ mod timeline_tests {
             time: 220,
             me: "Seurimas".into(),
         };
-        let relapse_slice_2 = TimeSlice {
-            observations: vec![Observation::Relapse("Benedicto".into())],
+        let relapse_slice_2 = AetTimeSlice {
+            observations: vec![AetObservation::Relapse("Benedicto".into())],
             lines: vec![],
             prompt: Prompt::Blackout,
             time: 270,
@@ -546,20 +546,20 @@ mod timeline_tests {
 
     #[test]
     fn test_dstab_rebounds() {
-        let mut timeline = Timeline::new();
-        let dstab_slice = TimeSlice {
+        let mut timeline = AetTimeline::new();
+        let dstab_slice = AetTimeSlice {
             observations: vec![
-                Observation::CombatAction(CombatAction {
+                AetObservation::CombatAction(CombatAction {
                     caster: "Seurimas".to_string(),
                     category: "Assassination".to_string(),
                     skill: "Doublestab".to_string(),
                     target: "Benedicto".to_string(),
                     annotation: "".to_string(),
                 }),
-                Observation::Rebounds,
-                Observation::Devenoms("slike".into()),
-                Observation::Rebounds,
-                Observation::Devenoms("kalmia".into()),
+                AetObservation::Rebounds,
+                AetObservation::Devenoms("slike".into()),
+                AetObservation::Rebounds,
+                AetObservation::Devenoms("kalmia".into()),
             ],
             lines: vec![],
             prompt: Prompt::Blackout,
@@ -579,9 +579,9 @@ mod timeline_tests {
 
     #[test]
     fn test_bite() {
-        let mut timeline = Timeline::new();
-        let dstab_slice = TimeSlice {
-            observations: vec![Observation::CombatAction(CombatAction {
+        let mut timeline = AetTimeline::new();
+        let dstab_slice = AetTimeSlice {
+            observations: vec![AetObservation::CombatAction(CombatAction {
                 caster: "Seurimas".to_string(),
                 category: "Assassination".to_string(),
                 skill: "Bite".to_string(),
@@ -604,17 +604,17 @@ mod timeline_tests {
 
     #[test]
     fn test_bite_absorbed() {
-        let mut timeline = Timeline::new();
-        let dstab_slice = TimeSlice {
+        let mut timeline = AetTimeline::new();
+        let dstab_slice = AetTimeSlice {
             observations: vec![
-                Observation::CombatAction(CombatAction {
+                AetObservation::CombatAction(CombatAction {
                     caster: "Seurimas".to_string(),
                     category: "Assassination".to_string(),
                     skill: "Bite".to_string(),
                     target: "Benedicto".to_string(),
                     annotation: "scytherus".to_string(),
                 }),
-                Observation::Absorbed("Benedicto".into(), "Remnant".into()),
+                AetObservation::Absorbed("Benedicto".into(), "Remnant".into()),
             ],
             lines: vec![],
             prompt: Prompt::Blackout,
@@ -632,17 +632,17 @@ mod timeline_tests {
 
     #[test]
     fn test_bite_countercurrent() {
-        let mut timeline = Timeline::new();
-        let dstab_slice = TimeSlice {
+        let mut timeline = AetTimeline::new();
+        let dstab_slice = AetTimeSlice {
             observations: vec![
-                Observation::CombatAction(CombatAction {
+                AetObservation::CombatAction(CombatAction {
                     caster: "Seurimas".to_string(),
                     category: "Assassination".to_string(),
                     skill: "Bite".to_string(),
                     target: "Benedicto".to_string(),
                     annotation: "scytherus".to_string(),
                 }),
-                Observation::PurgeVenom("Benedicto".into(), "scytherus".into()),
+                AetObservation::PurgeVenom("Benedicto".into(), "scytherus".into()),
             ],
             lines: vec![],
             prompt: Prompt::Blackout,
@@ -660,17 +660,17 @@ mod timeline_tests {
 
     #[test]
     fn test_bite_parry() {
-        let mut timeline = Timeline::new();
-        let dstab_slice = TimeSlice {
+        let mut timeline = AetTimeline::new();
+        let dstab_slice = AetTimeSlice {
             observations: vec![
-                Observation::CombatAction(CombatAction {
+                AetObservation::CombatAction(CombatAction {
                     caster: "Seurimas".to_string(),
                     category: "Assassination".to_string(),
                     skill: "Bite".to_string(),
                     target: "Benedicto".to_string(),
                     annotation: "scytherus".to_string(),
                 }),
-                Observation::Parry("Benedicto".to_string(), "head".to_string()),
+                AetObservation::Parry("Benedicto".to_string(), "head".to_string()),
             ],
             lines: vec![],
             prompt: Prompt::Blackout,
@@ -690,11 +690,11 @@ mod timeline_tests {
 
     #[test]
     fn test_suggest() {
-        let mut timeline = Timeline::new();
-        let suggest_slice = TimeSlice {
+        let mut timeline = AetTimeline::new();
+        let suggest_slice = AetTimeSlice {
             observations: vec![
-                Observation::Sent("suggest Benedicto stupidity".to_string()),
-                Observation::CombatAction(CombatAction {
+                AetObservation::Sent("suggest Benedicto stupidity".to_string()),
+                AetObservation::CombatAction(CombatAction {
                     caster: "Seurimas".to_string(),
                     category: "Hypnosis".to_string(),
                     skill: "Suggest".to_string(),
@@ -719,13 +719,13 @@ mod timeline_tests {
 
     #[test]
     fn test_suggest_qeb() {
-        let mut timeline = Timeline::new();
-        let suggest_slice = TimeSlice {
+        let mut timeline = AetTimeline::new();
+        let suggest_slice = AetTimeSlice {
             observations: vec![
-                Observation::Sent(
+                AetObservation::Sent(
                     "qeb dstab Benedicto aconite kalmia;;suggest Benedicto stupidity".to_string(),
                 ),
-                Observation::CombatAction(CombatAction {
+                AetObservation::CombatAction(CombatAction {
                     caster: "Seurimas".to_string(),
                     category: "Hypnosis".to_string(),
                     skill: "Suggest".to_string(),
@@ -753,7 +753,7 @@ mod action_tests {
 
     #[test]
     fn test_bedazzling() {
-        let mut timeline = Timeline::new();
+        let mut timeline = AetTimeline::new();
         let qeb = get_attack(
             &timeline,
             &"Benedicto".to_string(),
@@ -768,7 +768,7 @@ mod action_tests {
 
     #[test]
     fn test_aggro() {
-        let mut timeline = Timeline::new();
+        let mut timeline = AetTimeline::new();
         let qeb = get_attack(
             &timeline,
             &"Benedicto".to_string(),
@@ -796,7 +796,7 @@ lazy_static! {
 
 pub fn infer_flay_target(
     name: &String,
-    agent_states: &mut TimelineState,
+    agent_states: &mut AetTimelineState,
 ) -> Option<(FType, String)> {
     if let Some(flay) = agent_states.get_player_hint(name, &"flay".into()) {
         if let Some(captures) = FLAY.captures(&flay) {
@@ -820,7 +820,7 @@ pub fn infer_flay_target(
     }
 }
 
-pub fn infer_suggestion(name: &String, agent_states: &mut TimelineState) -> Hypnosis {
+pub fn infer_suggestion(name: &String, agent_states: &mut AetTimelineState) -> Hypnosis {
     if let Some(suggestion) = agent_states.get_player_hint(name, &"suggestion".into()) {
         if let Some(captures) = ACTION.captures(&suggestion) {
             Hypnosis::Action(captures.get(1).unwrap().as_str().to_string())
@@ -839,7 +839,7 @@ pub fn infer_suggestion(name: &String, agent_states: &mut TimelineState) -> Hypn
     }
 }
 
-pub fn handle_sent(command: &String, agent_states: &mut TimelineState) {
+pub fn handle_sent(command: &String, agent_states: &mut AetTimelineState) {
     if let Some(captures) = SUGGESTION.captures(command) {
         agent_states.add_player_hint(
             captures.get(1).unwrap().as_str(),
@@ -884,10 +884,10 @@ impl DoublestabAction {
 }
 
 impl ActiveTransition for DoublestabAction {
-    fn simulate(&self, _timeline: &Timeline) -> Vec<ProbableEvent> {
+    fn simulate(&self, _timeline: &AetTimeline) -> Vec<ProbableEvent> {
         Vec::new()
     }
-    fn act(&self, timeline: &Timeline) -> ActivateResult {
+    fn act(&self, timeline: &AetTimeline) -> ActivateResult {
         Ok(get_dstab_action(
             &timeline,
             &self.target,
@@ -925,7 +925,7 @@ impl FlayAction {
 }
 
 impl ActiveTransition for FlayAction {
-    fn simulate(&self, timeline: &Timeline) -> Vec<ProbableEvent> {
+    fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
         let mut observations = vec![CombatAction::observation(
             &self.caster,
             &self.target,
@@ -937,11 +937,11 @@ impl ActiveTransition for FlayAction {
             && (self.annotation.eq_ignore_ascii_case("shield")
                 || self.annotation.eq_ignore_ascii_case("rebounding"))
         {
-            observations.push(Observation::Devenoms(self.venom.clone()));
+            observations.push(AetObservation::Devenoms(self.venom.clone()));
         }
         ProbableEvent::certain(observations)
     }
-    fn act(&self, timeline: &Timeline) -> ActivateResult {
+    fn act(&self, timeline: &AetTimeline) -> ActivateResult {
         Ok(get_flay_action(
             &timeline,
             &self.target,
@@ -968,7 +968,7 @@ impl SlitAction {
 }
 
 impl ActiveTransition for SlitAction {
-    fn simulate(&self, timeline: &Timeline) -> Vec<ProbableEvent> {
+    fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
         let mut observations = vec![CombatAction::observation(
             &self.caster,
             &self.target,
@@ -976,10 +976,10 @@ impl ActiveTransition for SlitAction {
             &"Slit",
             &"",
         )];
-        observations.push(Observation::Devenoms(self.venom.clone()));
+        observations.push(AetObservation::Devenoms(self.venom.clone()));
         ProbableEvent::certain(observations)
     }
-    fn act(&self, timeline: &Timeline) -> ActivateResult {
+    fn act(&self, timeline: &AetTimeline) -> ActivateResult {
         Ok(get_slit_action(
             &timeline,
             &self.target,
@@ -1015,7 +1015,7 @@ impl ShruggingAction {
 }
 
 impl ActiveTransition for ShruggingAction {
-    fn simulate(&self, timeline: &Timeline) -> Vec<ProbableEvent> {
+    fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
         ProbableEvent::certain(vec![CombatAction::observation(
             &self.caster,
             &"",
@@ -1024,7 +1024,7 @@ impl ActiveTransition for ShruggingAction {
             &self.shrugged,
         )])
     }
-    fn act(&self, timeline: &Timeline) -> ActivateResult {
+    fn act(&self, timeline: &AetTimeline) -> ActivateResult {
         Ok(format!("light pipes;;shrug {}", self.shrugged))
     }
 }
@@ -1046,7 +1046,7 @@ impl BiteAction {
 }
 
 impl ActiveTransition for BiteAction {
-    fn simulate(&self, timeline: &Timeline) -> Vec<ProbableEvent> {
+    fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
         ProbableEvent::certain(vec![CombatAction::observation(
             &self.caster,
             &self.target,
@@ -1056,7 +1056,7 @@ impl ActiveTransition for BiteAction {
         )])
     }
 
-    fn act(&self, timeline: &Timeline) -> ActivateResult {
+    fn act(&self, timeline: &AetTimeline) -> ActivateResult {
         Ok(format!("bite {} {}", self.target, self.venom))
     }
 }
@@ -1076,11 +1076,11 @@ impl BedazzleAction {
 }
 
 impl ActiveTransition for BedazzleAction {
-    fn simulate(&self, timeline: &Timeline) -> Vec<ProbableEvent> {
+    fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
         vec![]
     }
 
-    fn act(&self, timeline: &Timeline) -> ActivateResult {
+    fn act(&self, timeline: &AetTimeline) -> ActivateResult {
         Ok(format!("stand;;bedazzle {}", self.target))
     }
 }
@@ -1100,7 +1100,7 @@ impl HypnotiseAction {
 }
 
 impl ActiveTransition for HypnotiseAction {
-    fn simulate(&self, timeline: &Timeline) -> Vec<ProbableEvent> {
+    fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
         ProbableEvent::certain(vec![CombatAction::observation(
             &self.caster,
             &self.target,
@@ -1109,7 +1109,7 @@ impl ActiveTransition for HypnotiseAction {
             &"",
         )])
     }
-    fn act(&self, timeline: &Timeline) -> ActivateResult {
+    fn act(&self, timeline: &AetTimeline) -> ActivateResult {
         Ok(format!("hypnotise {}", self.target))
     }
 }
@@ -1139,13 +1139,13 @@ impl SuggestAction {
 }
 
 impl ActiveTransition for SuggestAction {
-    fn simulate(&self, timeline: &Timeline) -> Vec<ProbableEvent> {
+    fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
         ProbableEvent::certain(vec![
-            Observation::Sent(self.get_suggestion()),
+            AetObservation::Sent(self.get_suggestion()),
             CombatAction::observation(&self.caster, &self.target, &"Hypnosis", &"Suggest", &""),
         ])
     }
-    fn act(&self, timeline: &Timeline) -> ActivateResult {
+    fn act(&self, timeline: &AetTimeline) -> ActivateResult {
         Ok(self.get_suggestion())
     }
 }
@@ -1167,13 +1167,13 @@ impl SealAction {
 }
 
 impl ActiveTransition for SealAction {
-    fn simulate(&self, timeline: &Timeline) -> Vec<ProbableEvent> {
+    fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
         ProbableEvent::certain(vec![
-            Observation::Sent(format!("seal {} {}", self.target, self.duration)),
+            AetObservation::Sent(format!("seal {} {}", self.target, self.duration)),
             CombatAction::observation(&self.caster, &self.target, &"Hypnosis", &"Suggest", &""),
         ])
     }
-    fn act(&self, timeline: &Timeline) -> ActivateResult {
+    fn act(&self, timeline: &AetTimeline) -> ActivateResult {
         Ok(format!("seal {} {}", self.target, self.duration))
     }
 }
@@ -1193,13 +1193,13 @@ impl SnapAction {
 }
 
 impl ActiveTransition for SnapAction {
-    fn simulate(&self, timeline: &Timeline) -> Vec<ProbableEvent> {
+    fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
         ProbableEvent::certain(vec![
-            Observation::Sent(format!("snap {}", self.target)),
+            AetObservation::Sent(format!("snap {}", self.target)),
             CombatAction::observation(&self.caster, &self.target, &"Hypnosis", &"Snap", &""),
         ])
     }
-    fn act(&self, timeline: &Timeline) -> ActivateResult {
+    fn act(&self, timeline: &AetTimeline) -> ActivateResult {
         Ok(format!("snap {}", self.target))
     }
 }
@@ -1221,7 +1221,7 @@ impl SleightAction {
 }
 
 impl ActiveTransition for SleightAction {
-    fn simulate(&self, timeline: &Timeline) -> Vec<ProbableEvent> {
+    fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
         ProbableEvent::certain(vec![CombatAction::observation(
             &self.caster,
             &self.target,
@@ -1230,7 +1230,7 @@ impl ActiveTransition for SleightAction {
             &self.sleight,
         )])
     }
-    fn act(&self, timeline: &Timeline) -> ActivateResult {
+    fn act(&self, timeline: &AetTimeline) -> ActivateResult {
         Ok(format!("shadow sleight {} {}", self.sleight, self.target))
     }
 }
@@ -1243,9 +1243,9 @@ impl ActiveTransition for SleightAction {
 
 pub fn handle_combat_action(
     combat_action: &CombatAction,
-    agent_states: &mut TimelineState,
-    _before: &Vec<Observation>,
-    after: &Vec<Observation>,
+    agent_states: &mut AetTimelineState,
+    _before: &Vec<AetObservation>,
+    after: &Vec<AetObservation>,
 ) -> Result<(), String> {
     match combat_action.skill.as_ref() {
         "Doublestab" => {
@@ -1271,15 +1271,15 @@ pub fn handle_combat_action(
             let mut me = agent_states.get_agent(&combat_action.caster);
             let mut you = agent_states.get_agent(&combat_action.target);
             me.set_balance(BType::Balance, 1.9);
-            if let Some(Observation::Parry(who, _what)) = after.get(1) {
+            if let Some(AetObservation::Parry(who, _what)) = after.get(1) {
                 if !who.eq(&combat_action.target) {
                     apply_venom(&mut you, &combat_action.annotation)?;
                 }
-            } else if let Some(Observation::Absorbed(who, _what)) = after.get(1) {
+            } else if let Some(AetObservation::Absorbed(who, _what)) = after.get(1) {
                 if !who.eq(&combat_action.target) {
                     apply_venom(&mut you, &combat_action.annotation)?;
                 }
-            } else if let Some(Observation::PurgeVenom(who, _what)) = after.get(1) {
+            } else if let Some(AetObservation::PurgeVenom(who, _what)) = after.get(1) {
                 if !who.eq(&combat_action.target) {
                     apply_venom(&mut you, &combat_action.annotation)?;
                 }
@@ -1922,7 +1922,7 @@ pub fn get_top_hypno<'s>(
     }
 }
 
-fn check_config(timeline: &Timeline, value: &String) -> bool {
+fn check_config(timeline: &AetTimeline, value: &String) -> bool {
     timeline
         .state
         .get_my_hint(value)
@@ -1930,15 +1930,15 @@ fn check_config(timeline: &Timeline, value: &String) -> bool {
         .eq(&"true")
 }
 
-fn use_one_rag(timeline: &Timeline) -> bool {
+fn use_one_rag(timeline: &AetTimeline) -> bool {
     check_config(timeline, &"ONE_RAG".to_string())
 }
 
-fn should_call_venoms(timeline: &Timeline) -> bool {
+fn should_call_venoms(timeline: &AetTimeline) -> bool {
     check_config(timeline, &"VENOM_CALLING".to_string())
 }
 
-fn should_void(timeline: &Timeline) -> bool {
+fn should_void(timeline: &AetTimeline) -> bool {
     !check_config(timeline, &"NO_VOID".to_string())
 }
 
@@ -1998,7 +1998,7 @@ fn should_bedazzle(
     }
 }
 
-fn should_regenerate(timeline: &Timeline, me: &String) -> bool {
+fn should_regenerate(timeline: &AetTimeline, me: &String) -> bool {
     let me = timeline.state.borrow_agent(me);
     if me.balanced(BType::Regenerate) {
         false
@@ -2009,7 +2009,7 @@ fn should_regenerate(timeline: &Timeline, me: &String) -> bool {
     }
 }
 
-fn needs_restore(timeline: &Timeline, me: &String) -> bool {
+fn needs_restore(timeline: &AetTimeline, me: &String) -> bool {
     let me = timeline.state.borrow_agent(me);
     me.restore_count() > 0
         && me.restore_count() < 3
@@ -2017,7 +2017,7 @@ fn needs_restore(timeline: &Timeline, me: &String) -> bool {
         && me.get_balance(BType::Salve) > 2.5
 }
 
-fn needs_shrugging(timeline: &Timeline, me: &String) -> bool {
+fn needs_shrugging(timeline: &AetTimeline, me: &String) -> bool {
     let me = timeline.state.borrow_agent(me);
     me.balanced(BType::ClassCure1)
         && me.is(FType::Asthma)
@@ -2027,7 +2027,7 @@ fn needs_shrugging(timeline: &Timeline, me: &String) -> bool {
         && (!me.balanced(BType::Focus) || me.is(FType::Impatience) || me.is(FType::Stupidity))
 }
 
-fn go_for_thin_blood(_timeline: &Timeline, you: &AgentState, _strategy: &String) -> bool {
+fn go_for_thin_blood(_timeline: &AetTimeline, you: &AgentState, _strategy: &String) -> bool {
     let mut buffer_count = 0;
     if you.is(FType::Lethargy) {
         buffer_count = buffer_count + 1;
@@ -2072,7 +2072,7 @@ pub fn call_venoms(target: &String, v1: &String, v2: &String) -> String {
     format!("wt Afflicting {}: {}, {}", target, v1, v2)
 }
 
-pub fn get_flay_action(timeline: &Timeline, target: &String, def: String, v1: String) -> String {
+pub fn get_flay_action(timeline: &AetTimeline, target: &String, def: String, v1: String) -> String {
     let action = if use_one_rag(timeline) && !v1.eq_ignore_ascii_case("") {
         format!("stand;;hw {};;flay {}", v1, target)
     } else if def.eq_ignore_ascii_case("rebounding") || def.eq_ignore_ascii_case("shield") {
@@ -2089,7 +2089,12 @@ pub fn get_flay_action(timeline: &Timeline, target: &String, def: String, v1: St
     action
 }
 
-pub fn get_dstab_action(timeline: &Timeline, target: &String, v1: &String, v2: &String) -> String {
+pub fn get_dstab_action(
+    timeline: &AetTimeline,
+    target: &String,
+    v1: &String,
+    v2: &String,
+) -> String {
     let action = if use_one_rag(timeline) {
         format!("hr {};;hr {};;stand;;dstab {};;dash d", v2, v1, target)
     } else {
@@ -2102,7 +2107,7 @@ pub fn get_dstab_action(timeline: &Timeline, target: &String, v1: &String, v2: &
     }
 }
 
-pub fn get_slit_action(timeline: &Timeline, target: &String, v1: &String) -> String {
+pub fn get_slit_action(timeline: &AetTimeline, target: &String, v1: &String) -> String {
     let action = if use_one_rag(timeline) {
         format!("stand;;hr {};;dstab {};;dash d", v1, target)
     } else {
@@ -2116,7 +2121,7 @@ pub fn get_slit_action(timeline: &Timeline, target: &String, v1: &String) -> Str
 }
 
 pub fn add_delphs(
-    timeline: &Timeline,
+    timeline: &AetTimeline,
     me: &AgentState,
     you: &AgentState,
     strategy: &String,
@@ -2152,7 +2157,7 @@ pub fn add_delphs(
 }
 
 pub fn get_stack<'s>(
-    timeline: &Timeline,
+    timeline: &AetTimeline,
     target: &String,
     strategy: &String,
     db: Option<&DatabaseModule>,
@@ -2177,7 +2182,7 @@ pub fn get_stack<'s>(
 }
 
 pub fn get_balance_attack<'s>(
-    timeline: &Timeline,
+    timeline: &AetTimeline,
     who_am_i: &String,
     target: &String,
     strategy: &String,
@@ -2344,7 +2349,7 @@ pub fn get_balance_attack<'s>(
     }
 }
 
-fn get_hypno_stack_name(timeline: &Timeline, target: &String, strategy: &String) -> String {
+fn get_hypno_stack_name(timeline: &AetTimeline, target: &String, strategy: &String) -> String {
     timeline
         .state
         .get_my_hint(&"HYPNO_STACK".to_string())
@@ -2352,7 +2357,7 @@ fn get_hypno_stack_name(timeline: &Timeline, target: &String, strategy: &String)
 }
 
 fn get_hypno_stack<'s>(
-    timeline: &Timeline,
+    timeline: &AetTimeline,
     target: &String,
     strategy: &String,
     db: Option<&DatabaseModule>,
@@ -2369,7 +2374,7 @@ fn get_hypno_stack<'s>(
 }
 
 pub fn get_equil_attack<'s>(
-    timeline: &Timeline,
+    timeline: &AetTimeline,
     me: &String,
     target: &String,
     strategy: &String,
@@ -2385,7 +2390,7 @@ pub fn get_equil_attack<'s>(
 }
 
 pub fn get_shadow_attack<'s>(
-    timeline: &Timeline,
+    timeline: &AetTimeline,
     me: &String,
     target: &String,
     strategy: &String,
@@ -2412,7 +2417,7 @@ pub fn get_shadow_attack<'s>(
     }
 }
 
-pub fn get_snap(timeline: &Timeline, me: &String, target: &String, _strategy: &String) -> bool {
+pub fn get_snap(timeline: &AetTimeline, me: &String, target: &String, _strategy: &String) -> bool {
     let you = timeline.state.borrow_agent(target);
     if get_top_hypno(me, target, &you, &HARD_HYPNO.to_vec()).is_none()
         && you.hypno_state.sealed.is_some()
@@ -2424,7 +2429,7 @@ pub fn get_snap(timeline: &Timeline, me: &String, target: &String, _strategy: &S
 }
 
 pub fn get_action_plan(
-    timeline: &Timeline,
+    timeline: &AetTimeline,
     me: &String,
     target: &String,
     strategy: &String,
@@ -2468,7 +2473,7 @@ impl ActionPlanner for SyssinActionPlanner {
     }
     fn get_plan(
         &self,
-        timeline: &Timeline,
+        timeline: &AetTimeline,
         actor: &String,
         target: &String,
         strategy: &str,
@@ -2479,7 +2484,7 @@ impl ActionPlanner for SyssinActionPlanner {
 }
 
 pub fn get_attack(
-    timeline: &Timeline,
+    timeline: &AetTimeline,
     target: &String,
     strategy: &String,
     db: Option<&DatabaseModule>,

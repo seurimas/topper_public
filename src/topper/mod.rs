@@ -1,10 +1,12 @@
 use crate::classes::{get_attack, VenomPlan};
+use crate::timeline::aetolia::{AetObservation, AetPrompt, AetTimeSlice, AetTimeline};
+use crate::timeline::{BaseAgentState, CType};
 use crate::topper::battle_stats::*;
 use crate::topper::db::DatabaseModule;
 use crate::topper::telnet::TelnetModule;
-use crate::topper::timeline::{TimeSlice, Timeline, TimelineModule};
+use crate::topper::timeline::{AetTimelineModule, TimeSlice, Timeline, TimelineModule};
 use crate::topper::web_ui::WebModule;
-use crate::types::{CType, Hypnosis};
+use crate::types::{AgentState, Hypnosis};
 mod battle_stats;
 pub mod db;
 pub mod telnet;
@@ -39,7 +41,7 @@ pub enum TopperRequest {
 #[derive(Deserialize)]
 pub enum TopperMessage {
     Kill,
-    Event(TimeSlice),
+    AetEvent(AetTimeSlice),
     Request(TopperRequest),
     Target(String),
 }
@@ -143,8 +145,8 @@ impl TopperResponse {
     }
 }
 
-pub struct Topper {
-    timeline_module: TimelineModule,
+pub struct Topper<O, P, A> {
+    timeline_module: TimelineModule<O, P, A>,
     core_module: TopperCore,
     telnet_module: TelnetModule,
     battlestats_module: BattleStatsModule,
@@ -152,10 +154,12 @@ pub struct Topper {
     web_module: WebModule,
 }
 
-impl Topper {
+pub type AetTopper = Topper<AetObservation, AetPrompt, AgentState>;
+
+impl AetTopper {
     pub fn new(send_lines: Sender<String>) -> Self {
         Topper {
-            timeline_module: TimelineModule::new(),
+            timeline_module: AetTimelineModule::new(),
             core_module: TopperCore::new(),
             telnet_module: TelnetModule::new(send_lines),
             battlestats_module: BattleStatsModule::new(),
@@ -163,7 +167,6 @@ impl Topper {
             web_module: WebModule::new(),
         }
     }
-
     pub fn me(&self) -> String {
         self.timeline_module.timeline.who_am_i()
     }
@@ -172,7 +175,7 @@ impl Topper {
         self.core_module.target.clone()
     }
 
-    pub fn get_timeline(&mut self) -> &mut Timeline {
+    pub fn get_timeline(&mut self) -> &mut AetTimeline {
         &mut self.timeline_module.timeline
     }
 

@@ -1,6 +1,7 @@
 use crate::classes::Class;
 use crate::observables::ActionPlan;
-use crate::timeline::Timeline;
+use crate::timeline::aetolia::AetTimeline;
+use crate::timeline::BaseTimeline;
 use crate::topper::db::DatabaseModule;
 use std::collections::HashMap;
 
@@ -8,7 +9,7 @@ pub trait ActionPlanner {
     fn get_strategies(&self) -> &'static [&'static str];
     fn get_plan(
         &self,
-        timeline: &Timeline,
+        timeline: &AetTimeline,
         actor: &String,
         target: &String,
         strategy: &str,
@@ -17,7 +18,7 @@ pub trait ActionPlanner {
 }
 
 struct DuelSimulation<M: ActionPlanner, T: ActionPlanner> {
-    timeline: Timeline,
+    timeline: AetTimeline,
     duelists: (Duelist<M>, Duelist<T>),
 }
 
@@ -27,7 +28,7 @@ struct Duelist<P: ActionPlanner> {
 }
 
 struct SimulationIterator<'s, D: ActionPlanner> {
-    timeline: &'s Timeline,
+    timeline: &'s AetTimeline,
     duelist: &'s Duelist<D>,
     target: &'s String,
     index: usize,
@@ -36,7 +37,7 @@ struct SimulationIterator<'s, D: ActionPlanner> {
 
 impl<'s, D: ActionPlanner> SimulationIterator<'s, D> {
     pub fn new(
-        timeline: &'s Timeline,
+        timeline: &'s AetTimeline,
         duelist: &'s Duelist<D>,
         target: &'s String,
         db: Option<&'s DatabaseModule>,
@@ -52,7 +53,7 @@ impl<'s, D: ActionPlanner> SimulationIterator<'s, D> {
 }
 
 impl<'s, D: ActionPlanner> Iterator for SimulationIterator<'s, D> {
-    type Item = Timeline;
+    type Item = AetTimeline;
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(strategy) = self.duelist.action_planner.get_strategies().get(self.index) {
             self.index += 1;

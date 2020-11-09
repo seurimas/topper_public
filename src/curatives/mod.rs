@@ -1,4 +1,4 @@
-use crate::timeline::*;
+use crate::timeline::aetolia::*;
 use crate::types::*;
 pub mod first_aid;
 pub mod statics;
@@ -11,7 +11,7 @@ mod timeline_tests {
 
     #[test]
     fn test_pill() {
-        let mut timeline = Timeline::new();
+        let mut timeline = AetTimeline::new();
         {
             let mut updated_seur = timeline.state.get_agent(&"Seurimas".to_string());
             updated_seur.set_flag(FType::ThinBlood, true);
@@ -23,7 +23,7 @@ mod timeline_tests {
             timeline.state.set_agent(&"Benedicto".into(), updated_bene);
         }
         let coag_slice = TimeSlice {
-            observations: vec![Observation::SimpleCureAction(SimpleCureAction {
+            observations: vec![AetObservation::SimpleCureAction(SimpleCureAction {
                 caster: "Benedicto".into(),
                 cure_type: SimpleCure::Pill("coagulation".into()),
             })],
@@ -43,7 +43,7 @@ mod timeline_tests {
 
     #[test]
     fn test_mending() {
-        let mut timeline = Timeline::new();
+        let mut timeline = AetTimeline::new();
         {
             let mut updated_seur = timeline.state.get_agent(&"Seurimas".to_string());
             updated_seur.set_flag(FType::LeftArmBroken, true);
@@ -55,7 +55,7 @@ mod timeline_tests {
             timeline.state.set_agent(&"Benedicto".into(), updated_bene);
         }
         let coag_slice = TimeSlice {
-            observations: vec![Observation::SimpleCureAction(SimpleCureAction {
+            observations: vec![AetObservation::SimpleCureAction(SimpleCureAction {
                 caster: "Benedicto".into(),
                 cure_type: SimpleCure::Salve("mending".into(), "skin".into()),
             })],
@@ -109,9 +109,9 @@ pub fn remove_in_order(
 
 pub fn handle_simple_cure_action(
     simple_cure: &SimpleCureAction,
-    agent_states: &mut TimelineState,
-    _before: &Vec<Observation>,
-    after: &Vec<Observation>,
+    agent_states: &mut AetTimelineState,
+    _before: &Vec<AetObservation>,
+    after: &Vec<AetObservation>,
 ) -> Result<(), String> {
     let mut me = agent_states.get_agent(&simple_cure.caster);
     let results = match &simple_cure.cure_type {

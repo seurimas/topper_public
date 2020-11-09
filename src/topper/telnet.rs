@@ -25,7 +25,7 @@ impl<'s> TopperModule<'s> for TelnetModule {
         siblings: Self::Siblings,
     ) -> Result<TopperResponse, String> {
         match message {
-            TopperMessage::Event(timeslice) => {
+            TopperMessage::AetEvent(timeslice) => {
                 for (line, _line_number) in timeslice.lines.iter() {
                     match self.send_lines.send(line.to_string()) {
                         Ok(()) => {}

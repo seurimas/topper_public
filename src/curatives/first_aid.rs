@@ -1,15 +1,16 @@
 use super::statics::*;
 use crate::observables::*;
-use crate::timeline::*;
+use crate::timeline::aetolia::*;
+use crate::timeline::BaseAgentState;
 use crate::types::*;
 use regex::{Regex, RegexSet};
 use std::collections::HashMap;
 
 impl ActiveTransition for SimpleCureAction {
-    fn simulate(&self, timeline: &Timeline) -> Vec<ProbableEvent> {
-        ProbableEvent::certain(vec![Observation::SimpleCureAction(self.clone())])
+    fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
+        ProbableEvent::certain(vec![AetObservation::SimpleCureAction(self.clone())])
     }
-    fn act(&self, timeline: &Timeline) -> ActivateResult {
+    fn act(&self, timeline: &AetTimeline) -> ActivateResult {
         match &self.cure_type {
             SimpleCure::Pill(pill) => Ok(format!("eat {}", pill)),
             SimpleCure::Salve(salve, location) => Ok(format!("apply {} to {}", salve, location)),
@@ -31,7 +32,7 @@ impl FocusAction {
 }
 
 impl ActiveTransition for FocusAction {
-    fn simulate(&self, timeline: &Timeline) -> Vec<ProbableEvent> {
+    fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
         ProbableEvent::certain(vec![CombatAction::observation(
             &self.caster,
             &"",
@@ -40,7 +41,7 @@ impl ActiveTransition for FocusAction {
             &"",
         )])
     }
-    fn act(&self, timeline: &Timeline) -> ActivateResult {
+    fn act(&self, timeline: &AetTimeline) -> ActivateResult {
         Ok("focus".to_string())
     }
 }
@@ -58,7 +59,7 @@ impl TreeAction {
 }
 
 impl ActiveTransition for TreeAction {
-    fn simulate(&self, timeline: &Timeline) -> Vec<ProbableEvent> {
+    fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
         ProbableEvent::certain(vec![CombatAction::observation(
             &self.caster,
             &"",
@@ -67,7 +68,7 @@ impl ActiveTransition for TreeAction {
             &"",
         )])
     }
-    fn act(&self, timeline: &Timeline) -> ActivateResult {
+    fn act(&self, timeline: &AetTimeline) -> ActivateResult {
         Ok("touch tree".to_string())
     }
 }
@@ -95,7 +96,7 @@ impl FirstAidAction {
 }
 
 impl ActiveTransition for FirstAidAction {
-    fn simulate(&self, timeline: &Timeline) -> Vec<ProbableEvent> {
+    fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
         match self {
             FirstAidAction::Simple(action) => action.simulate(&timeline),
             FirstAidAction::Focus(action) => action.simulate(&timeline),
@@ -103,7 +104,7 @@ impl ActiveTransition for FirstAidAction {
             FirstAidAction::Wait => vec![],
         }
     }
-    fn act(&self, timeline: &Timeline) -> ActivateResult {
+    fn act(&self, timeline: &AetTimeline) -> ActivateResult {
         match self {
             FirstAidAction::Simple(action) => action.act(&timeline),
             FirstAidAction::Focus(action) => action.act(&timeline),

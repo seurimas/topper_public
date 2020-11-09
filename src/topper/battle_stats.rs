@@ -1,5 +1,5 @@
 use crate::classes::{get_attack, Class};
-use crate::timeline::*;
+use crate::timeline::aetolia::*;
 use crate::topper::db::DatabaseModule;
 use crate::topper::{TopperMessage, TopperModule, TopperRequest, TopperResponse};
 use crate::types::*;
@@ -123,7 +123,7 @@ impl BattleStatsModule {
 }
 
 impl<'s> TopperModule<'s> for BattleStatsModule {
-    type Siblings = (&'s Timeline, &'s Option<String>, &'s DatabaseModule);
+    type Siblings = (&'s AetTimeline, &'s Option<String>, &'s DatabaseModule);
     fn handle_message(
         &mut self,
         message: &TopperMessage,
@@ -172,7 +172,7 @@ fn format_combat_action(combat_action: &CombatAction) -> Vec<String> {
 }
 
 pub fn get_battle_stats(
-    timeline: &Timeline,
+    timeline: &AetTimeline,
     target: &Option<String>,
     db: &DatabaseModule,
     plan: &Option<String>,
@@ -206,11 +206,11 @@ pub fn get_battle_stats(
         "".to_string()
     };
     for timeslice in timeline.slices.iter().rev() {
-        for observation in timeslice.observations.iter().rev() {
+        for observation in timeslice.get_observations().iter().rev() {
             if lines_available <= 0 {
                 break;
             }
-            if let Observation::CombatAction(combat_action) = observation {
+            if let AetObservation::CombatAction(combat_action) = observation {
                 if let Some(who) = target {
                     if !who.eq_ignore_ascii_case(&combat_action.target)
                         && !who.eq_ignore_ascii_case(&combat_action.caster)
@@ -228,7 +228,7 @@ pub fn get_battle_stats(
                 }
             }
             if target.is_none() {
-                if let Observation::SimpleCureAction(simple_cure) = observation {
+                if let AetObservation::SimpleCureAction(simple_cure) = observation {
                     lines.push(format!(
                         "{} <= {:?}",
                         simple_cure.caster, simple_cure.cure_type

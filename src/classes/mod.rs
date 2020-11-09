@@ -1,6 +1,6 @@
 use crate::curatives::MENTAL_AFFLICTIONS;
 use crate::observables::*;
-use crate::timeline::*;
+use crate::timeline::aetolia::*;
 use crate::topper::db::DatabaseModule;
 use crate::topper::*;
 use crate::types::*;
@@ -149,12 +149,12 @@ pub fn is_affected_by(class: &Class, affliction: FType) -> bool {
     }
 }
 
-pub fn handle_sent(command: &String, agent_states: &mut TimelineState) {
+pub fn handle_sent(command: &String, agent_states: &mut AetTimelineState) {
     syssin::handle_sent(command, agent_states);
 }
 
 pub fn get_attack(
-    timeline: &Timeline,
+    timeline: &AetTimeline,
     me: &String,
     target: &String,
     strategy: &String,
@@ -173,7 +173,7 @@ pub fn get_attack(
 }
 
 pub fn get_needed_parry(
-    timeline: &Timeline,
+    timeline: &AetTimeline,
     me: &String,
     target: &String,
     strategy: &String,
@@ -195,7 +195,7 @@ pub fn get_needed_parry(
     }
 }
 
-pub fn get_restore_parry(timeline: &Timeline, me: &String) -> Option<LType> {
+pub fn get_restore_parry(timeline: &AetTimeline, me: &String) -> Option<LType> {
     let me = timeline.state.borrow_agent(me);
     if let Some((restoring, _duration, _regenerating)) = me.get_restoring() {
         if restoring == LType::LeftLegDamage {
@@ -210,7 +210,7 @@ pub fn get_restore_parry(timeline: &Timeline, me: &String) -> Option<LType> {
     }
 }
 
-pub fn get_top_parry(timeline: &Timeline, me: &String) -> Option<LType> {
+pub fn get_top_parry(timeline: &AetTimeline, me: &String) -> Option<LType> {
     let me = timeline.state.borrow_agent(me);
     let mut top_non_restoring = None;
     for limb in LIMBS.to_vec() {
@@ -227,7 +227,7 @@ pub fn get_top_parry(timeline: &Timeline, me: &String) -> Option<LType> {
 }
 
 pub fn get_preferred_parry(
-    timeline: &Timeline,
+    timeline: &AetTimeline,
     me: &String,
     target: &String,
     strategy: &String,
@@ -261,9 +261,9 @@ pub fn get_preferred_parry(
 
 pub fn handle_combat_action(
     combat_action: &CombatAction,
-    agent_states: &mut TimelineState,
-    before: &Vec<Observation>,
-    after: &Vec<Observation>,
+    agent_states: &mut AetTimelineState,
+    before: &Vec<AetObservation>,
+    after: &Vec<AetObservation>,
 ) -> Result<(), String> {
     match combat_action.category.as_ref() {
         "Subterfuge" | "Assassination" | "Hypnosis" => {
@@ -642,9 +642,9 @@ impl RestoreAction {
 }
 
 impl ActiveTransition for RestoreAction {
-    fn simulate(&self, timeline: &Timeline) -> Vec<ProbableEvent> {
+    fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
         vec![ProbableEvent::new(
-            vec![Observation::CombatAction(CombatAction {
+            vec![AetObservation::CombatAction(CombatAction {
                 caster: self.caster.clone(),
                 category: "Survival".to_string(),
                 skill: "Restoration".to_string(),
@@ -654,7 +654,7 @@ impl ActiveTransition for RestoreAction {
             1,
         )]
     }
-    fn act(&self, timeline: &Timeline) -> ActivateResult {
+    fn act(&self, timeline: &AetTimeline) -> ActivateResult {
         Ok(format!("restore"))
     }
 }
@@ -671,13 +671,13 @@ impl ParryAction {
 }
 
 impl ActiveTransition for ParryAction {
-    fn simulate(&self, timeline: &Timeline) -> Vec<ProbableEvent> {
-        ProbableEvent::certain(vec![Observation::Parry(
+    fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
+        ProbableEvent::certain(vec![AetObservation::Parry(
             self.caster.clone(),
             self.limb.to_string(),
         )])
     }
-    fn act(&self, timeline: &Timeline) -> ActivateResult {
+    fn act(&self, timeline: &AetTimeline) -> ActivateResult {
         Ok(format!("parry {}", self.limb.to_string()))
     }
 }
@@ -693,9 +693,9 @@ impl RegenerateAction {
 }
 
 impl ActiveTransition for RegenerateAction {
-    fn simulate(&self, timeline: &Timeline) -> Vec<ProbableEvent> {
+    fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
         vec![ProbableEvent::new(
-            vec![Observation::CombatAction(CombatAction {
+            vec![AetObservation::CombatAction(CombatAction {
                 caster: self.caster.clone(),
                 category: "Survival".to_string(),
                 skill: "Regenerate".to_string(),
@@ -705,7 +705,7 @@ impl ActiveTransition for RegenerateAction {
             1,
         )]
     }
-    fn act(&self, timeline: &Timeline) -> ActivateResult {
+    fn act(&self, timeline: &AetTimeline) -> ActivateResult {
         Ok(format!("regenerate"))
     }
 }
@@ -723,9 +723,9 @@ impl ShieldAction {
 }
 
 impl ActiveTransition for ShieldAction {
-    fn simulate(&self, timeline: &Timeline) -> Vec<ProbableEvent> {
+    fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
         vec![ProbableEvent::new(
-            vec![Observation::CombatAction(CombatAction {
+            vec![AetObservation::CombatAction(CombatAction {
                 caster: self.caster.clone(),
                 category: "Tattoos".to_string(),
                 skill: "Shield".to_string(),
@@ -735,7 +735,7 @@ impl ActiveTransition for ShieldAction {
             1,
         )]
     }
-    fn act(&self, timeline: &Timeline) -> ActivateResult {
+    fn act(&self, timeline: &AetTimeline) -> ActivateResult {
         Ok(format!("stand;;touch shield"))
     }
 }
@@ -751,10 +751,10 @@ impl Action {
 }
 
 impl ActiveTransition for Action {
-    fn simulate(&self, timeline: &Timeline) -> Vec<ProbableEvent> {
+    fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
         vec![]
     }
-    fn act(&self, timeline: &Timeline) -> ActivateResult {
+    fn act(&self, timeline: &AetTimeline) -> ActivateResult {
         Ok(self.command.clone())
     }
 }

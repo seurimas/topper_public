@@ -1,10 +1,9 @@
+use crate::timeline::{BaseAgentState, CType};
 use num_enum::TryFromPrimitive;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fmt;
-pub type CType = i32;
-
 pub const BALANCE_SCALE: f32 = 100.0;
 
 // Balances
@@ -1421,8 +1420,8 @@ impl PartialEq for AgentState {
     }
 }
 
-impl AgentState {
-    pub fn wait(&mut self, duration: i32) {
+impl BaseAgentState for AgentState {
+    fn wait(&mut self, duration: i32) {
         self.relapses.wait(duration);
         self.zenith_state.wait(duration);
         self.dodge_state.wait(duration);
@@ -1442,7 +1441,27 @@ impl AgentState {
             self.set_flag(FType::Weakvoid, false);
         }
     }
+    fn get_base_state() -> Self {
+        let mut val = AgentState::default();
+        val.initialize_stat(SType::Health, 4000);
+        val.initialize_stat(SType::Mana, 4000);
+        val.set_flag(FType::Player, true);
+        val.set_flag(FType::Blindness, true);
+        val.set_flag(FType::Deafness, true);
+        val.set_flag(FType::Temperance, true);
+        val.set_flag(FType::Levitation, true);
+        val.set_flag(FType::Speed, true);
+        val.set_flag(FType::Temperance, true);
+        val.set_flag(FType::Vigor, true);
+        val.set_flag(FType::Rebounding, true);
+        val.set_flag(FType::Insomnia, true);
+        val.set_flag(FType::Fangbarrier, true);
+        val.set_flag(FType::Instawake, true);
+        val
+    }
+}
 
+impl AgentState {
     pub fn will_be_rebounding(&self, qeb: f32) -> bool {
         if self.is(FType::Rebounding)
             || (self.is(FType::AssumedRebounding) && self.get_balance(BType::Rebounding) > -1.0)

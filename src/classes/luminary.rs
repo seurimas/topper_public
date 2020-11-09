@@ -1,12 +1,12 @@
-use crate::timeline::*;
+use crate::timeline::aetolia::*;
 use crate::topper::*;
 use crate::types::*;
 
 pub fn handle_combat_action(
     combat_action: &CombatAction,
-    agent_states: &mut TimelineState,
-    _before: &Vec<Observation>,
-    after: &Vec<Observation>,
+    agent_states: &mut AetTimelineState,
+    _before: &Vec<AetObservation>,
+    after: &Vec<AetObservation>,
 ) -> Result<(), String> {
     match combat_action.skill.as_ref() {
         "Aura" => {
@@ -27,7 +27,7 @@ pub fn handle_combat_action(
     Ok(())
 }
 
-pub fn get_balance_attack(topper: &mut Topper, target: &String, strategy: &String) -> String {
+pub fn get_balance_attack(topper: &mut AetTopper, target: &String, strategy: &String) -> String {
     if strategy == "damage" {
         let you = topper.get_timeline().state.borrow_agent(target);
         if you.parrying == Some(LType::HeadDamage) {
@@ -43,7 +43,7 @@ pub fn get_balance_attack(topper: &mut Topper, target: &String, strategy: &Strin
     }
 }
 
-pub fn get_attack(topper: &mut Topper, target: &String, strategy: &String) -> String {
+pub fn get_attack(topper: &mut AetTopper, target: &String, strategy: &String) -> String {
     let mut balance = get_balance_attack(topper, target, strategy);
     let mut attack = "".to_string();
     if balance != "" {

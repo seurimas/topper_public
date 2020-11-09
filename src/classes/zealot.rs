@@ -1,12 +1,12 @@
 use crate::classes::{get_needed_parry, get_preferred_parry as get_parry, is_affected_by, Class};
 use crate::curatives::MENTAL_AFFLICTIONS;
-use crate::timeline::*;
+use crate::timeline::aetolia::*;
 use crate::topper::db::DatabaseModule;
 use crate::topper::*;
 use crate::types::*;
 
 pub fn get_preferred_parry(
-    timeline: &Timeline,
+    timeline: &AetTimeline,
     me: &String,
     target: &String,
     strategy: &String,
@@ -15,10 +15,10 @@ pub fn get_preferred_parry(
 }
 
 fn apply_combo_balance(
-    agent_states: &mut TimelineState,
+    agent_states: &mut AetTimelineState,
     caster: &String,
     expected: (BType, f32),
-    after: &Vec<Observation>,
+    after: &Vec<AetObservation>,
 ) {
     let mut me = agent_states.get_agent(caster);
     apply_or_infer_combo_balance(&mut me, expected, after);
@@ -26,10 +26,10 @@ fn apply_combo_balance(
 }
 
 fn attack_limb_damage(
-    agent_states: &mut TimelineState,
+    agent_states: &mut AetTimelineState,
     target: &String,
     expected: (LType, f32, bool),
-    after: &Vec<Observation>,
+    after: &Vec<AetObservation>,
 ) {
     let mut you = agent_states.get_agent(target);
     apply_limb_damage(&mut you, expected, after);
@@ -50,9 +50,9 @@ const SWAGGER_LIMIT: u8 = 3;
 
 pub fn handle_combat_action(
     combat_action: &CombatAction,
-    agent_states: &mut TimelineState,
-    _before: &Vec<Observation>,
-    after: &Vec<Observation>,
+    agent_states: &mut AetTimelineState,
+    _before: &Vec<AetObservation>,
+    after: &Vec<AetObservation>,
 ) -> Result<(), String> {
     match combat_action.skill.as_ref() {
         "Welts" => {
@@ -1317,7 +1317,7 @@ lazy_static! {
 }
 
 pub fn get_balance_attack(
-    timeline: &Timeline,
+    timeline: &AetTimeline,
     target: &String,
     strategy: &String,
     db: Option<&DatabaseModule>,
@@ -1468,7 +1468,7 @@ pub fn get_balance_attack(
 }
 
 pub fn get_attack(
-    timeline: &Timeline,
+    timeline: &AetTimeline,
     target: &String,
     strategy: &String,
     db: Option<&DatabaseModule>,

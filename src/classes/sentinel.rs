@@ -3,7 +3,7 @@ use crate::alpha_beta::ActionPlanner;
 use crate::{affliction_stacker, affliction_plan_stacker};
 use crate::classes::*;
 use crate::observables::*;
-use crate::timeline::*;
+use crate::timeline::aetolia::*;
 use crate::topper::*;
 use crate::types::*;
 use regex::Regex;
@@ -15,24 +15,24 @@ mod sentinel_tests {
 
     #[test]
     fn test_salve_attacks() {
-        let mut timeline = Timeline::new();
+        let mut timeline = AetTimeline::new();
         let breath_flourish_slice = TimeSlice {
             observations: vec![
-                Observation::CombatAction(CombatAction {
+                AetObservation::CombatAction(CombatAction {
                     annotation: "".to_string(),
                     caster: "Rinata".to_string(),
                     category: "Woodlore".to_string(),
                     skill: "Icebreath".to_string(),
                     target: "Illidan".to_string(),
                 }),
-                Observation::CombatAction(CombatAction {
+                AetObservation::CombatAction(CombatAction {
                     annotation: "".to_string(),
                     caster: "Rinata".to_string(),
                     category: "Dhuriv".to_string(),
                     skill: "Flourish".to_string(),
                     target: "Illidan".to_string(),
                 }),
-                Observation::Devenoms("epseth".to_string()),
+                AetObservation::Devenoms("epseth".to_string()),
             ],
             lines: vec![],
             prompt: Prompt::Blackout,
@@ -261,10 +261,10 @@ impl ComboAction {
 }
 
 impl ActiveTransition for ComboAction {
-    fn simulate(&self, _timeline: &Timeline) -> Vec<ProbableEvent> {
+    fn simulate(&self, _timeline: &AetTimeline) -> Vec<ProbableEvent> {
         Vec::new()
     }
-    fn act(&self, timeline: &Timeline) -> ActivateResult {
+    fn act(&self, timeline: &AetTimeline) -> ActivateResult {
         Ok(get_combo_action(
             &timeline,
             &self.target,
@@ -275,7 +275,7 @@ impl ActiveTransition for ComboAction {
 }
 
 fn get_combo_action(
-    timeline: &Timeline,
+    timeline: &AetTimeline,
     target: &String,
     first_strike: &FirstStrike,
     second_strike: &SecondStrike,
@@ -316,10 +316,10 @@ impl PierceAction {
 }
 
 impl ActiveTransition for PierceAction {
-    fn simulate(&self, _timeline: &Timeline) -> Vec<ProbableEvent> {
+    fn simulate(&self, _timeline: &AetTimeline) -> Vec<ProbableEvent> {
         Vec::new()
     }
-    fn act(&self, _timeline: &Timeline) -> ActivateResult {
+    fn act(&self, _timeline: &AetTimeline) -> ActivateResult {
         Ok(format!(
             "stand;;stand;;dhuriv pierce {} {}",
             self.target, self.side
@@ -344,10 +344,10 @@ impl SeverAction {
 }
 
 impl ActiveTransition for SeverAction {
-    fn simulate(&self, _timeline: &Timeline) -> Vec<ProbableEvent> {
+    fn simulate(&self, _timeline: &AetTimeline) -> Vec<ProbableEvent> {
         Vec::new()
     }
-    fn act(&self, _timeline: &Timeline) -> ActivateResult {
+    fn act(&self, _timeline: &AetTimeline) -> ActivateResult {
         Ok(format!(
             "stand;;stand;;dhuriv sever {} {}",
             self.target, self.side
@@ -366,10 +366,10 @@ impl MightAction {
 }
 
 impl ActiveTransition for MightAction {
-    fn simulate(&self, _timeline: &Timeline) -> Vec<ProbableEvent> {
+    fn simulate(&self, _timeline: &AetTimeline) -> Vec<ProbableEvent> {
         Vec::new()
     }
-    fn act(&self, _timeline: &Timeline) -> ActivateResult {
+    fn act(&self, _timeline: &AetTimeline) -> ActivateResult {
         Ok("might".to_string())
     }
 }
@@ -386,10 +386,10 @@ impl DualrazeAction {
 }
 
 impl ActiveTransition for DualrazeAction {
-    fn simulate(&self, _timeline: &Timeline) -> Vec<ProbableEvent> {
+    fn simulate(&self, _timeline: &AetTimeline) -> Vec<ProbableEvent> {
         Vec::new()
     }
-    fn act(&self, _timeline: &Timeline) -> ActivateResult {
+    fn act(&self, _timeline: &AetTimeline) -> ActivateResult {
         Ok(format!("dhuriv dualraze {}", self.target))
     }
 }
@@ -405,16 +405,16 @@ impl FitnessAction {
 }
 
 impl ActiveTransition for FitnessAction {
-    fn simulate(&self, _timeline: &Timeline) -> Vec<ProbableEvent> {
+    fn simulate(&self, _timeline: &AetTimeline) -> Vec<ProbableEvent> {
         Vec::new()
     }
-    fn act(&self, _timeline: &Timeline) -> ActivateResult {
+    fn act(&self, _timeline: &AetTimeline) -> ActivateResult {
         Ok("fitness".to_string())
     }
 }
 
 /**
- * Observations
+ * AetObservations
  **/
 
 lazy_static! {
@@ -427,9 +427,9 @@ lazy_static! {
 
 pub fn handle_combat_action(
     combat_action: &CombatAction,
-    agent_states: &mut TimelineState,
-    _before: &Vec<Observation>,
-    after: &Vec<Observation>,
+    agent_states: &mut AetTimelineState,
+    _before: &Vec<AetObservation>,
+    after: &Vec<AetObservation>,
 ) -> Result<(), String> {
     match combat_action.skill.as_ref() {
         "Might" => {
@@ -457,18 +457,18 @@ pub fn handle_combat_action(
             let mut limb_damaged = false;
             for observation in after {
                 match observation {
-                    Observation::Damaged(_who, limb) => {
+                    AetObservation::Damaged(_who, limb) => {
                         limb_hit = get_limb_damage(limb).ok();
                         limb_damaged = true;
                     }
-                    Observation::Connects(limb) => {
+                    AetObservation::Connects(limb) => {
                         limb_hit = get_limb_damage(limb).ok();
                         limb_damaged = false;
                     }
-                    Observation::Rebounds => {
+                    AetObservation::Rebounds => {
                         target = &combat_action.caster;
                     }
-                    Observation::CombatAction(action) => {
+                    AetObservation::CombatAction(action) => {
                         if action != combat_action {
                             break;
                         }
@@ -753,7 +753,7 @@ lazy_static! {
 }
 
 fn get_stack<'s>(
-    timeline: &Timeline,
+    timeline: &AetTimeline,
     target: &String,
     strategy: &String,
     db: Option<&DatabaseModule>,
@@ -821,7 +821,7 @@ fn want_sever(you: &AgentState) -> Option<String> {
 }
 
 pub fn get_balance_attack<'s>(
-    timeline: &Timeline,
+    timeline: &AetTimeline,
     who_am_i: &String,
     target: &String,
     strategy: &String,
@@ -880,7 +880,7 @@ pub fn get_balance_attack<'s>(
 }
 
 pub fn get_action_plan(
-    timeline: &Timeline,
+    timeline: &AetTimeline,
     me: &String,
     target: &String,
     strategy: &String,
@@ -901,7 +901,7 @@ pub fn get_action_plan(
 }
 
 pub fn get_attack(
-    timeline: &Timeline,
+    timeline: &AetTimeline,
     target: &String,
     strategy: &String,
     db: Option<&DatabaseModule>,

@@ -279,17 +279,17 @@ impl<'s> TopperModule<'s> for DatabaseModule {
                 self.set_venom_plan(stack, old_stack);
                 Ok(TopperResponse::silent())
             }
-            TopperMessage::Event(event) => {
-                for observation in event.observations.iter() {
+            TopperMessage::AetEvent(event) => {
+                for observation in event.get_observations().iter() {
                     match observation {
-                        crate::timeline::Observation::CombatAction(crate::timeline::CombatAction { caster, target, .. }) => {
+                        /*crate::timeline::Observation::CombatAction(crate::timeline::CombatAction { caster, target, .. }) => {
                             if !caster.eq("") && !caster.find(" ").is_some() {
                                 self.send_api_request(caster, 3600 * 2);
                             }
                             if !target.eq("") && !target.find(" ").is_some() {
                                 self.send_api_request(target, 3600 * 2);
                             }
-                        }
+                        }*/
                         _ => {
                         }
                     }
