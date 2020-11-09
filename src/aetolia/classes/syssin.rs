@@ -1,15 +1,16 @@
-use crate::alpha_beta::ActionPlanner;
-use crate::classes::*;
-use crate::observables::*;
-use crate::timeline::aetolia::*;
-use crate::topper::*;
-use crate::types::*;
+use crate::aetolia::alpha_beta::ActionPlanner;
+use crate::aetolia::classes::*;
+use crate::aetolia::observables::*;
+use crate::aetolia::timeline::*;
+use crate::aetolia::topper::*;
+use crate::aetolia::types::*;
 use regex::Regex;
 use std::collections::HashMap;
 
 #[cfg(test)]
 mod timeline_tests {
     use super::*;
+    use crate::timeline::BaseTimeline;
 
     #[test]
     fn test_dstab_3p() {
@@ -18,15 +19,15 @@ mod timeline_tests {
             .state
             .add_player_hint(&"Savas", &"CALLED_VENOMS", "kalmia slike".to_string());
         let dstab_slice = AetTimeSlice {
-            observations: vec![AetObservation::CombatAction(CombatAction {
+            observations: Some(vec![AetObservation::CombatAction(CombatAction {
                 caster: "Savas".to_string(),
                 category: "Assassination".to_string(),
                 skill: "Doublestab".to_string(),
                 target: "Benedicto".to_string(),
                 annotation: "".to_string(),
-            })],
+            })]),
             lines: vec![],
-            prompt: Prompt::Blackout,
+            prompt: AetPrompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
         };
@@ -48,7 +49,7 @@ mod timeline_tests {
             .state
             .add_player_hint(&"Savas", &"CALLED_VENOMS", "kalmia slike".to_string());
         let dstab_slice = AetTimeSlice {
-            observations: vec![
+            observations: Some(vec![
                 AetObservation::CombatAction(CombatAction {
                     caster: "Savas".to_string(),
                     category: "Assassination".to_string(),
@@ -57,9 +58,9 @@ mod timeline_tests {
                     annotation: "".to_string(),
                 }),
                 AetObservation::Dodges("Benedicto".to_string()),
-            ],
+            ]),
             lines: vec![],
-            prompt: Prompt::Blackout,
+            prompt: AetPrompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
         };
@@ -78,7 +79,7 @@ mod timeline_tests {
     fn test_dstab() {
         let mut timeline = AetTimeline::new();
         let dstab_slice = AetTimeSlice {
-            observations: vec![
+            observations: Some(vec![
                 AetObservation::CombatAction(CombatAction {
                     caster: "Seurimas".to_string(),
                     category: "Assassination".to_string(),
@@ -88,9 +89,9 @@ mod timeline_tests {
                 }),
                 AetObservation::Devenoms("slike".into()),
                 AetObservation::Devenoms("kalmia".into()),
-            ],
+            ]),
             lines: vec![],
-            prompt: Prompt::Blackout,
+            prompt: AetPrompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
         };
@@ -107,9 +108,9 @@ mod timeline_tests {
 
     #[test]
     fn test_dstab_salve() {
-        let mut timeline = Timeline::new();
+        let mut timeline = AetTimeline::new();
         let dstab_slice = AetTimeSlice {
-            observations: vec![
+            observations: Some(vec![
                 AetObservation::CombatAction(CombatAction {
                     caster: "Seurimas".to_string(),
                     category: "Assassination".to_string(),
@@ -119,9 +120,9 @@ mod timeline_tests {
                 }),
                 AetObservation::Devenoms("epseth".into()),
                 AetObservation::Devenoms("epteth".into()),
-            ],
+            ]),
             lines: vec![],
-            prompt: Prompt::Blackout,
+            prompt: AetPrompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
         };
@@ -140,7 +141,7 @@ mod timeline_tests {
     fn test_dstab_absorbed() {
         let mut timeline = AetTimeline::new();
         let dstab_slice = AetTimeSlice {
-            observations: vec![
+            observations: Some(vec![
                 AetObservation::CombatAction(CombatAction {
                     caster: "Seurimas".to_string(),
                     category: "Assassination".to_string(),
@@ -150,9 +151,9 @@ mod timeline_tests {
                 }),
                 AetObservation::Absorbed("Benedicto".into(), "Remnant".into()),
                 AetObservation::Devenoms("kalmia".into()),
-            ],
+            ]),
             lines: vec![],
-            prompt: Prompt::Blackout,
+            prompt: AetPrompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
         };
@@ -171,7 +172,7 @@ mod timeline_tests {
     fn test_flay_general() {
         let mut timeline = AetTimeline::new();
         let dstab_slice = AetTimeSlice {
-            observations: vec![
+            observations: Some(vec![
                 AetObservation::Gained("Benedicto".to_string(), "rebounding".to_string()),
                 AetObservation::Sent("flay benedicto".into()),
                 AetObservation::CombatAction(CombatAction {
@@ -181,9 +182,9 @@ mod timeline_tests {
                     target: "Benedicto".to_string(),
                     annotation: "speed".to_string(),
                 }),
-            ],
+            ]),
             lines: vec![],
-            prompt: Prompt::Blackout,
+            prompt: AetPrompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
         };
@@ -202,7 +203,7 @@ mod timeline_tests {
     fn test_flay_specific() {
         let mut timeline = AetTimeline::new();
         let dstab_slice = AetTimeSlice {
-            observations: vec![
+            observations: Some(vec![
                 AetObservation::Gained("Benedicto".to_string(), "rebounding".to_string()),
                 AetObservation::Sent("flay Benedicto speed".into()),
                 AetObservation::CombatAction(CombatAction {
@@ -212,9 +213,9 @@ mod timeline_tests {
                     target: "Benedicto".to_string(),
                     annotation: "speed".to_string(),
                 }),
-            ],
+            ]),
             lines: vec![],
-            prompt: Prompt::Blackout,
+            prompt: AetPrompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
         };
@@ -239,16 +240,16 @@ mod timeline_tests {
             .state
             .set_flag_for_agent(&"Seurimas".to_string(), &"stupidity".to_string(), true);
         let dstab_slice = AetTimeSlice {
-            observations: vec![
+            observations: Some(vec![
                 AetObservation::SimpleCureAction(SimpleCureAction {
                     cure_type: SimpleCure::Pill("euphoriant".to_string()),
                     caster: "Seurimas".to_string(),
                 }),
                 AetObservation::Cured("void".to_string()),
                 AetObservation::Afflicted("weakvoid".to_string()),
-            ],
+            ]),
             lines: vec![],
-            prompt: Prompt::Blackout,
+            prompt: AetPrompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
         };
@@ -275,15 +276,15 @@ mod timeline_tests {
             .state
             .set_flag_for_agent(&"Benedicto".to_string(), &"stupidity".to_string(), true);
         let dstab_slice = AetTimeSlice {
-            observations: vec![
+            observations: Some(vec![
                 AetObservation::SimpleCureAction(SimpleCureAction {
                     cure_type: SimpleCure::Pill("euphoriant".to_string()),
                     caster: "Benedicto".to_string(),
                 }),
                 AetObservation::DiscernedCure("Benedicto".to_string(), "void".to_string()),
-            ],
+            ]),
             lines: vec![],
-            prompt: Prompt::Blackout,
+            prompt: AetPrompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
         };
@@ -310,15 +311,15 @@ mod timeline_tests {
             .state
             .set_flag_for_agent(&"Benedicto".to_string(), &"stupidity".to_string(), true);
         let dstab_slice = AetTimeSlice {
-            observations: vec![
+            observations: Some(vec![
                 AetObservation::SimpleCureAction(SimpleCureAction {
                     cure_type: SimpleCure::Pill("euphoriant".to_string()),
                     caster: "Benedicto".to_string(),
                 }),
                 AetObservation::DiscernedCure("Benedicto".to_string(), "weakvoid".to_string()),
-            ],
+            ]),
             lines: vec![],
-            prompt: Prompt::Blackout,
+            prompt: AetPrompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
         };
@@ -339,7 +340,7 @@ mod timeline_tests {
     fn test_dstab_purge() {
         let mut timeline = AetTimeline::new();
         let dstab_slice = AetTimeSlice {
-            observations: vec![
+            observations: Some(vec![
                 AetObservation::CombatAction(CombatAction {
                     caster: "Seurimas".to_string(),
                     category: "Assassination".to_string(),
@@ -350,9 +351,9 @@ mod timeline_tests {
                 AetObservation::Devenoms("slike".into()),
                 AetObservation::Devenoms("kalmia".into()),
                 AetObservation::PurgeVenom("Benedicto".into(), "kalmia".into()),
-            ],
+            ]),
             lines: vec![],
-            prompt: Prompt::Blackout,
+            prompt: AetPrompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
         };
@@ -371,20 +372,20 @@ mod timeline_tests {
     fn test_dstab_relapse() {
         let mut timeline = AetTimeline::new();
         let bite_slice = AetTimeSlice {
-            observations: vec![AetObservation::CombatAction(CombatAction {
+            observations: Some(vec![AetObservation::CombatAction(CombatAction {
                 caster: "Seurimas".to_string(),
                 category: "Assassination".to_string(),
                 skill: "Bite".to_string(),
                 target: "Benedicto".to_string(),
                 annotation: "scytherus".to_string(),
-            })],
+            })]),
             lines: vec![],
-            prompt: Prompt::Blackout,
+            prompt: AetPrompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
         };
         let dstab_slice = AetTimeSlice {
-            observations: vec![
+            observations: Some(vec![
                 AetObservation::CombatAction(CombatAction {
                     caster: "Seurimas".to_string(),
                     category: "Assassination".to_string(),
@@ -394,14 +395,14 @@ mod timeline_tests {
                 }),
                 AetObservation::Devenoms("slike".into()),
                 AetObservation::Devenoms("kalmia".into()),
-            ],
+            ]),
             lines: vec![],
-            prompt: Prompt::Blackout,
+            prompt: AetPrompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
         };
         let cure_slice = AetTimeSlice {
-            observations: vec![
+            observations: Some(vec![
                 AetObservation::SimpleCureAction(SimpleCureAction {
                     caster: "Benedicto".into(),
                     cure_type: SimpleCure::Pill("decongestant".into()),
@@ -410,19 +411,19 @@ mod timeline_tests {
                     caster: "Benedicto".into(),
                     cure_type: SimpleCure::Salve("epidermal".into(), "head".into()),
                 }),
-            ],
+            ]),
             lines: vec![],
-            prompt: Prompt::Blackout,
+            prompt: AetPrompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
         };
         let relapse_slice = AetTimeSlice {
-            observations: vec![
+            observations: Some(vec![
                 AetObservation::Relapse("Benedicto".into()),
                 AetObservation::Relapse("Benedicto".into()),
-            ],
+            ]),
             lines: vec![],
-            prompt: Prompt::Blackout,
+            prompt: AetPrompt::Blackout,
             time: 220,
             me: "Seurimas".into(),
         };
@@ -452,21 +453,21 @@ mod timeline_tests {
     fn test_dstab_relapse_clever() {
         let mut timeline = AetTimeline::new();
         let bite_slice = AetTimeSlice {
-            observations: vec![AetObservation::CombatAction(CombatAction {
+            observations: Some(vec![AetObservation::CombatAction(CombatAction {
                 caster: "Seurimas".to_string(),
                 category: "Assassination".to_string(),
                 skill: "Bite".to_string(),
                 target: "Benedicto".to_string(),
                 annotation: "scytherus".to_string(),
-            })],
+            })]),
             lines: vec![],
-            prompt: Prompt::Blackout,
+            prompt: AetPrompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
         };
         timeline.push_time_slice(bite_slice);
         let dstab_slice = AetTimeSlice {
-            observations: vec![
+            observations: Some(vec![
                 AetObservation::CombatAction(CombatAction {
                     caster: "Seurimas".to_string(),
                     category: "Assassination".to_string(),
@@ -476,14 +477,14 @@ mod timeline_tests {
                 }),
                 AetObservation::Devenoms("slike".into()),
                 AetObservation::Devenoms("kalmia".into()),
-            ],
+            ]),
             lines: vec![],
-            prompt: Prompt::Blackout,
+            prompt: AetPrompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
         };
         let cure_slice = AetTimeSlice {
-            observations: vec![
+            observations: Some(vec![
                 AetObservation::SimpleCureAction(SimpleCureAction {
                     caster: "Benedicto".into(),
                     cure_type: SimpleCure::Pill("decongestant".into()),
@@ -492,29 +493,29 @@ mod timeline_tests {
                     caster: "Benedicto".into(),
                     cure_type: SimpleCure::Salve("epidermal".into(), "head".into()),
                 }),
-            ],
+            ]),
             lines: vec![],
-            prompt: Prompt::Blackout,
+            prompt: AetPrompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
         };
         let relapse_slice_1 = AetTimeSlice {
-            observations: vec![
+            observations: Some(vec![
                 AetObservation::Relapse("Benedicto".into()),
                 AetObservation::SimpleCureAction(SimpleCureAction {
                     caster: "Benedicto".into(),
                     cure_type: SimpleCure::Salve("epidermal".into(), "head".into()),
                 }),
-            ],
+            ]),
             lines: vec![],
-            prompt: Prompt::Blackout,
+            prompt: AetPrompt::Blackout,
             time: 220,
             me: "Seurimas".into(),
         };
         let relapse_slice_2 = AetTimeSlice {
-            observations: vec![AetObservation::Relapse("Benedicto".into())],
+            observations: Some(vec![AetObservation::Relapse("Benedicto".into())]),
             lines: vec![],
-            prompt: Prompt::Blackout,
+            prompt: AetPrompt::Blackout,
             time: 270,
             me: "Seurimas".into(),
         };
@@ -548,7 +549,7 @@ mod timeline_tests {
     fn test_dstab_rebounds() {
         let mut timeline = AetTimeline::new();
         let dstab_slice = AetTimeSlice {
-            observations: vec![
+            observations: Some(vec![
                 AetObservation::CombatAction(CombatAction {
                     caster: "Seurimas".to_string(),
                     category: "Assassination".to_string(),
@@ -560,9 +561,9 @@ mod timeline_tests {
                 AetObservation::Devenoms("slike".into()),
                 AetObservation::Rebounds,
                 AetObservation::Devenoms("kalmia".into()),
-            ],
+            ]),
             lines: vec![],
-            prompt: Prompt::Blackout,
+            prompt: AetPrompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
         };
@@ -581,15 +582,15 @@ mod timeline_tests {
     fn test_bite() {
         let mut timeline = AetTimeline::new();
         let dstab_slice = AetTimeSlice {
-            observations: vec![AetObservation::CombatAction(CombatAction {
+            observations: Some(vec![AetObservation::CombatAction(CombatAction {
                 caster: "Seurimas".to_string(),
                 category: "Assassination".to_string(),
                 skill: "Bite".to_string(),
                 target: "Benedicto".to_string(),
                 annotation: "scytherus".to_string(),
-            })],
+            })]),
             lines: vec![],
-            prompt: Prompt::Blackout,
+            prompt: AetPrompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
         };
@@ -606,7 +607,7 @@ mod timeline_tests {
     fn test_bite_absorbed() {
         let mut timeline = AetTimeline::new();
         let dstab_slice = AetTimeSlice {
-            observations: vec![
+            observations: Some(vec![
                 AetObservation::CombatAction(CombatAction {
                     caster: "Seurimas".to_string(),
                     category: "Assassination".to_string(),
@@ -615,9 +616,9 @@ mod timeline_tests {
                     annotation: "scytherus".to_string(),
                 }),
                 AetObservation::Absorbed("Benedicto".into(), "Remnant".into()),
-            ],
+            ]),
             lines: vec![],
-            prompt: Prompt::Blackout,
+            prompt: AetPrompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
         };
@@ -634,7 +635,7 @@ mod timeline_tests {
     fn test_bite_countercurrent() {
         let mut timeline = AetTimeline::new();
         let dstab_slice = AetTimeSlice {
-            observations: vec![
+            observations: Some(vec![
                 AetObservation::CombatAction(CombatAction {
                     caster: "Seurimas".to_string(),
                     category: "Assassination".to_string(),
@@ -643,9 +644,9 @@ mod timeline_tests {
                     annotation: "scytherus".to_string(),
                 }),
                 AetObservation::PurgeVenom("Benedicto".into(), "scytherus".into()),
-            ],
+            ]),
             lines: vec![],
-            prompt: Prompt::Blackout,
+            prompt: AetPrompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
         };
@@ -662,7 +663,7 @@ mod timeline_tests {
     fn test_bite_parry() {
         let mut timeline = AetTimeline::new();
         let dstab_slice = AetTimeSlice {
-            observations: vec![
+            observations: Some(vec![
                 AetObservation::CombatAction(CombatAction {
                     caster: "Seurimas".to_string(),
                     category: "Assassination".to_string(),
@@ -671,9 +672,9 @@ mod timeline_tests {
                     annotation: "scytherus".to_string(),
                 }),
                 AetObservation::Parry("Benedicto".to_string(), "head".to_string()),
-            ],
+            ]),
             lines: vec![],
-            prompt: Prompt::Blackout,
+            prompt: AetPrompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
         };
@@ -692,7 +693,7 @@ mod timeline_tests {
     fn test_suggest() {
         let mut timeline = AetTimeline::new();
         let suggest_slice = AetTimeSlice {
-            observations: vec![
+            observations: Some(vec![
                 AetObservation::Sent("suggest Benedicto stupidity".to_string()),
                 AetObservation::CombatAction(CombatAction {
                     caster: "Seurimas".to_string(),
@@ -701,9 +702,9 @@ mod timeline_tests {
                     target: "Benedicto".to_string(),
                     annotation: "".to_string(),
                 }),
-            ],
+            ]),
             lines: vec![],
-            prompt: Prompt::Blackout,
+            prompt: AetPrompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
         };
@@ -721,7 +722,7 @@ mod timeline_tests {
     fn test_suggest_qeb() {
         let mut timeline = AetTimeline::new();
         let suggest_slice = AetTimeSlice {
-            observations: vec![
+            observations: Some(vec![
                 AetObservation::Sent(
                     "qeb dstab Benedicto aconite kalmia;;suggest Benedicto stupidity".to_string(),
                 ),
@@ -732,9 +733,9 @@ mod timeline_tests {
                     target: "Benedicto".to_string(),
                     annotation: "".to_string(),
                 }),
-            ],
+            ]),
             lines: vec![],
-            prompt: Prompt::Blackout,
+            prompt: AetPrompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
         };

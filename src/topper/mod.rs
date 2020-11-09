@@ -1,16 +1,15 @@
-use crate::classes::{get_attack, VenomPlan};
-use crate::timeline::aetolia::{AetObservation, AetPrompt, AetTimeSlice, AetTimeline};
-use crate::timeline::{BaseAgentState, CType};
-use crate::topper::battle_stats::*;
-use crate::topper::db::DatabaseModule;
-use crate::topper::telnet::TelnetModule;
-use crate::topper::timeline::{AetTimelineModule, TimeSlice, Timeline, TimelineModule};
-use crate::topper::web_ui::WebModule;
-use crate::types::{AgentState, Hypnosis};
-mod battle_stats;
+use crate::aetolia::classes::{get_attack, VenomPlan};
+use crate::aetolia::timeline::AetTimeSlice;
+use crate::aetolia::topper::battle_stats::*;
+use crate::aetolia::types::{AgentState, Hypnosis};
+use crate::timeline::{BaseAgentState, CType, Timeline};
+pub use crate::topper::db::DatabaseModule;
+pub use crate::topper::telnet::TelnetModule;
+pub use crate::topper::timeline::TimelineModule;
+pub use crate::topper::web_ui::WebModule;
 pub mod db;
 pub mod telnet;
-mod timeline;
+pub mod timeline;
 mod web_ui;
 use log::info;
 use serde::{Deserialize, Serialize};
@@ -64,11 +63,11 @@ pub trait TopperModule<'s> {
 }
 
 pub struct TopperCore {
-    target: Option<String>,
+    pub target: Option<String>,
 }
 
 impl TopperCore {
-    fn new() -> Self {
+    pub fn new() -> Self {
         TopperCore { target: None }
     }
 }
@@ -146,27 +145,25 @@ impl TopperResponse {
 }
 
 pub struct Topper<O, P, A> {
-    timeline_module: TimelineModule<O, P, A>,
-    core_module: TopperCore,
-    telnet_module: TelnetModule,
-    battlestats_module: BattleStatsModule,
-    database_module: DatabaseModule,
-    web_module: WebModule,
+    pub timeline_module: TimelineModule<O, P, A>,
+    pub core_module: TopperCore,
+    pub telnet_module: TelnetModule,
+    pub battlestats_module: BattleStatsModule,
+    pub database_module: DatabaseModule,
+    pub web_module: WebModule,
 }
 
-pub type AetTopper = Topper<AetObservation, AetPrompt, AgentState>;
+pub trait TopperHandler {
+    fn handle_request_or_event(
+        &mut self,
+        topper_msg: &TopperMessage,
+    ) -> Result<TopperResponse, String>;
+}
 
-impl AetTopper {
-    pub fn new(send_lines: Sender<String>) -> Self {
-        Topper {
-            timeline_module: AetTimelineModule::new(),
-            core_module: TopperCore::new(),
-            telnet_module: TelnetModule::new(send_lines),
-            battlestats_module: BattleStatsModule::new(),
-            database_module: DatabaseModule::new("topper.db"),
-            web_module: WebModule::new(),
-        }
-    }
+impl<O, P, A: BaseAgentState + Clone> Topper<O, P, A>
+where
+    Topper<O, P, A>: TopperHandler,
+{
     pub fn me(&self) -> String {
         self.timeline_module.timeline.who_am_i()
     }
@@ -175,7 +172,7 @@ impl AetTopper {
         self.core_module.target.clone()
     }
 
-    pub fn get_timeline(&mut self) -> &mut AetTimeline {
+    pub fn get_timeline(&mut self) -> &mut Timeline<O, P, A> {
         &mut self.timeline_module.timeline
     }
 
@@ -187,42 +184,7 @@ impl AetTopper {
         let start = Instant::now();
         let parsed = from_str(line);
         let result = match parsed {
-            Ok(topper_msg) => {
-                let module_msg = self
-                    .core_module
-                    .handle_message(&topper_msg, ())?
-                    .then(self.timeline_module.handle_message(&topper_msg, ())?)
-                    .then(self.telnet_module.handle_message(&topper_msg, ())?)
-                    .then(self.battlestats_module.handle_message(
-                        &topper_msg,
-                        (
-                            &self.timeline_module.timeline,
-                            &self.core_module.target,
-                            &self.database_module,
-                        ),
-                    )?)
-                    .then(self.database_module.handle_message(&topper_msg, ())?)
-                    .then(self.web_module.handle_message(&topper_msg, ())?);
-                match topper_msg {
-                    TopperMessage::Request(request) => match request {
-                        TopperRequest::Attack(strategy) => {
-                            if let Some(target) = self.get_target() {
-                                Ok(module_msg.then(TopperResponse::qeb(get_attack(
-                                    &self.timeline_module.timeline,
-                                    &self.me(),
-                                    &target,
-                                    &strategy,
-                                    Some(&self.database_module),
-                                ))))
-                            } else {
-                                Ok(module_msg.then(TopperResponse::error("No target.".into())))
-                            }
-                        }
-                        _ => Ok(module_msg),
-                    },
-                    _ => Ok(module_msg),
-                }
-            }
+            Ok(topper_msg) => self.handle_request_or_event(&topper_msg),
             Err(error) => Err(error.to_string()),
         };
         let millis = start.elapsed().as_millis();

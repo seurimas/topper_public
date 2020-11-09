@@ -1,9 +1,9 @@
-use crate::curatives::MENTAL_AFFLICTIONS;
-use crate::observables::*;
-use crate::timeline::aetolia::*;
+use crate::aetolia::curatives::MENTAL_AFFLICTIONS;
+use crate::aetolia::observables::*;
+use crate::aetolia::timeline::*;
+use crate::aetolia::topper::*;
+use crate::aetolia::types::*;
 use crate::topper::db::DatabaseModule;
-use crate::topper::*;
-use crate::types::*;
 use std::collections::HashMap;
 pub mod carnifex;
 use num_enum::TryFromPrimitive;

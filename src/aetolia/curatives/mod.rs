@@ -1,5 +1,5 @@
-use crate::timeline::aetolia::*;
-use crate::types::*;
+use crate::aetolia::timeline::*;
+use crate::aetolia::types::*;
 pub mod first_aid;
 pub mod statics;
 pub use statics::*;
@@ -23,12 +23,12 @@ mod timeline_tests {
             timeline.state.set_agent(&"Benedicto".into(), updated_bene);
         }
         let coag_slice = TimeSlice {
-            observations: vec![AetObservation::SimpleCureAction(SimpleCureAction {
+            observations: Some(vec![AetObservation::SimpleCureAction(SimpleCureAction {
                 caster: "Benedicto".into(),
                 cure_type: SimpleCure::Pill("coagulation".into()),
-            })],
+            })]),
             lines: vec![],
-            prompt: Prompt::Blackout,
+            prompt: AetPrompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
         };
@@ -55,12 +55,12 @@ mod timeline_tests {
             timeline.state.set_agent(&"Benedicto".into(), updated_bene);
         }
         let coag_slice = TimeSlice {
-            observations: vec![AetObservation::SimpleCureAction(SimpleCureAction {
+            observations: Some(vec![AetObservation::SimpleCureAction(SimpleCureAction {
                 caster: "Benedicto".into(),
                 cure_type: SimpleCure::Salve("mending".into(), "skin".into()),
-            })],
+            })]),
             lines: vec![],
-            prompt: Prompt::Blackout,
+            prompt: AetPrompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
         };

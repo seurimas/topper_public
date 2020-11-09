@@ -1,23 +1,24 @@
-use crate::alpha_beta::ActionPlanner;
+use crate::aetolia::alpha_beta::ActionPlanner;
 #[macro_use(affliction_stacker, affliction_plan_stacker)]
 use crate::{affliction_stacker, affliction_plan_stacker};
-use crate::classes::*;
-use crate::observables::*;
-use crate::timeline::aetolia::*;
-use crate::topper::*;
-use crate::types::*;
+use crate::aetolia::classes::*;
+use crate::aetolia::observables::*;
+use crate::aetolia::timeline::*;
+use crate::aetolia::topper::*;
+use crate::aetolia::types::*;
 use regex::Regex;
 use std::collections::HashMap;
 
 #[cfg(test)]
 mod sentinel_tests {
     use super::*;
+    use crate::timeline::BaseTimeline;
 
     #[test]
     fn test_salve_attacks() {
         let mut timeline = AetTimeline::new();
-        let breath_flourish_slice = TimeSlice {
-            observations: vec![
+        let breath_flourish_slice = AetTimeSlice {
+            observations: Some(vec![
                 AetObservation::CombatAction(CombatAction {
                     annotation: "".to_string(),
                     caster: "Rinata".to_string(),
@@ -33,9 +34,9 @@ mod sentinel_tests {
                     target: "Illidan".to_string(),
                 }),
                 AetObservation::Devenoms("epseth".to_string()),
-            ],
+            ]),
             lines: vec![],
-            prompt: Prompt::Blackout,
+            prompt: AetPrompt::Blackout,
             time: 0,
             me: "Seurimas".into(),
         };

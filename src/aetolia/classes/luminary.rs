@@ -1,6 +1,6 @@
-use crate::timeline::aetolia::*;
-use crate::topper::*;
-use crate::types::*;
+use crate::aetolia::timeline::*;
+use crate::aetolia::topper::*;
+use crate::aetolia::types::*;
 
 pub fn handle_combat_action(
     combat_action: &CombatAction,

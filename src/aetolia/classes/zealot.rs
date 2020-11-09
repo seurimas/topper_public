@@ -1,9 +1,11 @@
-use crate::classes::{get_needed_parry, get_preferred_parry as get_parry, is_affected_by, Class};
-use crate::curatives::MENTAL_AFFLICTIONS;
-use crate::timeline::aetolia::*;
+use crate::aetolia::classes::{
+    get_needed_parry, get_preferred_parry as get_parry, is_affected_by, Class,
+};
+use crate::aetolia::curatives::MENTAL_AFFLICTIONS;
+use crate::aetolia::timeline::*;
+use crate::aetolia::topper::*;
+use crate::aetolia::types::*;
 use crate::topper::db::DatabaseModule;
-use crate::topper::*;
-use crate::types::*;
 
 pub fn get_preferred_parry(
     timeline: &AetTimeline,

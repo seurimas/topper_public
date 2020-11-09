@@ -1,5 +1,5 @@
-use crate::classes::{VenomPlan, Class};
-use crate::types::{Hypnosis};
+use crate::aetolia::classes::{VenomPlan, Class};
+use crate::aetolia::types::{Hypnosis};
 use sled::{open, Db, IVec};
 use std::path::Path;
 use serde::{Serialize, Deserialize};

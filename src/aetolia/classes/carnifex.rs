@@ -1,5 +1,5 @@
-use crate::timeline::aetolia::*;
-use crate::types::*;
+use crate::aetolia::timeline::*;
+use crate::aetolia::types::*;
 
 pub fn handle_combat_action(
     combat_action: &CombatAction,

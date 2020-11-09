@@ -1,6 +1,6 @@
-use crate::timeline::aetolia::{AetObservation, AetTimeSlice, AetTimeline};
+use crate::aetolia::timeline::{AetObservation, AetTimeSlice, AetTimeline};
+use crate::aetolia::types::BType;
 use crate::timeline::CType;
-use crate::types::BType;
 use std::collections::HashMap;
 
 // A list of states and their relative weights.

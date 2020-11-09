@@ -1,4 +1,4 @@
-use crate::types::*;
+use crate::aetolia::types::*;
 use std::collections::HashMap;
 lazy_static! {
     pub static ref MENTAL_AFFLICTIONS: Vec<FType> = vec![

@@ -1,8 +1,8 @@
 use super::statics::*;
-use crate::observables::*;
-use crate::timeline::aetolia::*;
+use crate::aetolia::observables::*;
+use crate::aetolia::timeline::*;
+use crate::aetolia::types::*;
 use crate::timeline::BaseAgentState;
-use crate::types::*;
 use regex::{Regex, RegexSet};
 use std::collections::HashMap;
 

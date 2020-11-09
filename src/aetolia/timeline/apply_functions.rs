@@ -1,11 +1,13 @@
-use crate::classes::{get_skill_class, handle_combat_action, handle_sent, Class, VENOM_AFFLICTS};
-use crate::curatives::{
+use crate::aetolia::classes::{
+    get_skill_class, handle_combat_action, handle_sent, Class, VENOM_AFFLICTS,
+};
+use crate::aetolia::curatives::{
     handle_simple_cure_action, remove_in_order, top_aff, CALORIC_TORSO_ORDER, PILL_CURE_ORDERS,
     PILL_DEFENCES, SALVE_CURE_ORDERS, SMOKE_CURE_ORDERS,
 };
-use crate::timeline::aetolia::types::*;
+use crate::aetolia::timeline::*;
+use crate::aetolia::types::*;
 use crate::timeline::CType;
-use crate::types::*;
 use log::warn;
 use regex::Regex;
 use serde::Deserialize;
