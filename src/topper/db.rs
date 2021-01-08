@@ -1,5 +1,6 @@
 use crate::aetolia::classes::{VenomPlan, Class};
-use crate::aetolia::types::{Hypnosis};
+use crate::aetolia::types::{Hypnosis, FType,};
+use crate::aetolia::curatives::first_aid::parse_priority_set;
 use sled::{open, Db, IVec};
 use std::path::Path;
 use serde::{Serialize, Deserialize};
@@ -9,8 +10,9 @@ use reqwest::Response;
 use std::convert::{TryInto, TryFrom};
 use std::thread::JoinHandle;
 use std::thread;
+use std::collections::HashMap;
 use std::sync::mpsc::{Receiver, Sender, channel};
-use crate::topper::{TopperRequest, TopperMessage, TopperModule, TopperResponse};
+use crate::topper::{TopperCore, TopperRequest, TopperMessage, TopperModule, TopperResponse};
 use tokio;
 use std::time::{Duration, SystemTime};
 
@@ -107,7 +109,9 @@ impl DatabaseModule {
                 serde_json::from_str(str_val).ok()
             })
     }
+}
 
+impl DatabaseModule {
     fn send_api_request(&self, who: &String, priority: u64) -> bool {
         let last_bytes = self.get("api_last", who).unwrap_or((&[0; 16]).into());
         let last = u128::from_be_bytes(last_bytes.as_ref().try_into().expect("Bad length"));
@@ -130,7 +134,9 @@ impl DatabaseModule {
             self.insert_json("character", &character.name.clone(), character);
         }
     }
+}
 
+impl DatabaseModule {
     pub fn get_class(&self, who: &String) -> Option<Class> {
         let class_id = self.get("classes", who);
         if let Some(class_id) = class_id {
@@ -170,6 +176,14 @@ impl DatabaseModule {
 
     fn set_hypno_plan(&self, stack_name: &String, stack: Vec<Hypnosis>) {
         self.insert_json::<Vec<Hypnosis>>("hypnosis", stack_name, stack);
+    }
+
+    pub fn get_first_aid_priorities(&self, who: &String, priorities_name: &String) -> Option<HashMap<FType, u32>> {
+        self.get_json::<HashMap<FType, u32>>("first_aid", &format!("{}_{}", who, priorities_name))
+    }
+
+    fn set_first_aid_priorities(&self, who: &String, priorities_name: &String, priorities: HashMap<FType, u32>) {
+        self.insert_json::<HashMap<FType, u32>>("first_aid", &format!("{}_{}", who, priorities_name), priorities);
     }
 }
 
@@ -216,7 +230,7 @@ fn update_stack<T: Serialize + Clone>(stack_name: &String, old_stack: &mut Vec<T
 }
 
 impl<'s> TopperModule<'s> for DatabaseModule {
-    type Siblings = ();
+    type Siblings = (String);
     fn handle_message(
         &mut self,
         message: &TopperMessage,
@@ -282,17 +296,20 @@ impl<'s> TopperModule<'s> for DatabaseModule {
             TopperMessage::AetEvent(event) => {
                 for observation in event.get_observations().iter() {
                     match observation {
-                        /*crate::timeline::Observation::CombatAction(crate::timeline::CombatAction { caster, target, .. }) => {
+                        crate::aetolia::timeline::AetObservation::CombatAction(crate::aetolia::timeline::CombatAction { caster, target, .. }) => {
                             if !caster.eq("") && !caster.find(" ").is_some() {
                                 self.send_api_request(caster, 3600 * 2);
                             }
                             if !target.eq("") && !target.find(" ").is_some() {
                                 self.send_api_request(target, 3600 * 2);
                             }
-                        }*/
+                        }
                         _ => {
                         }
                     }
+                }
+                if let Some((name, priorities)) = parse_priority_set(&event.lines) {
+                    println!("Priorities: {:?}", priorities);
                 }
                 Ok(TopperResponse::silent())
             }

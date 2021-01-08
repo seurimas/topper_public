@@ -114,7 +114,7 @@ impl ActiveTransition for FirstAidAction {
     }
 }
 
-static FIRST_AID_BLOCK: &'static str = "Your affliction curing priorities:
+static FIRST_AID_BLOCK: &'static str = "\x1b[48;5;232mYour affliction curing priorities:
 1)  pipe:     [aeon]
     poultice: [anorexia, indifference, destroyed_throat]
     pill:     [paralysis, crippled_body, paresis]
@@ -215,10 +215,10 @@ mod firstaid_tests {
     #[test]
     fn test_pill_priorities() {
         let priority_lines = vec![
-            "Your affliction curing priorities:",
-            "1) pill:     [generosity]",
-            "",
-            "2) pill:     [paresis]",
+            "Your affliction curing priorities:".into(),
+            "1) pill:     [generosity]".into(),
+            "".into(),
+            "2) pill:     [paresis]".into(),
         ];
         let mut priorities = HashMap::new();
         priorities.insert(FType::Generosity, 1);
@@ -230,11 +230,11 @@ mod firstaid_tests {
     #[test]
     fn test_multi_priorities() {
         let priority_lines = vec![
-            "Your affliction curing priorities:",
-            "1) pill:     [generosity]",
-            "   poultice: [weakvoid]",
-            "",
-            "2) pill:     [paresis, asthma]",
+            "Your affliction curing priorities:".into(),
+            "1) pill:     [generosity]".into(),
+            "   poultice: [weakvoid]".into(),
+            "".into(),
+            "2) pill:     [paresis, asthma]".into(),
         ];
         let mut priorities = HashMap::new();
         priorities.insert(FType::Generosity, 1);
@@ -248,21 +248,24 @@ mod firstaid_tests {
     #[test]
     fn test_many_priorities() {
         let priority_lines = vec![
-            "Your affliction curing priorities:",
-            "1) pill:     [generosity]",
-            "   poultice: [weakvoid]",
-            "",
-            "2) pill:     [paresis, asthma]",
-            "6)  pipe:     [squelched]",
-            "    poultice: [shivering, frozen, gorged, effused_blood, blurry_vision,",
-            "               smashed_throat, right_arm_broken, left_arm_broken, cracked_ribs,",
-            "               whiplash, backstrain, collapsed_lung, left_arm_dislocated,",
-            "               left_leg_dislocated, right_arm_dislocated, right_leg_dislocated,",
-            "               sore_wrist, sore_ankle, muscle_spasms, heatspear]",
-            "    pill:     [sensitivity, rend, epilepsy, masochism, loneliness, haemophilia,",
-            "               lethargy, vomiting, impairment, crippled, allergies,",
-            "               shaderot_body, shaderot_benign, shaderot_spirit, shaderot_heat,",
-            "               shaderot_wither]",
+            "Your affliction curing priorities:".into(),
+            "1) pill:     [generosity]".into(),
+            "   poultice: [weakvoid]".into(),
+            "".into(),
+            "2) pill:     [paresis, asthma]".into(),
+            "6)  pipe:     [squelched]".into(),
+            "    poultice: [shivering, frozen, gorged, effused_blood, blurry_vision,".into(),
+            "               smashed_throat, right_arm_broken, left_arm_broken, cracked_ribs,"
+                .into(),
+            "               whiplash, backstrain, collapsed_lung, left_arm_dislocated,".into(),
+            "               left_leg_dislocated, right_arm_dislocated, right_leg_dislocated,"
+                .into(),
+            "               sore_wrist, sore_ankle, muscle_spasms, heatspear]".into(),
+            "    pill:     [sensitivity, rend, epilepsy, masochism, loneliness, haemophilia,"
+                .into(),
+            "               lethargy, vomiting, impairment, crippled, allergies,".into(),
+            "               shaderot_body, shaderot_benign, shaderot_spirit, shaderot_heat,".into(),
+            "               shaderot_wither]".into(),
         ];
         let mut priorities = HashMap::new();
         priorities.insert(FType::Generosity, 1);
@@ -309,14 +312,26 @@ mod firstaid_tests {
         let parsed_priorities = parse_priorities(&priority_lines);
         assert_eq!(parsed_priorities, priorities);
     }
+
+    #[test]
+    fn test_strip_ansi() {
+        let ansi_line = "\x1b[0;33m\x1b[48;5;232m1)\x1b[0;37m\x1b[48;5;232m  \x1b[0;32m\x1b[48;5;232mpipe:\x1b[0;37m\x1b[48;5;232m     \x1b[0;32m\x1b[48;5;232m[\x1b[0;37m\x1b[48;5;232maeon\x1b[0;32m\x1b[48;5;232m]\r\n";
+        let stripped = strip_ansi(&ansi_line.to_string());
+        assert_eq!(stripped, "1)  pipe:     [aeon]");
+    }
 }
 
 lazy_static! {
+    static ref UNNAMED_HEADER: Regex = Regex::new(r"Your affliction curing priorities:").unwrap();
+    static ref NAMED_HEADER: Regex =
+        Regex::new(r"Your affliction curing priorities for the priority set (\w+):").unwrap();
     static ref PRIORITY_NUM_LINE: Regex =
         Regex::new(r"^(\d+)\)\s+(pipe|poultice|pill|special):\s+\[([a-z_, ]+)\]?$").unwrap();
     static ref PRIORITY_TYPE_LINE: Regex =
         Regex::new(r"^\s+(pipe|poultice|pill|special):\s+\[([a-z_, ]+)\]?$").unwrap();
     static ref PRIORITY_CONTINUITY_LINE: Regex = Regex::new(r"^\s+([a-z_, ]+)\]?$").unwrap();
+    static ref ANSI: Regex =
+        Regex::new(r"(\x1b\[[\x30-\x3F]*[\x20-\x2F]*[\x40-\x7E]|\r\n)").unwrap();
 }
 
 fn add_priorities(priorities: &mut HashMap<FType, u32>, priority: u32, aff_list: &str) {
@@ -328,20 +343,39 @@ fn add_priorities(priorities: &mut HashMap<FType, u32>, priority: u32, aff_list:
     }
 }
 
-pub fn parse_priorities(priority_lines: &Vec<&str>) -> HashMap<FType, u32> {
+fn parse_priorities(priority_lines: &Vec<String>) -> HashMap<FType, u32> {
     let mut priorities = HashMap::new();
     let mut priority = 0;
     for line in priority_lines.iter() {
-        if let Some(captures) = PRIORITY_NUM_LINE.captures(line) {
+        if let Some(captures) = PRIORITY_NUM_LINE.captures(&line) {
             priority = captures.get(1).unwrap().as_str().parse::<u32>().unwrap();
             add_priorities(&mut priorities, priority, captures.get(3).unwrap().as_str());
-        } else if let Some(captures) = PRIORITY_TYPE_LINE.captures(line) {
+        } else if let Some(captures) = PRIORITY_TYPE_LINE.captures(&line) {
             add_priorities(&mut priorities, priority, captures.get(2).unwrap().as_str());
-        } else if let Some(captures) = PRIORITY_CONTINUITY_LINE.captures(line) {
+        } else if let Some(captures) = PRIORITY_CONTINUITY_LINE.captures(&line) {
             add_priorities(&mut priorities, priority, captures.get(1).unwrap().as_str());
         }
     }
     priorities
+}
+
+fn strip_ansi(line: &String) -> String {
+    ANSI.replace_all(line.as_ref(), "").into()
+}
+
+pub fn parse_priority_set(lines: &Vec<(String, u32)>) -> Option<(String, HashMap<FType, u32>)> {
+    let mut priority_lines = Vec::new();
+    let mut priority_name = None;
+    for (line, _num) in lines.iter() {
+        if let Some(captures) = NAMED_HEADER.captures(&line) {
+            priority_name = Some(captures.get(1).unwrap().as_str().to_string());
+        } else if let Some(captures) = UNNAMED_HEADER.find(&line) {
+            priority_name = Some("".to_string());
+        } else if priority_name.is_some() {
+            priority_lines.push(strip_ansi(line));
+        }
+    }
+    priority_name.map(|name| (name, parse_priorities(&priority_lines)))
 }
 
 pub struct FirstAid {

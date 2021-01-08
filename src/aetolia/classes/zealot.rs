@@ -133,7 +133,7 @@ pub fn handle_combat_action(
         }
         "Zenith" => {
             for_agent(agent_states, &combat_action.caster, |you| {
-                you.zenith_state.initiate()
+                you.assume_zealot(|zenith| zenith.initiate());
             });
         }
         "Heelrush" => {
@@ -503,7 +503,11 @@ fn value_pendulum(
                     .get_limbs_damage(vec![LType::LeftLegDamage, LType::RightLegDamage]);
                 let change =
                     after_rotate_state.get_total_damage() - after_base_state.get_total_damage();
-                (rotated_legs - unrotated_legs) + change
+                if change > 20.0 {
+                    (rotated_legs - unrotated_legs) + change
+                } else {
+                    0.0
+                }
             } else {
                 0.0
             }
@@ -561,17 +565,28 @@ fn value_swagger(
     db: Option<(&DatabaseModule, &String)>,
     _strategy: &String,
 ) -> f32 {
+    let sapped = me.get_count(FType::SappedStrength);
     if me.is(FType::Swagger) {
         0.0
-    } else if me.get_count(FType::SappedStrength) < SWAGGER_LIMIT {
+    } else if sapped < SWAGGER_LIMIT {
         let class = db_class(db);
-        if (Some(Class::Luminary) == class || Some(Class::Luminary) == class)
+        if (Some(Class::Luminary) == class)
             && (!me.is(FType::Paresis)
                 || (me.is(FType::Paresis)
                     && !me.balanced(BType::Tree)
                     && me.get_balance(BType::ParesisParalysis) > 2.0))
         {
             0.0
+        } else if Some(Class::Wayfarer) == class && sapped == SWAGGER_LIMIT - 1 {
+            if let Some(locked) = me.lock_duration() {
+                if me.balanced(BType::Tree) {
+                    1.0
+                } else {
+                    0.0
+                }
+            } else {
+                0.0
+            }
         } else {
             1.0
         }
@@ -773,10 +788,15 @@ lazy_static! {
         ("enact zenith", |me, you, _db, _strategy| {
             (
                 ComboType::Full,
-                if me.zenith_state.can_initiate() {
-                    1000.0
+                if let ClassState::Zealot(zenith) = me.class_state {
+                    if zenith.can_initiate() {
+                        1000.0
+                    } else {
+                        0.0
+                    }
                 } else {
-                    0.0
+                    // We're not even marked as Zealot yet! GET ZENITH ON!
+                    1000.0
                 },
             )
         }),
@@ -835,8 +855,12 @@ lazy_static! {
         ("enact infernal {}", |me, you, _db, _strategy| {
             let target_limbs = you.get_limbs_state();
             (
-                if me.zenith_state.active() {
-                    ComboType::ZenithEq
+                if let ClassState::Zealot(zenith) = me.class_state {
+                    if zenith.active() {
+                        ComboType::ZenithEq
+                    } else {
+                        ComboType::Full
+                    }
                 } else {
                     ComboType::Full
                 },
@@ -1216,7 +1240,7 @@ lazy_static! {
         ("hackles {} jawcrack", |me, you, db, _strategy| {
             (
                 ComboType::Hackles,
-                if you.is(FType::Indifference) || me.get_balance(BType::Secondary) > 3.0 {
+                if you.is(FType::Indifference) || me.get_balance(BType::Secondary) > 3.0 || you.is(FType::Shielded) {
                     0.0
                 } else if you.limb_damage.restore_timer.is_some()
                     && !you.is(FType::BlurryVision)
@@ -1238,7 +1262,7 @@ lazy_static! {
             let target_limbs = you.get_limbs_state();
             (
                 ComboType::Hackles,
-                if me.get_balance(BType::Secondary) > 3.0 {
+                if me.get_balance(BType::Secondary) > 3.0 || you.is(FType::Shielded) {
                     0.0
                 } else if target_limbs.head.welt {
                     50.0
@@ -1253,7 +1277,7 @@ lazy_static! {
             let target_limbs = you.get_limbs_state();
             (
                 ComboType::Hackles,
-                if me.get_balance(BType::Secondary) > 3.0 {
+                if me.get_balance(BType::Secondary) > 3.0 || you.is(FType::Shielded) {
                     0.0
                 } else if target_limbs.left_arm.welt | target_limbs.right_arm.welt {
                     50.0
@@ -1268,7 +1292,7 @@ lazy_static! {
             let target_limbs = you.get_limbs_state();
             (
                 ComboType::Hackles,
-                if me.get_balance(BType::Secondary) > 3.0 {
+                if me.get_balance(BType::Secondary) > 3.0 || you.is(FType::Shielded) {
                     0.0
                 } else if target_limbs.left_leg.welt | target_limbs.right_leg.welt {
                     50.0
@@ -1286,7 +1310,7 @@ lazy_static! {
             let target_limbs = you.get_limbs_state();
             (
                 ComboType::Hackles,
-                if me.get_balance(BType::Secondary) > 3.0 {
+                if me.get_balance(BType::Secondary) > 3.0 || you.is(FType::Shielded) {
                     0.0
                 } else if target_limbs.torso.welt {
                     50.0
@@ -1304,7 +1328,7 @@ lazy_static! {
             let target_limbs = you.get_limbs_state();
             (
                 ComboType::Hackles,
-                if me.get_balance(BType::Secondary) > 3.0 {
+                if me.get_balance(BType::Secondary) > 3.0 || you.is(FType::Shielded) {
                     0.0
                 } else if target_limbs.torso.broken && you.is(FType::Heatspear) {
                     40.0
@@ -1413,12 +1437,16 @@ pub fn get_balance_attack(
                 }
                 _ => {}
             },
-            ComboType::ZenithEq => match (&eq, me.zenith_state.active()) {
-                (None, true) => {
-                    eq = Some(action.replace("{}", target));
+            ComboType::ZenithEq => {
+                if let ClassState::Zealot(zenith) = me.class_state {
+                    match (&eq, zenith.active()) {
+                        (None, true) => {
+                            eq = Some(action.replace("{}", target));
+                        }
+                        _ => {}
+                    }
                 }
-                _ => {}
-            },
+            }
             ComboType::AnyEq => match &eq {
                 None => {
                     eq = Some(action.replace("{}", target));

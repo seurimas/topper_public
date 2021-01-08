@@ -12,7 +12,7 @@ extern crate simplelog;
 mod aetolia;
 mod timeline;
 mod topper;
-use crate::topper::provide_action;
+use crate::aetolia::topper::AetTopper;
 use crate::topper::telnet::proxy;
 use chrono::prelude::*;
 use simplelog::*;
@@ -60,7 +60,8 @@ fn main() {
     .unwrap();
     let (send_lines, receive_lines): (Sender<String>, Receiver<String>) = mpsc::channel();
     let t = thread::spawn(|| {
-        provide_action(send_lines);
+        let mut topper = AetTopper::new(send_lines);
+        topper.provide_action();
     });
     thread::spawn(|| {
         proxy(receive_lines);

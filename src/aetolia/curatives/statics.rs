@@ -145,6 +145,17 @@ lazy_static! {
 }
 
 lazy_static! {
+    pub static ref PANACEA_ORDER: Vec<FType> = vec![
+        FType::Patterns,
+        FType::ShaderotBody,
+        FType::ShaderotWither,
+        FType::ShaderotHeat,
+        FType::ShaderotSpirit,
+        FType::ShaderotBenign,
+    ];
+}
+
+lazy_static! {
     pub static ref PILL_CURE_ORDERS: HashMap<String, Vec<FType>> = {
         let mut val = HashMap::new();
         val.insert("antipsychotic".into(), ANTIPSYCHOTIC_ORDER.to_vec());
@@ -154,6 +165,7 @@ lazy_static! {
         val.insert("coagulation".into(), COAGULATION_ORDER.to_vec());
         val.insert("steroid".into(), STEROID_ORDER.to_vec());
         val.insert("opiate".into(), OPIATE_ORDER.to_vec());
+        val.insert("panacea".into(), PANACEA_ORDER.to_vec());
         val
     };
 }
@@ -173,28 +185,31 @@ lazy_static! {
 }
 
 lazy_static! {
-    pub static ref AFFLICTION_PILLS: HashMap<FType, &'static str> = {
+    pub static ref AFFLICTION_PILLS: HashMap<FType, String> = {
         let mut val = HashMap::new();
         for aff in ANTIPSYCHOTIC_ORDER.to_vec() {
-            val.insert(aff, "antipsychotic");
+            val.insert(aff, "antipsychotic".into());
         }
         for aff in EUPHORIANT_ORDER.to_vec() {
-            val.insert(aff, "euphoriant");
+            val.insert(aff, "euphoriant".into());
         }
         for aff in DECONGESTANT_ORDER.to_vec() {
-            val.insert(aff, "decogestant");
+            val.insert(aff, "decongestant".into());
         }
         for aff in DEPRESSANT_ORDER.to_vec() {
-            val.insert(aff, "depressant");
+            val.insert(aff, "depressant".into());
         }
         for aff in COAGULATION_ORDER.to_vec() {
-            val.insert(aff, "coagulation");
+            val.insert(aff, "coagulation".into());
         }
         for aff in STEROID_ORDER.to_vec() {
-            val.insert(aff, "steroid");
+            val.insert(aff, "steroid".into());
         }
         for aff in OPIATE_ORDER.to_vec() {
-            val.insert(aff, "opiate");
+            val.insert(aff, "opiate".into());
+        }
+        for aff in PANACEA_ORDER.to_vec() {
+            val.insert(aff, "panacea".into());
         }
         val
     };
@@ -469,13 +484,13 @@ lazy_static! {
 }
 
 lazy_static! {
-    pub static ref AFFLICTION_SMOKES: HashMap<FType, &'static str> = {
+    pub static ref AFFLICTION_SMOKES: HashMap<FType, String> = {
         let mut val = HashMap::new();
         for aff in YARROW_ORDER.to_vec() {
-            val.insert(aff, "yarrow");
+            val.insert(aff, "yarrow".into());
         }
         for aff in WILLOW_ORDER.to_vec() {
-            val.insert(aff, "willow");
+            val.insert(aff, "willow".into());
         }
         val
     };

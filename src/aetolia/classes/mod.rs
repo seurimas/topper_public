@@ -252,6 +252,14 @@ pub fn get_preferred_parry(
                     Ok(get_top_parry(timeline, me).unwrap_or(LType::HeadDamage))
                 }
             }
+            Class::Sentinel => {
+                let myself = timeline.state.borrow_agent(me);
+                if myself.is(FType::Heartflutter) {
+                    Ok(LType::TorsoDamage)
+                } else {
+                    Ok(LType::HeadDamage)
+                }
+            }
             _ => Ok(get_top_parry(timeline, me).unwrap_or(LType::HeadDamage)),
         }
     } else {

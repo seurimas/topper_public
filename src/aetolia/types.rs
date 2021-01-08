@@ -1,4 +1,5 @@
-use crate::timeline::{BaseAgentState, CType};
+use crate::timeline::BaseAgentState;
+pub use crate::timeline::CType;
 use num_enum::TryFromPrimitive;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -1336,7 +1337,7 @@ impl HypnoState {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum ZenithState {
     Inactive,
     Rising(CType),
@@ -1392,6 +1393,72 @@ impl ZenithState {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum Howl {
+    Terrorizing,
+    Traumatic,
+    Piercing,
+    Paralyzing,
+    Baleful,
+    Rousing,
+    Distasteful,
+    Forceful,
+    MindNumbing,
+    StomachTurning,
+    Claustrophobic,
+    Screeching,
+    Comforting,
+    Rejuvenating,
+    Ringing,
+    Deep,
+    Dumbing,
+    Blurring,
+    Disruptive,
+    Serenading,
+    Debilitating,
+    Berserking,
+    Angry,
+    Wailing,
+    Disturbing,
+    Soothing,
+    Invigorating,
+    Enfeebling,
+    Befuddling,
+    Lulling,
+}
+
+#[derive(Debug, Clone)]
+pub struct HowlingState {
+    pub snarling: bool,
+    pub echoing: bool,
+    pub boneshaking: bool,
+    pub attuning: bool,
+    pub howls: [Howl; 3],
+    pub time_since: CType,
+}
+
+#[derive(Debug, Clone)]
+pub enum ClassState {
+    Zealot(ZenithState),
+    Shifter(HowlingState),
+    Unknown,
+}
+
+impl ClassState {
+    pub fn wait(&mut self, duration: CType) {
+        match self {
+            ClassState::Zealot(zenith) => zenith.wait(duration),
+            _ => {}
+        }
+    }
+}
+
+impl Default for ClassState {
+    fn default() -> ClassState {
+        ClassState::Unknown
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct AgentState {
     pub balances: [CType; BType::SIZE as usize],
@@ -1400,7 +1467,7 @@ pub struct AgentState {
     pub flags: FlagSet,
     pub limb_damage: LimbSet,
     pub hypno_state: HypnoState,
-    pub zenith_state: ZenithState,
+    pub class_state: ClassState,
     pub relapses: RelapseState,
     pub parrying: Option<LType>,
     pub wield_state: WieldState,
@@ -1423,7 +1490,7 @@ impl PartialEq for AgentState {
 impl BaseAgentState for AgentState {
     fn wait(&mut self, duration: i32) {
         self.relapses.wait(duration);
-        self.zenith_state.wait(duration);
+        self.class_state.wait(duration);
         self.dodge_state.wait(duration);
         if let Some(cured_aff) = self.limb_damage.wait(duration) {
             self.set_flag(cured_aff, false);
@@ -1528,9 +1595,13 @@ impl AgentState {
         }
         if flag == FType::Zenith {
             if value {
-                self.zenith_state.activate();
+                self.assume_zealot(|zenith| {
+                    zenith.activate();
+                });
             } else {
-                self.zenith_state.deactivate();
+                self.assume_zealot(|zenith| {
+                    zenith.deactivate();
+                });
             }
         }
     }
@@ -1882,5 +1953,14 @@ impl AgentState {
             }
         }
         count
+    }
+
+    pub fn assume_zealot(&mut self, action: fn(&mut ZenithState)) {
+        if let ClassState::Zealot(zenith) = &mut self.class_state {
+            action(zenith);
+        } else {
+            self.class_state = ClassState::Zealot(ZenithState::default());
+            self.assume_zealot(action);
+        }
     }
 }

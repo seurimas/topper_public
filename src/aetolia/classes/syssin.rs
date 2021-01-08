@@ -1651,7 +1651,7 @@ lazy_static! {
 
 lazy_static! {
     static ref SLIT_STACK: Vec<VenomPlan> = vec![
-        VenomPlan::OnTree(FType::Paresis),
+        VenomPlan::Stick(FType::Paresis),
         VenomPlan::OneOf(FType::Allergies, FType::Vomiting),
         VenomPlan::Stick(FType::Haemophilia),
         VenomPlan::OneOf(FType::Asthma, FType::Weariness),
@@ -1696,9 +1696,10 @@ lazy_static! {
     static ref CARNIFEX_STACK: Vec<VenomPlan> = vec![
         VenomPlan::OnTree(FType::Paresis),
         VenomPlan::Stick(FType::Clumsiness),
+        VenomPlan::Stick(FType::Weariness),
         VenomPlan::Stick(FType::Asthma),
         VenomPlan::OneOf(FType::Allergies, FType::Disfigurement),
-        VenomPlan::OneOf(FType::Weariness, FType::Stupidity),
+        VenomPlan::OneOf(FType::Paresis, FType::Stupidity),
         VenomPlan::OneOf(FType::Slickness, FType::Anorexia),
         VenomPlan::OneOf(FType::LeftLegBroken, FType::LeftArmBroken),
         VenomPlan::OneOf(FType::RightLegBroken, FType::RightLegBroken),

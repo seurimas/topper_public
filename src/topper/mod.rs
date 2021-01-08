@@ -154,10 +154,12 @@ pub struct Topper<O, P, A> {
 }
 
 pub trait TopperHandler {
+    type Message;
     fn handle_request_or_event(
         &mut self,
-        topper_msg: &TopperMessage,
+        topper_msg: &Self::Message,
     ) -> Result<TopperResponse, String>;
+    fn from_str(&self, line: &String) -> Result<Self::Message, String>;
 }
 
 impl<O, P, A: BaseAgentState + Clone> Topper<O, P, A>
@@ -182,7 +184,7 @@ where
 
     pub fn parse_request_or_event(&mut self, line: &String) -> Result<TopperResponse, String> {
         let start = Instant::now();
-        let parsed = from_str(line);
+        let parsed = self.from_str(line);
         let result = match parsed {
             Ok(topper_msg) => self.handle_request_or_event(&topper_msg),
             Err(error) => Err(error.to_string()),
@@ -194,6 +196,32 @@ where
         }
         result
     }
+
+    pub fn provide_action(&mut self) {
+        loop {
+            let mut input = String::new();
+            match io::stdin().read_line(&mut input) {
+                Ok(n) => {
+                    if n == 0 {
+                        break;
+                    }
+                    let without_newline = &input[..input.len() - 1];
+                    let response = &self
+                        .parse_request_or_event(&without_newline.to_string())
+                        .unwrap_or_else(|err| TopperResponse::error(err.to_string()));
+                    send_response(&response);
+                    if response.die {
+                        break;
+                    }
+                }
+                Err(error) => println!(
+                    "{}",
+                    serde_json::to_string(&TopperResponse::error(error.to_string())).unwrap()
+                ),
+            }
+            thread::yield_now();
+        }
+    }
 }
 
 pub fn send_response(response: &TopperResponse) {
@@ -201,31 +229,4 @@ pub fn send_response(response: &TopperResponse) {
         "{}",
         serde_json::to_string(response).unwrap_or("{err: \"JSON Error\"}".into())
     );
-}
-
-pub fn provide_action(send_lines: Sender<String>) {
-    let mut topper = Topper::new(send_lines);
-    loop {
-        let mut input = String::new();
-        match io::stdin().read_line(&mut input) {
-            Ok(n) => {
-                if n == 0 {
-                    break;
-                }
-                let without_newline = &input[..input.len() - 1];
-                let response = &topper
-                    .parse_request_or_event(&without_newline.to_string())
-                    .unwrap_or_else(|err| TopperResponse::error(err.to_string()));
-                send_response(&response);
-                if response.die {
-                    break;
-                }
-            }
-            Err(error) => println!(
-                "{}",
-                serde_json::to_string(&TopperResponse::error(error.to_string())).unwrap()
-            ),
-        }
-        thread::yield_now();
-    }
 }

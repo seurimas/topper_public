@@ -7,6 +7,7 @@ use crate::topper::{
     TopperModule, TopperRequest, TopperResponse, WebModule,
 };
 use battle_stats::BattleStatsModule;
+use serde_json::from_str;
 use std::sync::mpsc::Sender;
 pub mod battle_stats;
 
@@ -56,6 +57,7 @@ pub type AetTopper = Topper<AetObservation, AetPrompt, AgentState>;
 
 impl AetTopper {
     pub fn new(send_lines: Sender<String>) -> Self {
+        println!("{:?}", std::fs::canonicalize("./topper.db").unwrap());
         Topper {
             timeline_module: AetTimelineModule::new(),
             core_module: TopperCore::new(),
@@ -68,6 +70,12 @@ impl AetTopper {
 }
 
 impl TopperHandler for AetTopper {
+    type Message = TopperMessage;
+
+    fn from_str(&self, line: &String) -> Result<TopperMessage, String> {
+        from_str(line).map_err(|error| error.to_string())
+    }
+
     fn handle_request_or_event(
         &mut self,
         topper_msg: &TopperMessage,
@@ -85,7 +93,10 @@ impl TopperHandler for AetTopper {
                     &self.database_module,
                 ),
             )?)
-            .then(self.database_module.handle_message(&topper_msg, ())?)
+            .then(
+                self.database_module
+                    .handle_message(&topper_msg, (self.timeline_module.timeline.who_am_i()))?,
+            )
             .then(self.web_module.handle_message(&topper_msg, ())?);
         match topper_msg {
             TopperMessage::Request(request) => match request {
