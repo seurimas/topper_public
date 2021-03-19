@@ -93,6 +93,24 @@ impl<'s> TopperModule<'s> for TopperCore {
     }
 }
 
+impl<'s, S> TopperModule<'s> for Option<S>
+where
+    S: TopperModule<'s>,
+{
+    type Siblings = S::Siblings;
+    fn handle_message(
+        &mut self,
+        message: &TopperMessage,
+        siblings: Self::Siblings,
+    ) -> Result<TopperResponse, String> {
+        if let Some(module) = self {
+            module.handle_message(message, siblings)
+        } else {
+            Ok(TopperResponse::silent())
+        }
+    }
+}
+
 impl TopperResponse {
     pub fn then(self, next: TopperResponse) -> Self {
         TopperResponse {
@@ -144,10 +162,11 @@ impl TopperResponse {
     }
 }
 
-pub struct Topper<O, P, A> {
+pub struct Topper<O, P, A, B> {
     pub timeline_module: TimelineModule<O, P, A>,
     pub core_module: TopperCore,
     pub telnet_module: TelnetModule,
+    pub battle_module: B,
     pub battlestats_module: BattleStatsModule,
     pub database_module: DatabaseModule,
     pub web_module: WebModule,
@@ -162,9 +181,9 @@ pub trait TopperHandler {
     fn from_str(&self, line: &String) -> Result<Self::Message, String>;
 }
 
-impl<O, P, A: BaseAgentState + Clone> Topper<O, P, A>
+impl<O, P, A: BaseAgentState + Clone, B> Topper<O, P, A, B>
 where
-    Topper<O, P, A>: TopperHandler,
+    Topper<O, P, A, B>: TopperHandler,
 {
     pub fn me(&self) -> String {
         self.timeline_module.timeline.who_am_i()

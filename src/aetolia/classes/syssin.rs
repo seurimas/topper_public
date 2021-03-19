@@ -1518,13 +1518,14 @@ lazy_static! {
     static ref PHYS_STACK: Vec<FType> = vec![
         FType::Paresis,
         FType::Clumsiness,
-        FType::Asthma,
-        FType::Stupidity,
         FType::Allergies,
-        FType::Dizziness,
         FType::Vomiting,
+        FType::Asthma,
+        FType::Dizziness,
         FType::Weariness,
         FType::Slickness,
+        FType::LeftArmBroken,
+        FType::RightArmBroken,
         FType::LeftLegBroken,
         FType::RightLegBroken,
     ];
@@ -1651,11 +1652,14 @@ lazy_static! {
 
 lazy_static! {
     static ref SLIT_STACK: Vec<VenomPlan> = vec![
-        VenomPlan::Stick(FType::Paresis),
-        VenomPlan::OneOf(FType::Allergies, FType::Vomiting),
+        VenomPlan::OnTree(FType::Paresis),
+        VenomPlan::IfNotDo(
+            FType::Hypersomnia,
+            Box::new(VenomPlan::OneOf(FType::Vomiting, FType::Allergies))
+        ),
         VenomPlan::Stick(FType::Haemophilia),
-        VenomPlan::OneOf(FType::Asthma, FType::Weariness),
         VenomPlan::OneOf(FType::Stupidity, FType::Dizziness),
+        VenomPlan::OneOf(FType::Asthma, FType::Weariness),
         VenomPlan::OneOf(FType::Recklessness, FType::Clumsiness),
         VenomPlan::OneOf(FType::Slickness, FType::Anorexia),
         VenomPlan::OneOf(FType::LeftLegBroken, FType::LeftArmBroken),
@@ -1696,11 +1700,11 @@ lazy_static! {
     static ref CARNIFEX_STACK: Vec<VenomPlan> = vec![
         VenomPlan::OnTree(FType::Paresis),
         VenomPlan::Stick(FType::Clumsiness),
-        VenomPlan::Stick(FType::Weariness),
-        VenomPlan::Stick(FType::Asthma),
-        VenomPlan::OneOf(FType::Allergies, FType::Disfigurement),
-        VenomPlan::OneOf(FType::Paresis, FType::Stupidity),
-        VenomPlan::OneOf(FType::Slickness, FType::Anorexia),
+        VenomPlan::Stick(FType::Vomiting),
+        VenomPlan::Stick(FType::Allergies),
+        VenomPlan::OneOf(FType::Sensitivity, FType::Dizziness),
+        VenomPlan::OneOf(FType::Stupidity, FType::Weariness),
+        VenomPlan::OneOf(FType::Asthma, FType::Slickness),
         VenomPlan::OneOf(FType::LeftLegBroken, FType::LeftArmBroken),
         VenomPlan::OneOf(FType::RightLegBroken, FType::RightLegBroken),
         VenomPlan::OneOf(FType::Sensitivity, FType::Dizziness),
@@ -1741,6 +1745,20 @@ lazy_static! {
         VenomPlan::Stick(FType::Asthma),
         VenomPlan::OneOf(FType::Allergies, FType::Vomiting),
         VenomPlan::OneOf(FType::Weariness, FType::Stupidity),
+        VenomPlan::OneOf(FType::Slickness, FType::Anorexia),
+        VenomPlan::OneOf(FType::LeftLegBroken, FType::LeftArmBroken),
+        VenomPlan::OneOf(FType::RightLegBroken, FType::RightLegBroken),
+        VenomPlan::OneOf(FType::Sensitivity, FType::Dizziness),
+    ];
+}
+
+lazy_static! {
+    static ref PRAENOMEN_STACK: Vec<VenomPlan> = vec![
+        VenomPlan::Stick(FType::Paresis),
+        VenomPlan::Stick(FType::Asthma),
+        VenomPlan::OneOf(FType::Weariness, FType::Stupidity),
+        VenomPlan::OneOf(FType::Allergies, FType::Vomiting),
+        VenomPlan::OneOf(FType::Haemophilia, FType::Dizziness),
         VenomPlan::OneOf(FType::Slickness, FType::Anorexia),
         VenomPlan::OneOf(FType::LeftLegBroken, FType::LeftArmBroken),
         VenomPlan::OneOf(FType::RightLegBroken, FType::RightLegBroken),
@@ -1851,6 +1869,7 @@ lazy_static! {
         val.insert("Luminary".into(), LUMINARY_STACK.to_vec());
         val.insert("Carnifex".into(), CARNIFEX_STACK.to_vec());
         val.insert("Wayfarer".into(), WAYFARER_STACK.to_vec());
+        val.insert("Praenomen".into(), get_simple_plan(AGGRO_STACK.to_vec()));
         val.insert("Syssin".into(), SYSSIN_STACK.to_vec());
         val.insert("Shaman".into(), SHAMAN_STACK.to_vec());
         val.insert("Templar".into(), get_simple_plan(PHYS_STACK.to_vec()));
@@ -1924,12 +1943,25 @@ pub fn get_top_hypno<'s>(
     }
 }
 
+fn check_config_str(timeline: &AetTimeline, value: &String) -> String {
+    timeline.state.get_my_hint(value).unwrap_or("n".to_string())
+}
+
 fn check_config(timeline: &AetTimeline, value: &String) -> bool {
     timeline
         .state
         .get_my_hint(value)
         .unwrap_or("false".to_string())
         .eq(&"true")
+}
+
+fn check_config_int(timeline: &AetTimeline, value: &String) -> i32 {
+    timeline
+        .state
+        .get_my_hint(value)
+        .unwrap_or("0".to_string())
+        .parse::<i32>()
+        .unwrap()
 }
 
 fn use_one_rag(timeline: &AetTimeline) -> bool {
@@ -1947,17 +1979,10 @@ fn should_void(timeline: &AetTimeline) -> bool {
 fn should_slit(me: &AgentState, target: &AgentState, strategy: &String) -> bool {
     if !strategy.eq("slit") || !target.is_prone() {
         false
+    } else if target.is(FType::Asleep) {
+        true
     } else if target.is(FType::Haemophilia)
         && target.affs_count(&vec![FType::Lethargy, FType::Allergies, FType::Vomiting]) >= 1
-        && target.affs_count(&vec![
-            FType::Stupidity,
-            FType::Dizziness,
-            FType::Weariness,
-            FType::Asthma,
-            FType::Paresis,
-            FType::Slickness,
-            FType::Clumsiness,
-        ]) >= 2
     {
         true
     } else {
@@ -2163,24 +2188,25 @@ pub fn get_stack<'s>(
     target: &String,
     strategy: &String,
     db: Option<&DatabaseModule>,
-) -> Option<&'s Vec<VenomPlan>> {
+) -> Option<Vec<VenomPlan>> {
     if strategy.eq("class") {
         if let Some(class) = db.and_then(|db| db.get_class(target)) {
             let class_name = format!("{:?}", class);
             if STACKING_STRATEGIES.contains_key(&class_name) {
-                return STACKING_STRATEGIES.get(&class_name);
+                return STACKING_STRATEGIES.get(&class_name).cloned();
             } else if is_affected_by(&class, FType::Clumsiness) {
-                return STACKING_STRATEGIES.get("phys");
+                return STACKING_STRATEGIES.get("phys").cloned();
             } else if is_affected_by(&class, FType::Peace) {
-                return STACKING_STRATEGIES.get("peace");
+                return STACKING_STRATEGIES.get("peace").cloned();
             } else {
-                return STACKING_STRATEGIES.get("aggro");
+                return STACKING_STRATEGIES.get("aggro").cloned();
             }
         } else {
-            return STACKING_STRATEGIES.get("aggro");
+            return STACKING_STRATEGIES.get("aggro").cloned();
         }
     }
-    STACKING_STRATEGIES.get(strategy)
+    db.and_then(|db| db.get_venom_plan(&format!("syssin_{}", strategy)))
+        .or(STACKING_STRATEGIES.get(strategy).cloned())
 }
 
 pub fn get_balance_attack<'s>(
@@ -2263,11 +2289,25 @@ pub fn get_balance_attack<'s>(
                     add_buffers(&mut venoms, &buffer);
                 } else if !you.can_tree(false) {
                     let mut hypno_buffers = vec![];
+                    let mut buffer_count = 1;
                     if you.is(FType::Impatience)
                         || you.hypno_state.get_next_hypno_aff() == Some(FType::Impatience)
                     {
                         if you.is(FType::Impatience) {
                             hypno_buffers.push(FType::Stupidity);
+                            match check_config_int(timeline, &"SYSSIN_IMPATIENCE_DEPTH".to_string())
+                            {
+                                3 => {
+                                    hypno_buffers.push(FType::Shyness);
+                                    hypno_buffers.push(FType::Dizziness);
+                                    buffer_count = 2;
+                                }
+                                2 => {
+                                    hypno_buffers.push(FType::Dizziness);
+                                    buffer_count = 2;
+                                }
+                                _ => {}
+                            }
                         } else {
                             hypno_buffers.push(FType::Shyness);
                         }
@@ -2291,7 +2331,7 @@ pub fn get_balance_attack<'s>(
                             hypno_buffers.push(FType::Stupidity);
                         }
                     }
-                    let hypno_buffers = get_venoms(hypno_buffers, 1, &you);
+                    let hypno_buffers = get_venoms(hypno_buffers, buffer_count, &you);
                     add_buffers(&mut venoms, &hypno_buffers);
                 }
             }
@@ -2351,14 +2391,14 @@ pub fn get_balance_attack<'s>(
     }
 }
 
-fn get_hypno_stack_name(timeline: &AetTimeline, target: &String, strategy: &String) -> String {
+pub fn get_hypno_stack_name(timeline: &AetTimeline, target: &String, strategy: &String) -> String {
     timeline
         .state
         .get_my_hint(&"HYPNO_STACK".to_string())
         .unwrap_or(strategy.to_string())
 }
 
-fn get_hypno_stack<'s>(
+pub fn get_hypno_stack<'s>(
     timeline: &AetTimeline,
     target: &String,
     strategy: &String,
@@ -2368,6 +2408,12 @@ fn get_hypno_stack<'s>(
         let stack = get_hypno_stack_name(timeline, target, strategy);
         if stack == "normal" {
             None // Default to HARD_HYPNO
+        } else if stack == "class" {
+            if let Some(class) = db.get_class(target) {
+                db.get_hypno_plan(&class.to_string())
+            } else {
+                db.get_hypno_plan(&format!("hypno_{}", stack))
+            }
         } else {
             db.get_hypno_plan(&format!("hypno_{}", stack))
         }

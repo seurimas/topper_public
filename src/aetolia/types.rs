@@ -1031,10 +1031,6 @@ impl LimbSet {
             if let Some(broken) = self.restoring {
                 let new_damage = self.limbs[broken as usize].damage
                     - i32::min(self.limbs[broken as usize].damage, expected_heal);
-                println!(
-                    "{} -> {} ({:?})",
-                    self.limbs[broken as usize].damage, new_damage, self.restore_timer
-                );
                 self.set_limb_damage(broken, new_damage);
             }
             self.regenerating = false;
@@ -1393,6 +1389,48 @@ impl ZenithState {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum TimedFlagState {
+    Inactive,
+    Active(CType),
+}
+
+impl Default for TimedFlagState {
+    fn default() -> Self {
+        TimedFlagState::Inactive
+    }
+}
+
+impl TimedFlagState {
+    pub fn wait(&mut self, duration: CType) {
+        match self.clone() {
+            TimedFlagState::Inactive => {}
+            TimedFlagState::Active(remaining) => {
+                if remaining > duration {
+                    *self = TimedFlagState::Active(remaining - duration);
+                } else {
+                    *self = TimedFlagState::Inactive;
+                }
+            }
+        }
+    }
+
+    pub fn active(&self) -> bool {
+        match self {
+            TimedFlagState::Inactive => false,
+            _ => true,
+        }
+    }
+
+    pub fn activate(&mut self, duration: CType) {
+        *self = TimedFlagState::Active(duration);
+    }
+
+    pub fn deactivate(&mut self) {
+        *self = TimedFlagState::Inactive;
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum Howl {
     Terrorizing,
@@ -1439,7 +1477,10 @@ pub struct HowlingState {
 
 #[derive(Debug, Clone)]
 pub enum ClassState {
-    Zealot(ZenithState),
+    Zealot {
+        zenith: ZenithState,
+        pyromania: TimedFlagState,
+    },
     Shifter(HowlingState),
     Unknown,
 }
@@ -1447,7 +1488,10 @@ pub enum ClassState {
 impl ClassState {
     pub fn wait(&mut self, duration: CType) {
         match self {
-            ClassState::Zealot(zenith) => zenith.wait(duration),
+            ClassState::Zealot { zenith, pyromania } => {
+                zenith.wait(duration);
+                pyromania.wait(duration);
+            }
             _ => {}
         }
     }
@@ -1595,11 +1639,11 @@ impl AgentState {
         }
         if flag == FType::Zenith {
             if value {
-                self.assume_zealot(|zenith| {
+                self.assume_zealot(|zenith, _pyro| {
                     zenith.activate();
                 });
             } else {
-                self.assume_zealot(|zenith| {
+                self.assume_zealot(|zenith, _pyro| {
                     zenith.deactivate();
                 });
             }
@@ -1670,9 +1714,6 @@ impl AgentState {
 
     pub fn set_limb_damage(&mut self, limb: LType, value: CType) {
         let old_value = self.limb_damage.limbs[limb as usize].damage;
-        if old_value < value - 200 || old_value > value + 200 {
-            println!("{:?} {} -> {}", limb, old_value, value);
-        }
         self.limb_damage.set_limb_damage(limb, value);
     }
 
@@ -1955,11 +1996,14 @@ impl AgentState {
         count
     }
 
-    pub fn assume_zealot(&mut self, action: fn(&mut ZenithState)) {
-        if let ClassState::Zealot(zenith) = &mut self.class_state {
-            action(zenith);
+    pub fn assume_zealot(&mut self, action: fn(&mut ZenithState, &mut TimedFlagState)) {
+        if let ClassState::Zealot { zenith, pyromania } = &mut self.class_state {
+            action(zenith, pyromania);
         } else {
-            self.class_state = ClassState::Zealot(ZenithState::default());
+            self.class_state = ClassState::Zealot {
+                zenith: ZenithState::default(),
+                pyromania: TimedFlagState::default(),
+            };
             self.assume_zealot(action);
         }
     }

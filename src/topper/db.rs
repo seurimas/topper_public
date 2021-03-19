@@ -309,7 +309,7 @@ impl<'s> TopperModule<'s> for DatabaseModule {
                     }
                 }
                 if let Some((name, priorities)) = parse_priority_set(&event.lines) {
-                    println!("Priorities: {:?}", priorities);
+                    self.set_first_aid_priorities(&siblings, &name, priorities);
                 }
                 Ok(TopperResponse::silent())
             }

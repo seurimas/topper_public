@@ -330,8 +330,6 @@ lazy_static! {
     static ref PRIORITY_TYPE_LINE: Regex =
         Regex::new(r"^\s+(pipe|poultice|pill|special):\s+\[([a-z_, ]+)\]?$").unwrap();
     static ref PRIORITY_CONTINUITY_LINE: Regex = Regex::new(r"^\s+([a-z_, ]+)\]?$").unwrap();
-    static ref ANSI: Regex =
-        Regex::new(r"(\x1b\[[\x30-\x3F]*[\x20-\x2F]*[\x40-\x7E]|\r\n)").unwrap();
 }
 
 fn add_priorities(priorities: &mut HashMap<FType, u32>, priority: u32, aff_list: &str) {
@@ -357,10 +355,6 @@ fn parse_priorities(priority_lines: &Vec<String>) -> HashMap<FType, u32> {
         }
     }
     priorities
-}
-
-fn strip_ansi(line: &String) -> String {
-    ANSI.replace_all(line.as_ref(), "").into()
 }
 
 pub fn parse_priority_set(lines: &Vec<(String, u32)>) -> Option<(String, HashMap<FType, u32>)> {

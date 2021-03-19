@@ -133,7 +133,12 @@ pub fn handle_combat_action(
         }
         "Zenith" => {
             for_agent(agent_states, &combat_action.caster, |you| {
-                you.assume_zealot(|zenith| zenith.initiate());
+                you.assume_zealot(|zenith, _pyro| zenith.initiate());
+            });
+        }
+        "Pyromania" => {
+            for_agent(agent_states, &combat_action.caster, |you| {
+                you.assume_zealot(|_zenith, pyro| pyro.activate(2000));
             });
         }
         "Heelrush" => {
@@ -577,13 +582,19 @@ fn value_swagger(
                     && me.get_balance(BType::ParesisParalysis) > 2.0))
         {
             0.0
-        } else if Some(Class::Wayfarer) == class && sapped == SWAGGER_LIMIT - 1 {
+        } else if sapped == SWAGGER_LIMIT - 1 {
             if let Some(locked) = me.lock_duration() {
                 if me.balanced(BType::Tree) {
                     1.0
                 } else {
                     0.0
                 }
+            } else if !me.is(FType::Firefist)
+                && !me.is(FType::Zenith)
+                && !you.is(FType::Heatspear)
+                && !you.restore_count() > 1
+            {
+                1.0
             } else {
                 0.0
             }
@@ -788,7 +799,7 @@ lazy_static! {
         ("enact zenith", |me, you, _db, _strategy| {
             (
                 ComboType::Full,
-                if let ClassState::Zealot(zenith) = me.class_state {
+                if let ClassState::Zealot { zenith, .. } = me.class_state {
                     if zenith.can_initiate() {
                         1000.0
                     } else {
@@ -800,23 +811,10 @@ lazy_static! {
                 },
             )
         }),
-        (
-            "enact heatspear {};;enact scorch {}",
-            |me, you, _db, _strategy| {
-                (
-                    ComboType::ZenithEq,
-                    if !you.is(FType::Ablaze) && me.is(FType::Firefist) {
-                        70.0
-                    } else {
-                        0.0
-                    },
-                )
-            }
-        ),
         ("enact scorch {}", |me, you, _db, _strategy| {
             (
                 ComboType::ZenithEq,
-                if !you.is(FType::Ablaze) { 100.0 } else { 0.0 },
+                if !you.is(FType::Ablaze) { 40.0 } else { 0.0 },
             )
         }),
         ("enact heatspear {}", |me, you, _db, _strategy| {
@@ -841,6 +839,21 @@ lazy_static! {
                 },
             )
         }),
+        ("enact pyromania", |me, you, _db, _strategy| {
+            let target_limbs = you.get_limbs_state();
+            (
+                ComboType::ZenithEq,
+                if let ClassState::Zealot { pyromania, .. } = me.class_state {
+                    if !pyromania.active() {
+                        50.0
+                    } else {
+                        0.0
+                    }
+                } else {
+                    50.0
+                },
+            )
+        }),
         ("enact quicken {}", |me, you, _db, _strategy| {
             let target_limbs = you.get_limbs_state();
             (
@@ -855,7 +868,7 @@ lazy_static! {
         ("enact infernal {}", |me, you, _db, _strategy| {
             let target_limbs = you.get_limbs_state();
             (
-                if let ClassState::Zealot(zenith) = me.class_state {
+                if let ClassState::Zealot { zenith, .. } = me.class_state {
                     if zenith.active() {
                         ComboType::ZenithEq
                     } else {
@@ -903,7 +916,7 @@ lazy_static! {
                     && target_limbs.restores_to_zeroes() >= 1
                     && can_punch(me)
                 {
-                    30.0
+                    (30 * target_limbs.restores_to_zeroes()) as f32
                 } else {
                     0.0
                 },
@@ -1209,7 +1222,7 @@ lazy_static! {
                 },
             )
         }),
-        ("anklepin", |me, you, _db, _strategy| {
+        ("anklepin", |me, you, _db, strategy| {
             let target_limbs = you.get_limbs_state();
             (
                 ComboType::ComboFirst,
@@ -1217,6 +1230,12 @@ lazy_static! {
                     0.0
                 } else if target_limbs.left_leg.welt | target_limbs.right_leg.welt {
                     50.0
+                } else if !you.is(FType::SoreAnkle) {
+                    if strategy.eq("bedazzle") {
+                        20.0
+                    } else {
+                        0.0
+                    }
                 } else {
                     0.0
                 },
@@ -1438,7 +1457,7 @@ pub fn get_balance_attack(
                 _ => {}
             },
             ComboType::ZenithEq => {
-                if let ClassState::Zealot(zenith) = me.class_state {
+                if let ClassState::Zealot { zenith, .. } = me.class_state {
                     match (&eq, zenith.active()) {
                         (None, true) => {
                             eq = Some(action.replace("{}", target));
@@ -1476,6 +1495,19 @@ pub fn get_balance_attack(
         (None, Some(first), Some(last)) => format!("flow {} {} {};;dash d", target, first, last),
         _ => "".to_string(),
     };
+    match (free_act.as_ref(), eq.as_ref()) {
+        (Some(ref free_act_str), Some(ref eq_str)) => {
+            if (*eq_str).contains("scorch")
+                && (free_act_str.contains("firefist") || me.is(FType::Firefist))
+            {
+                eq = Some(format!(
+                    "enact heatspear {};;enact firefist {}",
+                    target, target
+                ));
+            }
+        }
+        _ => {}
+    }
     let mut full_combo = match (combo_action.as_ref(), eq) {
         ("", Some(eq)) => eq,
         (combo, Some(eq)) => format!("{};;{}", combo, eq),

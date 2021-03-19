@@ -53,17 +53,55 @@ impl<'s> TopperModule<'s> for AetTimelineModule {
     }
 }
 
-pub type AetTopper = Topper<AetObservation, AetPrompt, AgentState>;
+#[derive(Default)]
+pub struct BattleModule;
+
+impl<'s> TopperModule<'s> for BattleModule {
+    type Siblings = (
+        &'s String,
+        &'s Option<String>,
+        &'s AetTimeline,
+        &'s DatabaseModule,
+    );
+    fn handle_message(
+        &mut self,
+        message: &TopperMessage,
+        (me, target, timeline, db): Self::Siblings,
+    ) -> Result<TopperResponse, String> {
+        match message {
+            TopperMessage::Request(request) => match request {
+                TopperRequest::Attack(strategy) => {
+                    if let Some(target) = target {
+                        Ok(TopperResponse::qeb(get_attack(
+                            &timeline,
+                            me,
+                            &target,
+                            &strategy,
+                            Some(db),
+                        )))
+                    } else {
+                        Ok(TopperResponse::error("No target.".into()))
+                    }
+                }
+                _ => Ok(TopperResponse::silent()),
+            },
+            _ => Ok(TopperResponse::silent()),
+        }
+    }
+}
+
+pub type AetTopper = Topper<AetObservation, AetPrompt, AgentState, BattleModule>;
 
 impl AetTopper {
-    pub fn new(send_lines: Sender<String>) -> Self {
-        println!("{:?}", std::fs::canonicalize("./topper.db").unwrap());
+    pub fn new(send_lines: Sender<String>, path: String) -> Self {
+        println!("DB: {:?}", std::fs::canonicalize(path.clone()).unwrap());
         Topper {
             timeline_module: AetTimelineModule::new(),
             core_module: TopperCore::new(),
             telnet_module: TelnetModule::new(send_lines),
+            battle_module: BattleModule::default(),
             battlestats_module: BattleStatsModule::new(),
-            database_module: DatabaseModule::new("topper.db"),
+            database_module: DatabaseModule::new(path),
             web_module: WebModule::new(),
         }
     }
@@ -80,7 +118,7 @@ impl TopperHandler for AetTopper {
         &mut self,
         topper_msg: &TopperMessage,
     ) -> Result<TopperResponse, String> {
-        let module_msg = self
+        Ok(self
             .core_module
             .handle_message(&topper_msg, ())?
             .then(self.timeline_module.handle_message(&topper_msg, ())?)
@@ -97,25 +135,15 @@ impl TopperHandler for AetTopper {
                 self.database_module
                     .handle_message(&topper_msg, (self.timeline_module.timeline.who_am_i()))?,
             )
-            .then(self.web_module.handle_message(&topper_msg, ())?);
-        match topper_msg {
-            TopperMessage::Request(request) => match request {
-                TopperRequest::Attack(strategy) => {
-                    if let Some(target) = self.get_target() {
-                        Ok(module_msg.then(TopperResponse::qeb(get_attack(
-                            &self.timeline_module.timeline,
-                            &self.me(),
-                            &target,
-                            &strategy,
-                            Some(&self.database_module),
-                        ))))
-                    } else {
-                        Ok(module_msg.then(TopperResponse::error("No target.".into())))
-                    }
-                }
-                _ => Ok(module_msg),
-            },
-            _ => Ok(module_msg),
-        }
+            .then(self.web_module.handle_message(&topper_msg, ())?)
+            .then(self.battle_module.handle_message(
+                &topper_msg,
+                (
+                    &self.me(),
+                    &self.core_module.target,
+                    &self.timeline_module.timeline,
+                    &self.database_module,
+                ),
+            )?))
     }
 }

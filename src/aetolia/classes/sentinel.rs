@@ -660,7 +660,7 @@ pub fn handle_combat_action(
                 });
                 attack_afflictions(
                     agent_states,
-                    &combat_action.caster,
+                    &combat_action.target,
                     vec![FType::Claustrophobia],
                     after,
                 );
@@ -671,7 +671,7 @@ pub fn handle_combat_action(
                 });
                 attack_afflictions(
                     agent_states,
-                    &combat_action.caster,
+                    &combat_action.target,
                     vec![FType::Agoraphobia],
                     after,
                 );
@@ -682,7 +682,7 @@ pub fn handle_combat_action(
                 });
                 attack_afflictions(
                     agent_states,
-                    &combat_action.caster,
+                    &combat_action.target,
                     vec![FType::Loneliness],
                     after,
                 );
@@ -693,7 +693,7 @@ pub fn handle_combat_action(
                 });
                 attack_afflictions(
                     agent_states,
-                    &combat_action.caster,
+                    &combat_action.target,
                     vec![FType::Berserking],
                     after,
                 );

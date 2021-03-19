@@ -1,3 +1,4 @@
+use crate::aetolia::classes::syssin::{get_hypno_stack, get_hypno_stack_name};
 use crate::aetolia::classes::{get_attack, Class};
 use crate::aetolia::timeline::*;
 use crate::aetolia::types::*;
@@ -153,6 +154,7 @@ pub struct BattleStats {
     pub my_stats: PlayerStats,
     pub target_stats: Option<PlayerStats>,
     pub plan: String,
+    pub hypno: String,
 }
 
 fn format_self_limbs(state: &AgentState) -> String {
@@ -205,6 +207,24 @@ pub fn get_battle_stats(
     } else {
         "".to_string()
     };
+    let hypno_str = if my_stats.class.eq("Syssin") {
+        format!(
+            "{}: {:?}",
+            get_hypno_stack_name(
+                &timeline,
+                target.as_ref().unwrap_or(&"".to_string()),
+                plan.as_ref().unwrap_or(&"".to_string())
+            ),
+            get_hypno_stack(
+                &timeline,
+                target.as_ref().unwrap_or(&"".to_string()),
+                plan.as_ref().unwrap_or(&"".to_string()),
+                Some(db),
+            ),
+        )
+    } else {
+        "".to_string()
+    };
     for timeslice in timeline.slices.iter().rev() {
         for observation in timeslice.get_observations().iter().rev() {
             if lines_available <= 0 {
@@ -243,5 +263,6 @@ pub fn get_battle_stats(
         my_stats,
         target_stats,
         plan: plan_str,
+        hypno: hypno_str,
     }
 }
