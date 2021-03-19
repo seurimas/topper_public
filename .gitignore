@@ -1,6 +1,6 @@
-/target
+**/target
 **/*.rs.bk
-**/*.rs~
+**/*~
 /log
 /node_modules
-/build
+**/build

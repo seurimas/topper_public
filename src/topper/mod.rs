@@ -8,6 +8,7 @@ pub use crate::topper::telnet::TelnetModule;
 pub use crate::topper::timeline::TimelineModule;
 pub use crate::topper::web_ui::WebModule;
 pub mod db;
+pub mod observations;
 pub mod telnet;
 pub mod timeline;
 mod web_ui;
@@ -19,7 +20,7 @@ use std::sync::mpsc::Sender;
 use std::thread;
 use std::time::{Duration, Instant};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub enum TopperRequest {
     Target(String),
     BattleStats(CType),
@@ -37,7 +38,7 @@ pub enum TopperRequest {
     OpenWeb,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub enum TopperMessage {
     Kill,
     AetEvent(AetTimeSlice),

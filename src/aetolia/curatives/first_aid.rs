@@ -3,6 +3,7 @@ use crate::aetolia::observables::*;
 use crate::aetolia::timeline::*;
 use crate::aetolia::types::*;
 use crate::timeline::BaseAgentState;
+use crate::topper::observations::strip_ansi;
 use regex::{Regex, RegexSet};
 use std::collections::HashMap;
 

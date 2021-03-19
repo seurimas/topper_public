@@ -1,0 +1,159 @@
+[
+  {
+    "regex": "^(\\w+) uses? (\\w+) (\\w+ ?\\w*)( \\((.*)\\))?( on (.*))?.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "GroupAsTarget": 7
+      },
+      {
+        "Group": 2
+      },
+      {
+        "Group": 3
+      },
+      {
+        "Group": 5
+      }
+    ],
+    "observation_name": "CombatAction"
+  },
+  {
+    "regex": "^(\\w+) touch(es)? (a|the) tree of life tattoo.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": "Tattoos"
+      },
+      {
+        "Literal": "Tree"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "CombatAction"
+  },
+  {
+    "regex": "^With a sinister grin, (\\w+)'s body seems to repair itself before your very eyes.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": "Hunting"
+      },
+      {
+        "Literal": "Renew"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "CombatAction"
+  },
+  {
+    "regex": "^(\\w+) calms for a moment as \\w+ body renews itself in an act of recovery.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": "Hunting"
+      },
+      {
+        "Literal": "Renew"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "CombatAction"
+  },
+  {
+    "regex": "^(\\w+) smiles faintly as a healing glow seems to push afflictions from \\w+ body.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": "Hunting"
+      },
+      {
+        "Literal": "Renew"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "CombatAction"
+  },
+  {
+    "regex": "A look of extreme focus crosses the face of (\\w+).",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": "Survival"
+      },
+      {
+        "Literal": "Focus"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "CombatAction"
+  },
+  {
+    "regex": "^(You) focus your mind intently on curing your mental maladies.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": "Survival"
+      },
+      {
+        "Literal": "Focus"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "CombatAction"
+  },
+    
+  {
+    "regex": "^You have recovered balance on all limbs.$",
+    "args": [
+      {
+        "Literal": "Balance"
+      }
+    ],
+    "observation_name": "BalanceBack"
+  }
+]

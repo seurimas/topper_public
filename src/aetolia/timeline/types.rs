@@ -8,6 +8,7 @@ use crate::aetolia::curatives::{
 };
 use crate::aetolia::types::*;
 use crate::timeline::types::*;
+use crate::topper::observations::EnumFromArgs;
 use log::warn;
 use regex::Regex;
 use serde::Deserialize;
@@ -116,22 +117,28 @@ impl SimpleCureAction {
         }
     }
 }
-#[derive(Debug, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Deserialize, PartialEq, Clone, EnumFromArgs)]
 pub enum AetObservation {
     // Basic actions
+    #[skip_args]
     CombatAction(CombatAction),
+    #[skip_args]
     Proc(CombatAction),
+    #[skip_args]
     SimpleCureAction(SimpleCureAction),
+    #[skip_args]
     DualWield {
         who: String,
         left: String,
         right: String,
     },
+    #[skip_args]
     Wield {
         who: String,
         what: String,
         hand: String,
     },
+    #[skip_args]
     Unwield {
         who: String,
         what: String,
@@ -161,6 +168,7 @@ pub enum AetObservation {
     Fangbarrier,
     Shield,
     WoundStart(String),
+    #[skip_args]
     Wound(String, f32),
     // First-Aid simples
     Afflicted(String),
@@ -171,9 +179,12 @@ pub enum AetObservation {
     Relapse(String),
     TickAff(String, String),
     // General messages
+    #[skip_args]
     Balance(String, f32),
     BalanceBack(String),
+    #[skip_args]
     LimbDamage(String, f32),
+    #[skip_args]
     LimbHeal(String, f32),
     LimbDone(String),
     Fall(String),

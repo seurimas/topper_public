@@ -1,6 +1,8 @@
 #![allow(warnings)]
 #[macro_use]
 extern crate lazy_static;
+#[macro_use]
+extern crate topper_derive;
 extern crate strum;
 #[macro_use]
 extern crate strum_macros;
