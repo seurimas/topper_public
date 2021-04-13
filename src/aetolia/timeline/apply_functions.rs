@@ -113,6 +113,7 @@ pub fn apply_observation(
             timeline.finish_agent_restore(&timeline.me.clone(), what)?;
         }
         AetObservation::Stand(who) => {
+            timeline.set_flag_for_agent(who, &"asleep".to_string(), false);
             timeline.set_flag_for_agent(who, &"fallen".to_string(), false);
             if timeline.get_agent(who).is(FType::Backstrain) {
                 let after = after.clone();
@@ -229,8 +230,8 @@ pub fn apply_or_infer_suggestion(
     Ok(())
 }
 
-pub fn apply_venom(who: &mut AgentState, venom: &String) -> Result<(), String> {
-    if who.is(FType::ThinBlood) {
+pub fn apply_venom(who: &mut AgentState, venom: &String, relapse: bool) -> Result<(), String> {
+    if who.is(FType::ThinBlood) && !relapse {
         who.push_toxin(venom.clone());
     }
     if venom == "prefarar" && who.is(FType::Deafness) {
@@ -254,9 +255,14 @@ pub fn apply_venom(who: &mut AgentState, venom: &String) -> Result<(), String> {
     } else if venom == "camus" {
         who.set_stat(SType::Health, who.get_stat(SType::Health) - 1000);
     } else if venom == "delphinium" && who.is(FType::Insomnia) {
+        println!("Stripped insomnia");
         who.set_flag(FType::Insomnia, false);
-    } else if venom == "delphinium" {
+    } else if venom == "delphinium" && !who.is(FType::Asleep) {
+        println!("Night night");
         who.set_flag(FType::Asleep, true);
+    } else if venom == "delphinium" {
+        println!("Stripped instawake");
+        who.set_flag(FType::Instawake, false);
     } else {
         return Err(format!("Could not determine effect of {}", venom));
     }
@@ -283,11 +289,11 @@ pub fn apply_weapon_hits(
             if let Some(AetObservation::Devenoms(venom)) = observations.get(i) {
                 if let Some(AetObservation::Rebounds) = observations.get(i - 1) {
                     target.set_flag(FType::Rebounding, true);
-                    apply_venom(attacker, venom)?;
+                    apply_venom(attacker, venom, false)?;
                 } else {
                     if let Some(AetObservation::PurgeVenom(_, _v2)) = observations.get(i + 1) {
                     } else {
-                        apply_venom(target, venom)?;
+                        apply_venom(target, venom, false)?;
                     }
                 }
             } else if let Some(AetObservation::CombatAction(_)) = observations.get(i) {
@@ -313,7 +319,7 @@ pub fn apply_weapon_hits(
         }
         println!("Caught {:?}", venoms);
         for venom in venoms.iter() {
-            apply_venom(target, venom)?;
+            apply_venom(target, venom, false)?;
         }
     }
     Ok(())
@@ -464,7 +470,7 @@ pub fn apply_or_infer_relapse(
         RelapseResult::Concrete(venoms) => {
             println!("Relapses: {:?}", venoms);
             for venom in venoms.iter() {
-                apply_venom(who, &venom)?;
+                apply_venom(who, &venom, true)?;
             }
         }
         RelapseResult::Uncertain(venoms) => {
@@ -601,7 +607,11 @@ pub fn apply_or_infer_cure(
                         who.clear_relapses();
                     }
                 } else if let Some(defence) = PILL_DEFENCES.get(pill_name) {
-                    who.set_flag(*defence, true);
+                    if *defence == FType::Insomnia && who.is(FType::Hypersomnia) {
+                        println!("Insomnia blocked by hypersomnia");
+                    } else {
+                        who.set_flag(*defence, true);
+                    }
                 } else {
                     return Err(format!("Could not find pill {}", pill_name));
                 }

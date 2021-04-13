@@ -232,9 +232,9 @@ mod cure_depth_tests {
 
 #[derive(Debug, Default)]
 pub struct CureDepth {
-    time: CType,
-    cures: CType,
-    affs: Vec<FType>,
+    pub time: CType,
+    pub cures: CType,
+    pub affs: Vec<FType>,
 }
 
 pub struct CureDepths {

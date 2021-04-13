@@ -33,6 +33,9 @@ pub enum Class {
     Shapeshifter,
     Wayfarer,
     Lord,
+    // Mirrors
+    Revenant, // Templar
+    Warden,   // Warden
 }
 
 impl Class {
@@ -62,6 +65,9 @@ impl Class {
             "Titan Lord" => Some(Class::Lord),
             "Chaos Lord" => Some(Class::Lord),
             "Lord" => Some(Class::Lord),
+            // Mirrors
+            "Revenant" => Some(Class::Revenant),
+            "Warden" => Some(Class::Warden),
             _ => None,
         }
     }
@@ -89,6 +95,9 @@ impl Class {
             Class::Shapeshifter => "Shapeshifter",
             Class::Wayfarer => "Wayfarer",
             Class::Lord => "Lord",
+            //
+            Class::Revenant => "Revenant",
+            Class::Warden => "Warden",
             _ => "Unknown",
         }
     }
@@ -118,6 +127,9 @@ pub fn get_skill_class(category: &String) -> Option<Class> {
         "Ferality" | "Shapeshifting" | "Vocalizing" => Some(Class::Shapeshifter),
         "Tenacity" | "Wayfaring" | "Fury" => Some(Class::Wayfarer),
         "Titan" | "Chaos" => Some(Class::Lord),
+        // Mirrors
+        "Riving" | "Chirography" | "Manifestation" => Some(Class::Revenant),
+        "Warding" | "Ancestry" | "Communion" => Some(Class::Warden),
         _ => None,
     }
 }
@@ -133,14 +145,19 @@ pub fn has_special_cure(class: &Class, affliction: FType) -> bool {
 
 pub fn is_affected_by(class: &Class, affliction: FType) -> bool {
     match (affliction, class) {
+        (_, Class::Warden) => is_affected_by(&Class::Carnifex, affliction),
+        (_, Class::Revenant) => is_affected_by(&Class::Templar, affliction),
         (FType::Clumsiness, Class::Syssin) => true,
+        (FType::Clumsiness, Class::Templar) => true,
         (FType::Clumsiness, Class::Carnifex) => true,
         (FType::Clumsiness, Class::Sentinel) => true,
+        (FType::Clumsiness, Class::Wayfarer) => true,
         (FType::Clumsiness, Class::Teradrim) => true,
+        (FType::Clumsiness, Class::Zealot) => true,
         (FType::Peace, Class::Luminary) => true,
         (FType::Disfigurement, Class::Sentinel) => true,
         (FType::Disfigurement, Class::Carnifex) => true,
-        (FType::Disfigurement, Class::Archivists) => true,
+        (FType::Disfigurement, Class::Luminary) => true,
         (FType::Disfigurement, Class::Indorani) => true,
         (FType::Disfigurement, Class::Teradrim) => true,
         (FType::Lethargy, Class::Syssin) => true,
@@ -258,8 +275,27 @@ pub fn get_preferred_parry(
                 let myself = timeline.state.borrow_agent(me);
                 if myself.is(FType::Heartflutter) {
                     Ok(LType::TorsoDamage)
-                } else {
+                } else if !myself.is(FType::Impatience) {
                     Ok(LType::HeadDamage)
+                } else {
+                    Ok(get_top_parry(timeline, me).unwrap_or(LType::HeadDamage))
+                }
+            }
+            Class::Wayfarer => {
+                let myself = timeline.state.borrow_agent(me);
+                let limbs_state = myself.get_limbs_state();
+                if limbs_state.left_leg.damaged
+                    || limbs_state.right_leg.damaged
+                    || limbs_state.left_arm.damaged
+                    || limbs_state.right_arm.damaged
+                {
+                    if limbs_state.head.damage > 20.0 {
+                        Ok(LType::HeadDamage)
+                    } else {
+                        Ok(get_top_parry(timeline, me).unwrap_or(LType::HeadDamage))
+                    }
+                } else {
+                    Ok(get_top_parry(timeline, me).unwrap_or(LType::HeadDamage))
                 }
             }
             _ => Ok(get_top_parry(timeline, me).unwrap_or(LType::HeadDamage)),

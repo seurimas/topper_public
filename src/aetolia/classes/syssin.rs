@@ -1,5 +1,6 @@
 use crate::aetolia::alpha_beta::ActionPlanner;
 use crate::aetolia::classes::*;
+use crate::aetolia::curatives::get_cure_depth;
 use crate::aetolia::observables::*;
 use crate::aetolia::timeline::*;
 use crate::aetolia::topper::*;
@@ -1263,6 +1264,20 @@ pub fn handle_combat_action(
             agent_states.set_agent(&combat_action.caster, me);
             agent_states.set_agent(&combat_action.target, you);
         }
+        "Slit" => {
+            let mut me = agent_states.get_agent(&combat_action.caster);
+            let mut you = agent_states.get_agent(&combat_action.target);
+            apply_weapon_hits(
+                &mut me,
+                &mut you,
+                after,
+                combat_action.caster.eq(&agent_states.me),
+                agent_states.get_player_hint(&combat_action.caster, &"CALLED_VENOMS".to_string()),
+            )?;
+            apply_or_infer_balance(&mut me, (BType::Balance, 1.88), after);
+            agent_states.set_agent(&combat_action.caster, me);
+            agent_states.set_agent(&combat_action.target, you);
+        }
         "Shrugging" => {
             let mut me = agent_states.get_agent(&combat_action.caster);
             apply_or_infer_balance(&mut me, (BType::ClassCure1, 20.0), after);
@@ -1274,18 +1289,18 @@ pub fn handle_combat_action(
             me.set_balance(BType::Balance, 1.9);
             if let Some(AetObservation::Parry(who, _what)) = after.get(1) {
                 if !who.eq(&combat_action.target) {
-                    apply_venom(&mut you, &combat_action.annotation)?;
+                    apply_venom(&mut you, &combat_action.annotation, false)?;
                 }
             } else if let Some(AetObservation::Absorbed(who, _what)) = after.get(1) {
                 if !who.eq(&combat_action.target) {
-                    apply_venom(&mut you, &combat_action.annotation)?;
+                    apply_venom(&mut you, &combat_action.annotation, false)?;
                 }
             } else if let Some(AetObservation::PurgeVenom(who, _what)) = after.get(1) {
                 if !who.eq(&combat_action.target) {
-                    apply_venom(&mut you, &combat_action.annotation)?;
+                    apply_venom(&mut you, &combat_action.annotation, false)?;
                 }
             } else {
-                apply_venom(&mut you, &combat_action.annotation)?;
+                apply_venom(&mut you, &combat_action.annotation, false)?;
             }
             apply_or_infer_balance(&mut me, (BType::Balance, 1.9), after);
             agent_states.set_agent(&combat_action.caster, me);
@@ -1869,7 +1884,7 @@ lazy_static! {
         val.insert("Luminary".into(), LUMINARY_STACK.to_vec());
         val.insert("Carnifex".into(), CARNIFEX_STACK.to_vec());
         val.insert("Wayfarer".into(), WAYFARER_STACK.to_vec());
-        val.insert("Praenomen".into(), get_simple_plan(AGGRO_STACK.to_vec()));
+        val.insert("Praenomen".into(), PRAENOMEN_STACK.to_vec());
         val.insert("Syssin".into(), SYSSIN_STACK.to_vec());
         val.insert("Shaman".into(), SHAMAN_STACK.to_vec());
         val.insert("Templar".into(), get_simple_plan(PHYS_STACK.to_vec()));
@@ -1977,7 +1992,7 @@ fn should_void(timeline: &AetTimeline) -> bool {
 }
 
 fn should_slit(me: &AgentState, target: &AgentState, strategy: &String) -> bool {
-    if !strategy.eq("slit") || !target.is_prone() {
+    if !target.is_prone() {
         false
     } else if target.is(FType::Asleep) {
         true
@@ -2074,12 +2089,13 @@ fn go_for_thin_blood(_timeline: &AetTimeline, you: &AgentState, _strategy: &Stri
 pub fn should_lock(me: Option<&AgentState>, you: &AgentState, lockers: &Vec<&str>) -> bool {
     if let Some(me) = me {
         if lockers.len() == 2
-            && you.dodge_state.can_dodge_at(me.get_qeb_balance())
-            && you.affs_count(&vec![
-                FType::Hypochondria,
-                FType::Clumsiness,
-                FType::Weariness,
-            ]) < 1
+            && ((you.dodge_state.can_dodge_at(me.get_qeb_balance())
+                && you.affs_count(&vec![
+                    FType::Hypochondria,
+                    FType::Clumsiness,
+                    FType::Weariness,
+                ]) < 1)
+                || you.is(FType::Hypersomnia))
         {
             return false;
         }
@@ -2158,15 +2174,13 @@ pub fn add_delphs(
         return;
     }
     if you.is(FType::Hypersomnia) {
-        if !you.is(FType::Insomnia) && !you.is(FType::Asleep) {
+        if you.is(FType::Insomnia) {
             venoms.push("delphinium");
-            if you.is(FType::Instawake) {
-                venoms.push("delphinium");
-            }
-        } else if you.is(FType::Insomnia)
-            && !you.is(FType::Asleep)
-            && (you.aff_count() > 4 || (!you.can_tree(false) && !you.can_renew(false)))
-        {
+        }
+        if !you.is(FType::Asleep) {
+            venoms.push("delphinium");
+        }
+        if you.is(FType::Instawake) {
             venoms.push("delphinium");
         }
         if venoms.len() >= 2 && Some(&"darkshade") == venoms.get(venoms.len() - 2) {
@@ -2335,7 +2349,12 @@ pub fn get_balance_attack<'s>(
                     add_buffers(&mut venoms, &hypno_buffers);
                 }
             }
-            if !priority_buffer {
+            if !priority_buffer
+                || (you.is(FType::Hypersomnia)
+                    && get_cure_depth(&you, FType::Hypersomnia).cures > 1)
+                || (you.is(FType::Hypersomnia)
+                    && (!you.is(FType::Instawake) || !you.is(FType::Insomnia)))
+            {
                 add_delphs(&timeline, &me, &you, &strategy, &mut venoms);
             }
             let v2 = venoms.pop();
@@ -2346,7 +2365,7 @@ pub fn get_balance_attack<'s>(
                 return Box::new(SlitAction::new(
                     who_am_i.to_string(),
                     target.to_string(),
-                    v1.unwrap().to_string(),
+                    v2.or(v1).unwrap().to_string(),
                 ));
             } else if let (Some(v1), Some(v2)) = (v1, v2) {
                 return Box::new(DoublestabAction::new(

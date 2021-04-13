@@ -215,7 +215,11 @@ impl TimelineState<AgentState> {
             if aff_flag == FType::ThinBlood && !val {
                 me.clear_relapses();
             }
-            me.set_flag(aff_flag, val);
+            if aff_flag == FType::Insomnia && val && me.is(FType::Hypersomnia) {
+                println!("Insomnia blocked by hypersomnia");
+            } else {
+                me.set_flag(aff_flag, val);
+            }
         } else if let Ok((_damage_type, _damage_amount)) = get_damage_barrier(flag_name) {
             // Do nothing...
         } else {

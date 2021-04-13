@@ -136,11 +136,31 @@ pub fn handle_combat_action(
                 you.assume_zealot(|zenith, _pyro| zenith.initiate());
             });
         }
-        "Pyromania" => {
-            for_agent(agent_states, &combat_action.caster, |you| {
-                you.assume_zealot(|_zenith, pyro| pyro.activate(2000));
-            });
-        }
+        "Pyromania" => match combat_action.annotation.as_ref() {
+            "" => {
+                for_agent(agent_states, &combat_action.caster, |you| {
+                    you.assume_zealot(|_zenith, pyro| pyro.activate(2000));
+                });
+            }
+            "hit" => {
+                for_agent(agent_states, &combat_action.caster, |me| {
+                    if me.is(FType::Ablaze) {
+                        me.tick_flag_up(FType::Ablaze);
+                    }
+                });
+            }
+            "fall" => {
+                for_agent(agent_states, &combat_action.caster, |me| {
+                    me.set_flag(FType::Fallen, true);
+                });
+            }
+            "shield" => {
+                for_agent(agent_states, &combat_action.caster, |me| {
+                    me.set_flag(FType::Shielded, false);
+                });
+            }
+            _ => {}
+        },
         "Heelrush" => {
             apply_combo_balance(
                 agent_states,
@@ -382,6 +402,13 @@ pub fn handle_combat_action(
             you.rotate_limbs(combat_action.annotation == "anti-clockwise");
             agent_states.set_agent(&combat_action.target, you);
         }
+        "Whipburst" => {
+            for_agent(agent_states, &combat_action.target, |you| {
+                if you.is(FType::Ablaze) {
+                    you.tick_flag_up(FType::Ablaze);
+                }
+            });
+        }
         "Quicken" => {
             let mut me = agent_states.get_agent(&combat_action.caster);
             let mut you = agent_states.get_agent(&combat_action.target);
@@ -495,6 +522,7 @@ fn value_pendulum(
             let timer = timer as f32 / BALANCE_SCALE;
             if me.get_qeb_balance() < timer {
                 if !you.get_limb_state(limb).broken && timer < 2.0 {
+                    println!("No pendulum, timer at {}", timer);
                     return 0.0;
                 }
                 let mut after_rotate_state = you.limb_damage.clone();
@@ -509,6 +537,12 @@ fn value_pendulum(
                 let change =
                     after_rotate_state.get_total_damage() - after_base_state.get_total_damage();
                 if change > 20.0 {
+                    println!(
+                        "Pendulum valued at {} ({}, {})",
+                        rotated_legs - unrotated_legs + change,
+                        rotated_legs - unrotated_legs,
+                        change,
+                    );
                     (rotated_legs - unrotated_legs) + change
                 } else {
                     0.0
@@ -619,8 +653,8 @@ fn value_limb(
         let between = Uniform::new(5.0, 30.0);
         return between.sample(&mut rand::thread_rng());
     } else if strategy.eq_ignore_ascii_case("class") {
-        let impulse = you.limb_damage.get_total_damage() / 4.0;
-        if impulse > 20.0 || you.restore_count() > 0 {
+        let impulse = you.limb_damage.get_total_damage();
+        if impulse > 40.0 || you.restore_count() > 0 {
             let damage = match limb {
                 LType::HeadDamage => SUNKICK_DAMAGE,
                 LType::TorsoDamage => CLAWTWIST_DAMAGE,
@@ -1196,6 +1230,25 @@ lazy_static! {
                 },
             )
         }),
+        ("jawcrack", |me, you, db, _strategy| {
+            (
+                ComboType::ComboFirst,
+                if me.get_balance(BType::Secondary) < 3.0 {
+                    println!("On balance");
+                    0.0
+                } else if let Some(class) = db_class(db) {
+                    if is_affected_by(&class, FType::Clumsiness) {
+                        25.0
+                    } else {
+                    println!("Not affected");
+                        0.0
+                    }
+                } else {
+                    println!("No class");
+                    0.0
+                },
+            )
+        }),
         ("uprise", |me, you, _db, _strategy| {
             let target_limbs = you.get_limbs_state();
             (
@@ -1501,7 +1554,7 @@ pub fn get_balance_attack(
                 && (free_act_str.contains("firefist") || me.is(FType::Firefist))
             {
                 eq = Some(format!(
-                    "enact heatspear {};;enact firefist {}",
+                    "enact heatspear {};;enact scorch {}",
                     target, target
                 ));
             }
@@ -1522,6 +1575,16 @@ pub fn get_balance_attack(
     if let Some(parry) = get_needed_parry(timeline, &timeline.who_am_i(), target, strategy, db) {
         full_combo = format!("fend {};;{}", parry.to_string(), full_combo);
     }
+    let db_p = db.map(|db| (db, target));
+    println!(
+        "Limbs: {} {} {} {} {} {}",
+        value_limb(LType::HeadDamage, &me, &you, db_p, strategy),
+        value_limb(LType::TorsoDamage, &me, &you, db_p, strategy),
+        value_limb(LType::LeftArmDamage, &me, &you, db_p, strategy),
+        value_limb(LType::RightArmDamage, &me, &you, db_p, strategy),
+        value_limb(LType::LeftLegDamage, &me, &you, db_p, strategy),
+        value_limb(LType::RightLegDamage, &me, &you, db_p, strategy),
+    );
     if let Some(hackles) = hackles {
         format!("qs {}%%qeb {}", hackles, full_combo)
     } else {
