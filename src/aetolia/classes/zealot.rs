@@ -176,6 +176,13 @@ pub fn handle_combat_action(
                     (limb, HEELRUSH_ONE_DAMAGE, true),
                     after,
                 );
+                for_agent_closure(
+                    agent_states,
+                    &combat_action.caster,
+                    Box::new(move |me| {
+                        me.set_channel(ChannelState::Heelrush(limb, 325));
+                    }),
+                );
             }
         }
         "Heelrush Two" => {
@@ -390,6 +397,11 @@ pub fn handle_combat_action(
             );
             for_agent(agent_states, &combat_action.target, |you| {
                 you.limb_damage.dewelt(LType::HeadDamage);
+            });
+        }
+        "Rejection" => {
+            for_agent(agent_states, &combat_action.caster, |me| {
+                me.set_flag(FType::Rebounding, true);
             });
         }
         "Pendulum" => {
@@ -640,6 +652,27 @@ fn value_swagger(
     }
 }
 
+fn value_heelrush(
+    limb: LType,
+    me: &AgentState,
+    you: &AgentState,
+    db: Option<(&DatabaseModule, &String)>,
+    strategy: &String,
+) -> f32 {
+    let limb_state = you.get_limb_state(limb);
+    if you.get_restoring().is_some()
+        && limb_state.hits_to_break(HEELRUSH_DAMAGE) == 1
+        && !limb_state.damaged
+        && !limb_state.is_restoring
+        && !limb_state.is_parried
+        && can_kick(me)
+    {
+        value_limb(limb, me, you, db, strategy) * 1.5
+    } else {
+        0.0
+    }
+}
+
 fn value_limb(
     limb: LType,
     me: &AgentState,
@@ -654,7 +687,7 @@ fn value_limb(
         return between.sample(&mut rand::thread_rng());
     } else if strategy.eq_ignore_ascii_case("class") {
         let impulse = you.limb_damage.get_total_damage();
-        if impulse > 40.0 || you.restore_count() > 0 {
+        if impulse > 60.0 || you.restore_count() > 0 {
             let damage = match limb {
                 LType::HeadDamage => SUNKICK_DAMAGE,
                 LType::TorsoDamage => CLAWTWIST_DAMAGE,
@@ -720,7 +753,7 @@ lazy_static! {
         ("wrath", |me, you, _db, _strategy| {
             (
                 ComboType::Free,
-                if me.balanced(BType::Wrath) { 1.0 } else { 0.0 },
+                if me.balanced(BType::Wrath) && you.limb_damage.get_total_damage() > 60.0 { 1.0 } else { 0.0 },
             )
         }),
         ("light pipes;;cinder", |me, you, _db, _strategy| {
@@ -1082,6 +1115,30 @@ lazy_static! {
                 },
             )
         }),
+        ("heelrush head", |me, you, db, strategy| (
+            ComboType::ComboSecond,
+            value_heelrush(LType::HeadDamage, me, you, db, strategy),
+            )),
+        ("heelrush torso", |me, you, db, strategy| (
+            ComboType::ComboSecond,
+            value_heelrush(LType::TorsoDamage, me, you, db, strategy),
+            )),
+        ("heelrush left arm", |me, you, db, strategy| (
+            ComboType::ComboSecond,
+            value_heelrush(LType::LeftArmDamage, me, you, db, strategy),
+            )),
+        ("heelrush right arm", |me, you, db, strategy| (
+            ComboType::ComboSecond,
+            value_heelrush(LType::RightArmDamage, me, you, db, strategy),
+            )),
+        ("heelrush left leg", |me, you, db, strategy| (
+            ComboType::ComboSecond,
+            value_heelrush(LType::LeftLegDamage, me, you, db, strategy),
+            )),
+        ("heelrush right leg", |me, you, db, strategy| (
+            ComboType::ComboSecond,
+            value_heelrush(LType::RightLegDamage, me, you, db, strategy),
+            )),
         ("pummel left", |me, you, db, strategy| {
             let target_limb = you.get_limb_state(LType::LeftArmDamage);
             (

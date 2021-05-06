@@ -15,6 +15,7 @@ mod web_ui;
 use log::info;
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
+use std::collections::HashMap;
 use std::io;
 use std::sync::mpsc::Sender;
 use std::thread;
@@ -51,6 +52,7 @@ pub struct TopperResponse {
     pub qeb: Option<String>,
     pub battle_stats: Option<BattleStats>,
     pub error: Option<String>,
+    pub passive: HashMap<String, String>,
     pub die: bool,
 }
 
@@ -114,10 +116,13 @@ where
 
 impl TopperResponse {
     pub fn then(self, next: TopperResponse) -> Self {
+        let mut passive = self.passive;
+        passive.extend(next.passive);
         TopperResponse {
             qeb: self.qeb.or(next.qeb),
             battle_stats: self.battle_stats.or(next.battle_stats),
             error: self.error.or(next.error),
+            passive,
             die: self.die || next.die,
         }
     }
@@ -126,6 +131,7 @@ impl TopperResponse {
             qeb: None,
             battle_stats: Some(battle_stats),
             error: None,
+            passive: HashMap::new(),
             die: false,
         }
     }
@@ -134,6 +140,7 @@ impl TopperResponse {
             qeb: None,
             battle_stats: None,
             error: None,
+            passive: HashMap::new(),
             die: false,
         }
     }
@@ -142,6 +149,7 @@ impl TopperResponse {
             qeb: None,
             battle_stats: None,
             error: Some(message),
+            passive: HashMap::new(),
             die: false,
         }
     }
@@ -150,6 +158,18 @@ impl TopperResponse {
             qeb: Some(action),
             battle_stats: None,
             error: None,
+            passive: HashMap::new(),
+            die: false,
+        }
+    }
+    pub fn passive(name: String, value: String) -> TopperResponse {
+        let mut passive = HashMap::new();
+        passive.insert(name, value);
+        TopperResponse {
+            qeb: None,
+            battle_stats: None,
+            error: None,
+            passive,
             die: false,
         }
     }
@@ -158,6 +178,7 @@ impl TopperResponse {
             qeb: None,
             battle_stats: None,
             error: None,
+            passive: HashMap::new(),
             die: true,
         }
     }

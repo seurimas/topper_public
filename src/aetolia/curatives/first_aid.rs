@@ -333,7 +333,9 @@ lazy_static! {
     static ref PRIORITY_CONTINUITY_LINE: Regex = Regex::new(r"^\s+([a-z_, ]+)\]?$").unwrap();
 }
 
-fn add_priorities(priorities: &mut HashMap<FType, u32>, priority: u32, aff_list: &str) {
+pub type FirstAidPriorities = HashMap<FType, u32>;
+
+fn add_priorities(priorities: &mut FirstAidPriorities, priority: u32, aff_list: &str) {
     for mut aff_str in aff_list.split(", ") {
         aff_str = aff_str.trim_end_matches(&[',', ' '][..]);
         if let Some(aff) = FType::from_name(&aff_str.to_string()) {
@@ -342,7 +344,7 @@ fn add_priorities(priorities: &mut HashMap<FType, u32>, priority: u32, aff_list:
     }
 }
 
-fn parse_priorities(priority_lines: &Vec<String>) -> HashMap<FType, u32> {
+fn parse_priorities(priority_lines: &Vec<String>) -> FirstAidPriorities {
     let mut priorities = HashMap::new();
     let mut priority = 0;
     for line in priority_lines.iter() {
@@ -358,7 +360,7 @@ fn parse_priorities(priority_lines: &Vec<String>) -> HashMap<FType, u32> {
     priorities
 }
 
-pub fn parse_priority_set(lines: &Vec<(String, u32)>) -> Option<(String, HashMap<FType, u32>)> {
+pub fn parse_priority_set(lines: &Vec<(String, u32)>) -> Option<(String, FirstAidPriorities)> {
     let mut priority_lines = Vec::new();
     let mut priority_name = None;
     for (line, _num) in lines.iter() {

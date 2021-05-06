@@ -129,6 +129,23 @@ impl ActiveTransition for Inactivity {
     }
 }
 
+pub struct Trace(String);
+
+impl Trace {
+    pub fn new(trace: String) -> Self {
+        Trace(trace)
+    }
+}
+
+impl ActiveTransition for Trace {
+    fn act(&self, timline: &AetTimeline) -> ActivateResult {
+        Ok(format!("echo {}", self.0))
+    }
+    fn simulate(&self, timline: &AetTimeline) -> Vec<ProbableEvent> {
+        vec![]
+    }
+}
+
 pub struct SeparatorAction(Box<dyn ActiveTransition>, Box<dyn ActiveTransition>);
 
 impl SeparatorAction {

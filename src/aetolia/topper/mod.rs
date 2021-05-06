@@ -10,6 +10,8 @@ use battle_stats::BattleStatsModule;
 use serde_json::from_str;
 use std::sync::mpsc::Sender;
 pub mod battle_stats;
+pub mod curing;
+use crate::aetolia::topper::curing::prioritize_cures;
 
 pub type AetTimelineModule = TimelineModule<AetObservation, AetPrompt, AgentState>;
 
@@ -85,7 +87,7 @@ impl<'s> TopperModule<'s> for BattleModule {
                 }
                 _ => Ok(TopperResponse::silent()),
             },
-            _ => Ok(TopperResponse::silent()),
+            _ => Ok(prioritize_cures(&timeline, me, &target, db)),
         }
     }
 }

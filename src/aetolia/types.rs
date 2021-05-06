@@ -741,6 +741,8 @@ pub enum Hypnosis {
     Aff(FType),
     Action(String),
     Bulimia,
+    Eradicate,
+    Trigger(String),
 }
 
 #[derive(Clone, Copy, Default)]
@@ -1259,11 +1261,15 @@ pub struct HypnoState {
 }
 
 impl HypnoState {
+    pub fn suggestion_count(&self) -> usize {
+        self.hypnosis_stack.len()
+    }
+
     pub fn fire(&mut self) -> Option<Hypnosis> {
         if self.hypnosis_stack.len() <= 1 {
             self.active = false;
-        } else {
-            self.active = true;
+        } else if !self.active {
+            self.activate();
         }
         if self.hypnosis_stack.len() > 0 {
             let top = self.hypnosis_stack.get(0).cloned();
@@ -1311,6 +1317,15 @@ impl HypnoState {
     pub fn activate(&mut self) {
         self.active = true;
         self.sealed = None;
+        self.hypnosis_stack = self
+            .hypnosis_stack
+            .iter()
+            .filter(|item| match item {
+                Hypnosis::Trigger(_) => false,
+                _ => true,
+            })
+            .cloned()
+            .collect();
     }
 
     pub fn hypnotize(&mut self) {
@@ -1503,6 +1518,33 @@ impl Default for ClassState {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum ChannelState {
+    Inactive,
+    Heelrush(LType, CType),
+}
+
+impl ChannelState {
+    pub fn wait(&mut self, duration: CType) {
+        match self {
+            ChannelState::Heelrush(_, remaining) => {
+                if *remaining < duration {
+                    *self = ChannelState::Inactive;
+                } else {
+                    *remaining = *remaining - duration;
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+impl Default for ChannelState {
+    fn default() -> ChannelState {
+        ChannelState::Inactive
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct AgentState {
     pub balances: [CType; BType::SIZE as usize],
@@ -1516,6 +1558,7 @@ pub struct AgentState {
     pub parrying: Option<LType>,
     pub wield_state: WieldState,
     pub dodge_state: DodgeState,
+    pub channel_state: ChannelState,
 }
 
 impl PartialEq for AgentState {
@@ -1994,6 +2037,10 @@ impl AgentState {
             }
         }
         count
+    }
+
+    pub fn set_channel(&mut self, channel: ChannelState) {
+        self.channel_state = channel;
     }
 
     pub fn assume_zealot(&mut self, action: fn(&mut ZenithState, &mut TimedFlagState)) {

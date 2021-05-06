@@ -1,6 +1,6 @@
 use crate::aetolia::classes::{VenomPlan, Class};
 use crate::aetolia::types::{Hypnosis, FType,};
-use crate::aetolia::curatives::first_aid::parse_priority_set;
+use crate::aetolia::curatives::first_aid::{parse_priority_set, FirstAidPriorities};
 use sled::{open, Db, IVec};
 use std::path::Path;
 use serde::{Serialize, Deserialize};
@@ -177,13 +177,13 @@ impl DatabaseModule {
     fn set_hypno_plan(&self, stack_name: &String, stack: Vec<Hypnosis>) {
         self.insert_json::<Vec<Hypnosis>>("hypnosis", stack_name, stack);
     }
-
-    pub fn get_first_aid_priorities(&self, who: &String, priorities_name: &String) -> Option<HashMap<FType, u32>> {
-        self.get_json::<HashMap<FType, u32>>("first_aid", &format!("{}_{}", who, priorities_name))
+    
+    pub fn get_first_aid_priorities(&self, who: &String, priorities_name: &String) -> Option<FirstAidPriorities> {
+        self.get_json::<FirstAidPriorities>("first_aid", &format!("{}_{}", who, priorities_name))
     }
 
-    fn set_first_aid_priorities(&self, who: &String, priorities_name: &String, priorities: HashMap<FType, u32>) {
-        self.insert_json::<HashMap<FType, u32>>("first_aid", &format!("{}_{}", who, priorities_name), priorities);
+    fn set_first_aid_priorities(&self, who: &String, priorities_name: &String, priorities: FirstAidPriorities) {
+        self.insert_json::<FirstAidPriorities>("first_aid", &format!("{}_{}", who, priorities_name), priorities);
     }
 }
 
@@ -260,6 +260,15 @@ impl<'s> TopperModule<'s> for DatabaseModule {
                             }
                         } else {
                             println!("Hypno strategy {} not found", key);
+                        }
+                    }
+                    "character" => {
+                        if let Some(character) = self.get_json::<CharacterApiResponse>("character", key) {
+                            if let Ok(character_str) = to_string_pretty(&character) {
+                                println!("{}", character_str);
+                            }
+                        } else {
+                            println!("Character {} not found", key);
                         }
                     }
                     "character" => {

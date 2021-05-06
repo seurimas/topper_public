@@ -786,14 +786,10 @@ mod action_tests {
 
 lazy_static! {
     static ref SUGGESTION: Regex = Regex::new(r"suggest (\w+) ([^;%]+)").unwrap();
-}
-
-lazy_static! {
     static ref FLAY: Regex = Regex::new(r"flay (\w+)($|;;| (\w+) ?(\w+)?$)").unwrap();
-}
-
-lazy_static! {
+    static ref TRIGGER: Regex = Regex::new(r"trigger (.*)").unwrap();
     static ref ACTION: Regex = Regex::new(r"action (.*)").unwrap();
+    static ref ERADICATE_PLAN: Regex = Regex::new(r"eradicate (((\w+),?)+)").unwrap();
 }
 
 pub fn infer_flay_target(
@@ -826,14 +822,18 @@ pub fn infer_suggestion(name: &String, agent_states: &mut AetTimelineState) -> H
     if let Some(suggestion) = agent_states.get_player_hint(name, &"suggestion".into()) {
         if let Some(captures) = ACTION.captures(&suggestion) {
             Hypnosis::Action(captures.get(1).unwrap().as_str().to_string())
+        } else if let Some(captures) = TRIGGER.captures(&suggestion) {
+            Hypnosis::Trigger(captures.get(1).unwrap().as_str().to_string())
+        } else if suggestion.eq("bulimia") {
+            Hypnosis::Bulimia
+        } else if suggestion.eq("eradicate") {
+            Hypnosis::Eradicate
+        } else if let Some(aff) = FType::from_name(&suggestion) {
+            println!("Good {:?}", aff);
+            Hypnosis::Aff(aff)
         } else {
-            if let Some(aff) = FType::from_name(&suggestion) {
-                println!("Good {:?}", aff);
-                Hypnosis::Aff(aff)
-            } else {
-                println!("Bad {}", suggestion);
-                Hypnosis::Aff(FType::Impatience)
-            }
+            println!("Bad {}", suggestion);
+            Hypnosis::Aff(FType::Impatience)
         }
     } else {
         println!("Bad, no hint");
@@ -1135,6 +1135,8 @@ impl SuggestAction {
             Hypnosis::Aff(aff) => format!("{:?}", aff),
             Hypnosis::Bulimia => format!("bulimia"),
             Hypnosis::Action(action) => format!("action {}", action),
+            Hypnosis::Eradicate => format!("eradicate"),
+            Hypnosis::Trigger(word) => format!("trigger {}", word),
         };
         format!("suggest {} {}", self.target, suggestion_string)
     }
@@ -1744,9 +1746,9 @@ lazy_static! {
     static ref ZEALOT_STACK: Vec<VenomPlan> = vec![
         VenomPlan::Stick(FType::Clumsiness),
         VenomPlan::Stick(FType::Asthma),
-        VenomPlan::OneOf(FType::Allergies, FType::Vomiting),
-        VenomPlan::OneOf(FType::Weariness, FType::Stupidity),
         VenomPlan::OneOf(FType::Slickness, FType::Anorexia),
+        VenomPlan::OneOf(FType::Weariness, FType::Stupidity),
+        VenomPlan::OneOf(FType::Allergies, FType::Vomiting),
         VenomPlan::OneOf(FType::LeftLegBroken, FType::LeftArmBroken),
         VenomPlan::OneOf(FType::RightLegBroken, FType::RightLegBroken),
         VenomPlan::OneOf(FType::Sensitivity, FType::Dizziness),
@@ -1910,12 +1912,18 @@ lazy_static! {
     ];
 }
 
-pub fn get_hypno_str(target: &String, hypno: &Hypnosis) -> String {
-    match hypno {
-        Hypnosis::Aff(affliction) => format!("suggest {} {:?}", target, affliction),
-        Hypnosis::Action(act) => format!("suggest {} action {}", target, act),
-        Hypnosis::Bulimia => format!("suggest {} bulimia", target),
-    }
+lazy_static! {
+    static ref ERADICATE_STACK: Vec<Hypnosis> = vec![
+        Hypnosis::Eradicate,
+        Hypnosis::Eradicate,
+        Hypnosis::Eradicate,
+        Hypnosis::Eradicate,
+        Hypnosis::Eradicate,
+        Hypnosis::Eradicate,
+        Hypnosis::Eradicate,
+        Hypnosis::Eradicate,
+        Hypnosis::Trigger("lion".to_string()),
+    ];
 }
 
 pub fn get_top_hypno<'s>(
@@ -2405,6 +2413,28 @@ pub fn get_balance_attack<'s>(
                     .to_string(),
             ));
         }
+    } else if let Some(captures) = ERADICATE_PLAN.captures(strategy) {
+        if let Some(names) = captures.get(1) {
+            for name in names.as_str().split(",") {
+                let you = timeline.state.borrow_agent(&name.to_string());
+                if let Some(hypno) =
+                    get_top_hypno(who_am_i, &name.to_string(), &you, &ERADICATE_STACK)
+                {
+                    return Box::new(SeparatorAction::pair(
+                        Box::new(Trace::new(format!(
+                            "{}: {}",
+                            name,
+                            you.hypno_state.suggestion_count()
+                        ))),
+                        hypno,
+                    ));
+                }
+            }
+            return Box::new(Inactivity);
+        } else {
+            println!("No names found for eradicate: {}", strategy);
+            return Box::new(Inactivity);
+        }
     } else {
         return Box::new(Inactivity);
     }
@@ -2447,7 +2477,11 @@ pub fn get_equil_attack<'s>(
     strategy: &String,
     db: Option<&DatabaseModule>,
 ) -> Box<dyn ActiveTransition> {
-    if strategy.eq("damage") || strategy.eq("shield") || strategy.eq("runaway") {
+    if strategy.eq("damage")
+        || strategy.eq("shield")
+        || strategy.eq("runaway")
+        || ERADICATE_PLAN.is_match(strategy)
+    {
         return Box::new(Inactivity);
     }
     let you = timeline.state.borrow_agent(target);
@@ -2462,7 +2496,11 @@ pub fn get_shadow_attack<'s>(
     target: &String,
     strategy: &String,
 ) -> Box<dyn ActiveTransition> {
-    if strategy == "pre" || strategy == "shield" || strategy == "runaway" {
+    if strategy == "pre"
+        || strategy == "shield"
+        || strategy == "runaway"
+        || ERADICATE_PLAN.is_match(strategy)
+    {
         Box::new(Inactivity)
     } else {
         let you = timeline.state.borrow_agent(target);

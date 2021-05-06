@@ -271,6 +271,13 @@ pub fn get_preferred_parry(
                     Ok(get_top_parry(timeline, me).unwrap_or(LType::HeadDamage))
                 }
             }
+            Class::Zealot => {
+                let them = timeline.state.borrow_agent(target);
+                match them.channel_state {
+                    ChannelState::Heelrush(limb, _) => Ok(limb),
+                    _ => Ok(get_top_parry(timeline, me).unwrap_or(LType::HeadDamage)),
+                }
+            }
             Class::Sentinel => {
                 let myself = timeline.state.borrow_agent(me);
                 if myself.is(FType::Heartflutter) {
