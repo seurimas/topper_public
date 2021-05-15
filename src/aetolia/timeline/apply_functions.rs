@@ -282,7 +282,7 @@ pub fn apply_weapon_hits(
     target: &mut AgentState,
     observations: &Vec<AetObservation>,
     first_person: bool,
-    venom_hints: Option<String>,
+    venom_hints: &Option<String>,
 ) -> Result<(), String> {
     if first_person {
         for i in 0..observations.len() {
@@ -679,6 +679,27 @@ pub fn for_agent_closure(
 ) {
     let mut you = agent_states.get_agent(target);
     act(&mut you);
+    agent_states.set_agent(target, you);
+}
+
+pub fn for_agent_pair(agent_states: &mut AetTimelineState, caster: &String, target: &String, act: fn(&mut AgentState, &mut AgentState)) {
+    let mut me = agent_states.get_agent(caster);
+    let mut you = agent_states.get_agent(target);
+    act(&mut me, &mut you);
+    agent_states.set_agent(caster, me);
+    agent_states.set_agent(target, you);
+}
+
+pub fn for_agent_pair_closure(
+    agent_states: &mut AetTimelineState,
+    caster: &String,
+    target: &String,
+    act: Box<dyn Fn(&mut AgentState, &mut AgentState)>,
+) {
+    let mut me = agent_states.get_agent(caster);
+    let mut you = agent_states.get_agent(target);
+    act(&mut me, &mut you);
+    agent_states.set_agent(caster, me);
     agent_states.set_agent(target, you);
 }
 

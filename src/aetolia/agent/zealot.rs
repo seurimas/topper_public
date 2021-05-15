@@ -55,3 +55,9 @@ impl ZenithState {
         }
     }
 }
+
+#[derive(Debug, Clone, Default)]
+pub struct ZealotClassState {
+    pub zenith: ZenithState,
+    pub pyromania: TimedFlagState,
+}

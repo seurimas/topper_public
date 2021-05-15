@@ -126,20 +126,20 @@ pub fn handle_combat_action(
             );
         }
         "InfernalSeal" => {
-            let mut you = agent_states.get_agent(&combat_action.caster);
-            you.set_flag(FType::Ablaze, true);
-            you.set_flag(FType::InfernalSeal, true);
-            agent_states.set_agent(&combat_action.target, you);
+            for_agent(agent_states, &combat_action.caster, |you| {
+                you.set_flag(FType::Ablaze, true);
+                you.set_flag(FType::InfernalSeal, true);
+            });
         }
         "Zenith" => {
             for_agent(agent_states, &combat_action.caster, |you| {
-                you.assume_zealot(|zenith, _pyro| zenith.initiate());
+                you.assume_zealot(|zealot| zealot.zenith.initiate());
             });
         }
         "Pyromania" => match combat_action.annotation.as_ref() {
             "" => {
                 for_agent(agent_states, &combat_action.caster, |you| {
-                    you.assume_zealot(|_zenith, pyro| pyro.activate(2000));
+                    you.assume_zealot(|zealot| zealot.pyromania.activate(2000));
                 });
             }
             "hit" => {
@@ -866,7 +866,7 @@ lazy_static! {
         ("enact zenith", |me, you, _db, _strategy| {
             (
                 ComboType::Full,
-                if let ClassState::Zealot { zenith, .. } = me.class_state {
+                if let ClassState::Zealot(ZealotClassState {zenith, .. }) = me.class_state {
                     if zenith.can_initiate() {
                         1000.0
                     } else {
@@ -910,7 +910,7 @@ lazy_static! {
             let target_limbs = you.get_limbs_state();
             (
                 ComboType::ZenithEq,
-                if let ClassState::Zealot { pyromania, .. } = me.class_state {
+                if let ClassState::Zealot(ZealotClassState { pyromania, .. }) = me.class_state {
                     if !pyromania.active() {
                         50.0
                     } else {
@@ -935,7 +935,7 @@ lazy_static! {
         ("enact infernal {}", |me, you, _db, _strategy| {
             let target_limbs = you.get_limbs_state();
             (
-                if let ClassState::Zealot { zenith, .. } = me.class_state {
+                if let ClassState::Zealot(ZealotClassState { zenith, .. }) = me.class_state {
                     if zenith.active() {
                         ComboType::ZenithEq
                     } else {
@@ -1567,7 +1567,7 @@ pub fn get_balance_attack(
                 _ => {}
             },
             ComboType::ZenithEq => {
-                if let ClassState::Zealot { zenith, .. } = me.class_state {
+                if let ClassState::Zealot(ZealotClassState { zenith, .. }) = me.class_state {
                     match (&eq, zenith.active()) {
                         (None, true) => {
                             eq = Some(action.replace("{}", target));

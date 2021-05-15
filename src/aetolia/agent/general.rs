@@ -714,10 +714,7 @@ impl DodgeState {
 
 #[derive(Debug, Clone)]
 pub enum ClassState {
-    Zealot {
-        zenith: ZenithState,
-        pyromania: TimedFlagState,
-    },
+    Zealot(ZealotClassState),
     Shifter(HowlingState),
     Unknown,
 }
@@ -725,7 +722,7 @@ pub enum ClassState {
 impl ClassState {
     pub fn wait(&mut self, duration: CType) {
         match self {
-            ClassState::Zealot { zenith, pyromania } => {
+            ClassState::Zealot(ZealotClassState { zenith, pyromania }) => {
                 zenith.wait(duration);
                 pyromania.wait(duration);
             }
@@ -764,5 +761,47 @@ impl ChannelState {
 impl Default for ChannelState {
     fn default() -> ChannelState {
         ChannelState::Inactive
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum TimedFlagState {
+    Inactive,
+    Active(CType),
+}
+
+impl Default for TimedFlagState {
+    fn default() -> Self {
+        TimedFlagState::Inactive
+    }
+}
+
+impl TimedFlagState {
+    pub fn wait(&mut self, duration: CType) {
+        match self.clone() {
+            TimedFlagState::Inactive => {}
+            TimedFlagState::Active(remaining) => {
+                if remaining > duration {
+                    *self = TimedFlagState::Active(remaining - duration);
+                } else {
+                    *self = TimedFlagState::Inactive;
+                }
+            }
+        }
+    }
+
+    pub fn active(&self) -> bool {
+        match self {
+            TimedFlagState::Inactive => false,
+            _ => true,
+        }
+    }
+
+    pub fn activate(&mut self, duration: CType) {
+        *self = TimedFlagState::Active(duration);
+    }
+
+    pub fn deactivate(&mut self) {
+        *self = TimedFlagState::Inactive;
     }
 }
