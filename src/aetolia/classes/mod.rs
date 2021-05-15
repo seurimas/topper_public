@@ -5,11 +5,24 @@ use crate::aetolia::topper::*;
 use crate::aetolia::types::*;
 use crate::topper::db::DatabaseModule;
 use std::collections::HashMap;
-pub mod carnifex;
 use num_enum::TryFromPrimitive;
+pub mod archivist;
+pub mod ascendril;
+pub mod carnifex;
+pub mod indorani;
+pub mod lords;
 pub mod luminary;
+pub mod mirrors;
+pub mod monk;
+pub mod praenomen;
+pub mod sciomancer;
 pub mod sentinel;
+pub mod shaman;
+pub mod shapeshifter;
 pub mod syssin;
+pub mod templar;
+pub mod teradrim;
+pub mod wayfarer;
 pub mod zealot;
 use serde::{Deserialize, Serialize};
 
@@ -181,9 +194,9 @@ pub fn get_attack(
 ) -> String {
     if let Some(class) = db.and_then(|db| db.get_class(me)) {
         match class {
-            Class::Zealot => zealot::get_attack(timeline, target, strategy, db),
-            Class::Syssin => syssin::get_attack(timeline, target, strategy, db),
             Class::Sentinel => sentinel::get_attack(timeline, target, strategy, db),
+            Class::Syssin => syssin::get_attack(timeline, target, strategy, db),
+            Class::Zealot => zealot::get_attack(timeline, target, strategy, db),
             _ => syssin::get_attack(timeline, target, strategy, db),
         }
     } else {
@@ -319,20 +332,60 @@ pub fn handle_combat_action(
     after: &Vec<AetObservation>,
 ) -> Result<(), String> {
     match combat_action.category.as_ref() {
-        "Subterfuge" | "Assassination" | "Hypnosis" => {
-            syssin::handle_combat_action(combat_action, agent_states, before, after)
+        "Geometrics" | "Numerology" | "Bioessence" => {
+            archivist::handle_combat_action(combat_action, agent_states, before, after)
+        }
+        "Elemancy" | "Arcanism" | "Thaumaturgy" => {
+            ascendril::handle_combat_action(combat_action, agent_states, before, after)
         }
         "Savagery" | "Deathlore" | "Warhound" => {
             carnifex::handle_combat_action(combat_action, agent_states, before, after)
         }
-        "Purification" | "Zeal" | "Psionics" => {
-            zealot::handle_combat_action(combat_action, agent_states, before, after)
+        "Necromancy" | "Tarot" | "Domination" => {
+            indorani::handle_combat_action(combat_action, agent_states, before, after)
+        }
+        "Chaos" | "Titan" => {
+            lords::handle_combat_action(combat_action, agent_states, before, after)
+        }
+        "Spirituality" | "Devotion" | "Illumination" => {
+            luminary::handle_combat_action(combat_action, agent_states, before, after)
+        }
+        "Riving" | "Manifestation" | "Chirography"
+            | "Warding" | "Ancestry" | "Communion" => {
+            mirrors::handle_combat_action(combat_action, agent_states, before, after)
+        }
+        "Tekura" | "Kaido" | "Telepathy" => {
+            monk::handle_combat_action(combat_action, agent_states, before, after)
+        }
+        "Corpus" | "Mentis" | "Sanguis" => {
+            praenomen::handle_combat_action(combat_action, agent_states, before, after)
+        }
+        "Sciomancy" | "Sorcery" | "Gravitation" => {
+            sciomancer::handle_combat_action(combat_action, agent_states, before, after)
         }
         "Dhuriv" | "Woodlore" | "Tracking" => {
             sentinel::handle_combat_action(combat_action, agent_states, before, after)
         }
-        "Spirituality" | "Devotion" | "Illumination" => {
-            luminary::handle_combat_action(combat_action, agent_states, before, after)
+        "Primality" | "Shamanism" | "Naturalism" => {
+            shaman::handle_combat_action(combat_action, agent_states, before, after)
+        }
+        "Ferality" | "Shapeshifting" | "Vocalizing" => {
+            shapeshifter::handle_combat_action(combat_action, agent_states, before, after)
+        }
+        "Subterfuge" | "Assassination" | "Hypnosis" => {
+            syssin::handle_combat_action(combat_action, agent_states, before, after)
+        }
+        "Battlefury" | "Righteousness" | "Bladefire" => {
+            templar::handle_combat_action(combat_action, agent_states, before, after)
+        }
+        "Terramancy" | "Animation" | "Desiccation" => {
+            teradrim::handle_combat_action(combat_action, agent_states, before, after)
+        }
+        "Tenacity" | "Wayfaring" | "Fury" => {
+            wayfarer::handle_combat_action(combat_action, agent_states, before, after)
+        }
+        "Purification" | "Zeal" | "Psionics" => {
+            zealot::handle_combat_action(combat_action, agent_states, before, after)
         }
         "Survival" => match combat_action.skill.as_ref() {
             "Focus" => {
