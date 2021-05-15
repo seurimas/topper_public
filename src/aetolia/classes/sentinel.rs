@@ -9,51 +9,6 @@ use crate::aetolia::types::*;
 use regex::Regex;
 use std::collections::HashMap;
 
-#[cfg(test)]
-mod sentinel_tests {
-    use super::*;
-    use crate::timeline::BaseTimeline;
-
-    #[test]
-    fn test_salve_attacks() {
-        let mut timeline = AetTimeline::new();
-        let breath_flourish_slice = AetTimeSlice {
-            observations: Some(vec![
-                AetObservation::CombatAction(CombatAction {
-                    annotation: "".to_string(),
-                    caster: "Rinata".to_string(),
-                    category: "Woodlore".to_string(),
-                    skill: "Icebreath".to_string(),
-                    target: "Illidan".to_string(),
-                }),
-                AetObservation::CombatAction(CombatAction {
-                    annotation: "".to_string(),
-                    caster: "Rinata".to_string(),
-                    category: "Dhuriv".to_string(),
-                    skill: "Flourish".to_string(),
-                    target: "Illidan".to_string(),
-                }),
-                AetObservation::Devenoms("epseth".to_string()),
-            ]),
-            lines: vec![],
-            prompt: AetPrompt::Blackout,
-            time: 0,
-            me: "Seurimas".into(),
-        };
-        timeline.push_time_slice(breath_flourish_slice);
-        let me_state = timeline.state.get_agent(&"Rinata".to_string());
-        assert_eq!(me_state.balanced(BType::Balance), false);
-        assert_eq!(me_state.balanced(BType::Equil), false);
-        assert_eq!(me_state.is(FType::Insulation), true);
-        assert_eq!(me_state.is(FType::LeftLegBroken), true);
-        let you_state = timeline.state.get_agent(&"Illidan".to_string());
-        assert_eq!(you_state.balanced(BType::Balance), true);
-        assert_eq!(you_state.balanced(BType::Equil), true);
-        assert_eq!(you_state.is(FType::Insulation), false);
-        assert_eq!(you_state.is(FType::LeftLegBroken), false);
-    }
-}
-
 #[derive(PartialEq, Eq, Clone, Copy, Hash)]
 pub enum FirstStrike {
     Slash(&'static str),
@@ -910,3 +865,7 @@ pub fn get_attack(
     let action_plan = get_action_plan(&timeline, &timeline.who_am_i(), &target, &strategy, db);
     action_plan.get_inputs(&timeline)
 }
+
+#[cfg(test)]
+#[path = "./tests/sentinel_tests.rs"]
+mod sentinel_timeline_tests;

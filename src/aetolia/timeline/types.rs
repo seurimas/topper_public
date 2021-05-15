@@ -336,6 +336,7 @@ impl AetTimeline {
                 val.set_flag(FType::Insomnia, true);
                 val.set_flag(FType::Fangbarrier, true);
                 val.set_flag(FType::Instawake, true);
+                val.set_flag(FType::Insulation, true);
                 val.limb_damage = LimbSet::default();
             }
         }
