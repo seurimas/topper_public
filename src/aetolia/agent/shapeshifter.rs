@@ -1,0 +1,45 @@
+use super::*;
+
+#[derive(Debug, Clone)]
+pub enum Howl {
+    Terrorizing,
+    Traumatic,
+    Piercing,
+    Paralyzing,
+    Baleful,
+    Rousing,
+    Distasteful,
+    Forceful,
+    MindNumbing,
+    StomachTurning,
+    Claustrophobic,
+    Screeching,
+    Comforting,
+    Rejuvenating,
+    Ringing,
+    Deep,
+    Dumbing,
+    Blurring,
+    Disruptive,
+    Serenading,
+    Debilitating,
+    Berserking,
+    Angry,
+    Wailing,
+    Disturbing,
+    Soothing,
+    Invigorating,
+    Enfeebling,
+    Befuddling,
+    Lulling,
+}
+
+#[derive(Debug, Clone)]
+pub struct HowlingState {
+    pub snarling: bool,
+    pub echoing: bool,
+    pub boneshaking: bool,
+    pub attuning: bool,
+    pub howls: [Howl; 3],
+    pub time_since: CType,
+}
