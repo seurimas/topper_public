@@ -51,6 +51,15 @@ impl<A: BaseAgentState + Clone> TimelineState<A> {
         self.borrow_agent(name)
     }
 
+    pub fn get_mut_agent(&mut self, name: &String) -> &mut A {
+        if let Some(agent) = self.agent_states.get(name) {
+            self.agent_states.get_mut(name).unwrap()
+        } else {
+            self.agent_states.insert(name.to_string(), A::get_base_state());
+            self.get_mut_agent(name)
+        }
+    }
+
     pub fn get_me(&mut self) -> A {
         self.get_agent(&self.me.clone())
     }

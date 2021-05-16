@@ -667,9 +667,8 @@ pub fn apply_or_infer_cure(
 }
 
 pub fn for_agent(agent_states: &mut AetTimelineState, target: &String, act: fn(&mut AgentState)) {
-    let mut you = agent_states.get_agent(target);
+    let mut you = agent_states.get_mut_agent(target);
     act(&mut you);
-    agent_states.set_agent(target, you);
 }
 
 pub fn for_agent_closure(
@@ -677,9 +676,8 @@ pub fn for_agent_closure(
     target: &String,
     act: Box<dyn Fn(&mut AgentState)>,
 ) {
-    let mut you = agent_states.get_agent(target);
+    let mut you = agent_states.get_mut_agent(target);
     act(&mut you);
-    agent_states.set_agent(target, you);
 }
 
 pub fn for_agent_pair(agent_states: &mut AetTimelineState, caster: &String, target: &String, act: fn(&mut AgentState, &mut AgentState)) {
