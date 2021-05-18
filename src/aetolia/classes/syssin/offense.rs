@@ -229,16 +229,16 @@ lazy_static! {
 
 lazy_static! {
     static ref SALVE_STACK: Vec<FType> = vec![
-        FType::Stuttering,
+        FType::Anorexia,
         FType::LeftLegBroken,
         FType::RightLegBroken,
         FType::LeftArmBroken,
         FType::RightArmBroken,
-        FType::Anorexia,
+        FType::Stupidity,
+        FType::Stuttering,
         FType::Asthma,
         FType::Slickness,
         FType::Paresis,
-        FType::Stupidity,
     ];
 }
 
