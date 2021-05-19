@@ -1,9 +1,9 @@
+use super::*;
 use crate::timeline::BaseAgentState;
 use num_enum::TryFromPrimitive;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::fmt;
-use super::*;
 
 // Balances
 #[derive(Deserialize, Debug, PartialEq, Eq, Hash, Clone, Copy, TryFromPrimitive)]
@@ -340,6 +340,7 @@ pub enum FType {
     Backstabbed,
     NumbedSkin,
     MentalFatigue,
+    Thorns,
 
     // Zealot Uncurable
     InfernalSeal,

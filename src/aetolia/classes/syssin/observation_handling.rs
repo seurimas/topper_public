@@ -1,13 +1,13 @@
+use super::*;
 use crate::aetolia::alpha_beta::ActionPlanner;
 use crate::aetolia::classes::*;
 use crate::aetolia::curatives::get_cure_depth;
 use crate::aetolia::observables::*;
 use crate::aetolia::timeline::*;
+use crate::aetolia::timeline::*;
 use crate::aetolia::topper::*;
 use crate::aetolia::types::*;
 use regex::Regex;
-use super::*;
-use crate::aetolia::timeline::*;
 
 lazy_static! {
     static ref SUGGESTION: Regex = Regex::new(r"suggest (\w+) ([^;%]+)").unwrap();
@@ -119,216 +119,310 @@ pub fn handle_combat_action(
         "Doublestab" => {
             let observations = after.clone();
             let first_person = combat_action.caster.eq(&agent_states.me);
-            let hints = agent_states.get_player_hint(&combat_action.caster, &"CALLED_VENOMS".to_string());
-            for_agent_pair_closure(agent_states, &combat_action.caster, &combat_action.target,
-                Box::new(move |me, you| {
-                apply_weapon_hits(
-                    me,
-                    you,
-                    &observations,
-                    first_person,
-                    &hints,
-                );
-                apply_or_infer_balance(me, (BType::Balance, 2.65), &observations);
-            }));
+            let hints =
+                agent_states.get_player_hint(&combat_action.caster, &"CALLED_VENOMS".to_string());
+            for_agent_closure(
+                agent_states,
+                &combat_action.caster,
+                Box::new(move |me| {
+                    apply_or_infer_balance(me, (BType::Balance, 2.65), &observations);
+                }),
+            );
+            apply_weapon_hits(
+                agent_states,
+                &combat_action.caster,
+                &combat_action.target,
+                after,
+                first_person,
+                &hints,
+            );
         }
         "Slit" => {
             let observations = after.clone();
             let first_person = combat_action.caster.eq(&agent_states.me);
-            let hints = agent_states.get_player_hint(&combat_action.caster, &"CALLED_VENOMS".to_string());
-            for_agent_pair_closure(agent_states, &combat_action.caster, &combat_action.target,
-                Box::new(move |me, you| {
-                apply_weapon_hits(
-                    me,
-                    you,
-                    &observations,
-                    first_person,
-                    &hints,
-                );
-                apply_or_infer_balance(me, (BType::Balance, 1.88), &observations);
-            }));
+            let hints =
+                agent_states.get_player_hint(&combat_action.caster, &"CALLED_VENOMS".to_string());
+            for_agent_closure(
+                agent_states,
+                &combat_action.caster,
+                Box::new(move |me| {
+                    apply_or_infer_balance(me, (BType::Balance, 1.88), &observations);
+                }),
+            );
+            apply_weapon_hits(
+                agent_states,
+                &combat_action.caster,
+                &combat_action.target,
+                after,
+                first_person,
+                &hints,
+            );
         }
         "Shrugging" => {
-            let mut me = agent_states.get_agent(&combat_action.caster);
-            apply_or_infer_balance(&mut me, (BType::ClassCure1, 20.0), after);
-            agent_states.set_agent(&combat_action.caster, me);
+            let observations = after.clone();
+            for_agent_closure(
+                agent_states,
+                &combat_action.caster,
+                Box::new(move |me| {
+                    apply_or_infer_balance(me, (BType::ClassCure1, 20.0), &observations);
+                }),
+            );
         }
         "Bite" => {
-            let mut me = agent_states.get_agent(&combat_action.caster);
-            let mut you = agent_states.get_agent(&combat_action.target);
-            me.set_balance(BType::Balance, 1.9);
-            if let Some(AetObservation::Parry(who, _what)) = after.get(1) {
+            let observations = after.clone();
+            let venom = combat_action.annotation.clone();
+            if let Some(AetObservation::Parry(who, _what)) = observations.get(1) {
                 if !who.eq(&combat_action.target) {
-                    apply_venom(&mut you, &combat_action.annotation, false)?;
+                    for_agent_closure(
+                        agent_states,
+                        &combat_action.target,
+                        Box::new(move |you| {
+                            apply_venom(you, &venom, false);
+                        }),
+                    );
                 }
-            } else if let Some(AetObservation::Absorbed(who, _what)) = after.get(1) {
+            } else if let Some(AetObservation::Absorbed(who, _what)) = observations.get(1) {
                 if !who.eq(&combat_action.target) {
-                    apply_venom(&mut you, &combat_action.annotation, false)?;
+                    for_agent_closure(
+                        agent_states,
+                        &combat_action.target,
+                        Box::new(move |you| {
+                            apply_venom(you, &venom, false);
+                        }),
+                    );
                 }
-            } else if let Some(AetObservation::PurgeVenom(who, _what)) = after.get(1) {
+            } else if let Some(AetObservation::PurgeVenom(who, _what)) = observations.get(1) {
                 if !who.eq(&combat_action.target) {
-                    apply_venom(&mut you, &combat_action.annotation, false)?;
+                    for_agent_closure(
+                        agent_states,
+                        &combat_action.target,
+                        Box::new(move |you| {
+                            apply_venom(you, &venom, false);
+                        }),
+                    );
                 }
             } else {
-                apply_venom(&mut you, &combat_action.annotation, false)?;
+                for_agent_closure(
+                    agent_states,
+                    &combat_action.target,
+                    Box::new(move |you| {
+                        apply_venom(you, &venom, false);
+                    }),
+                );
             }
-            apply_or_infer_balance(&mut me, (BType::Balance, 1.9), after);
-            agent_states.set_agent(&combat_action.caster, me);
-            agent_states.set_agent(&combat_action.target, you);
+            for_agent_closure(
+                agent_states,
+                &combat_action.caster,
+                Box::new(move |me| {
+                    apply_or_infer_balance(me, (BType::Balance, 1.9), &observations);
+                }),
+            );
         }
         "Sleight" => {
-            let mut me = agent_states.get_agent(&combat_action.caster);
-            let mut you = agent_states.get_agent(&combat_action.target);
             match combat_action.annotation.as_ref() {
                 "Void" => {
-                    apply_or_infer_balance(&mut me, (BType::Secondary, 6.0), after);
-                    you.set_flag(FType::Void, true);
+                    for_agent(agent_states, &combat_action.target, |you| {
+                        you.set_flag(FType::Void, true);
+                    });
                 }
                 _ => {}
             }
-            agent_states.set_agent(&combat_action.caster, me);
-            agent_states.set_agent(&combat_action.target, you);
+            let observations = after.clone();
+            for_agent_closure(
+                agent_states,
+                &combat_action.caster,
+                Box::new(move |me| {
+                    apply_or_infer_balance(me, (BType::Secondary, 6.0), &observations);
+                }),
+            );
         }
         "Marks" => {
-            let mut me = agent_states.get_agent(&combat_action.caster);
-            let mut you = agent_states.get_agent(&combat_action.target);
-            match combat_action.annotation.as_ref() {
-                "Numbness" => {
-                    apply_or_infer_balance(&mut me, (BType::Balance, 3.0), after);
-                    apply_or_infer_balance(&mut me, (BType::Secondary, 3.0), after);
-                    you.set_flag(FType::NumbedSkin, true);
-                }
-                "Fatigue" => {
-                    apply_or_infer_balance(&mut me, (BType::Balance, 3.0), after);
-                    apply_or_infer_balance(&mut me, (BType::Secondary, 3.0), after);
-                    you.set_flag(FType::MentalFatigue, true);
-                }
-                _ => {}
-            }
-            agent_states.set_agent(&combat_action.caster, me);
-            agent_states.set_agent(&combat_action.target, you);
+            let observations = after.clone();
+            for_agent_closure(
+                agent_states,
+                &combat_action.caster,
+                Box::new(move |me| {
+                    apply_or_infer_balance(me, (BType::Balance, 3.0), &observations);
+                    apply_or_infer_balance(me, (BType::Secondary, 3.0), &observations);
+                }),
+            );
+            let mark = match combat_action.annotation.as_ref() {
+                "Numbness" => FType::NumbedSkin,
+                "Fatigue" => FType::MentalFatigue,
+                _ => FType::Thorns,
+            };
+            for_agent_closure(
+                agent_states,
+                &combat_action.target,
+                Box::new(move |you| {
+                    you.set_flag(mark, true);
+                }),
+            );
         }
         "Flay" => {
-            let mut me = agent_states.get_agent(&combat_action.caster);
-            let mut you = agent_states.get_agent(&combat_action.target);
-            me.set_balance(BType::Balance, 1.9);
-            apply_or_infer_balance(&mut me, (BType::Balance, 1.9), after);
+            let targetless = infer_flay_target(&combat_action.target, agent_states).is_none();
+            let observations = after.clone();
+            let first_person = combat_action.caster.eq(&agent_states.me);
+            let hints =
+                agent_states.get_player_hint(&combat_action.caster, &"CALLED_VENOMS".to_string());
+            let annotation = combat_action.annotation.clone();
+            for_agent_closure(
+                agent_states,
+                &combat_action.caster,
+                Box::new(move |me| {
+                    apply_or_infer_balance(me, (BType::Balance, 1.9), &observations);
+                }),
+            );
+            let observations = after.clone();
             if combat_action.annotation.eq(&"rebounding") || combat_action.annotation.eq(&"shield")
             {
                 apply_weapon_hits(
-                    &mut me,
-                    &mut you,
+                    agent_states,
+                    &combat_action.caster,
+                    &combat_action.target,
                     after,
-                    combat_action.caster.eq(&agent_states.me),
-                    &agent_states
-                        .get_player_hint(&combat_action.caster, &"CALLED_VENOMS".to_string()),
-                )?;
+                    first_person,
+                    &hints,
+                );
             }
-            match combat_action.annotation.as_ref() {
-                "rebounding" => {
-                    you.set_flag(FType::Rebounding, false);
-                }
-                "failure-rebounding" => {
-                    you.set_flag(FType::Rebounding, false);
-                }
-                "fangbarrier" => {
-                    you.set_flag(FType::Fangbarrier, false);
-                }
-                "failure-fangbarrier" => {
-                    you.set_flag(FType::Fangbarrier, false);
-                }
-                "shield" => {
-                    you.set_flag(FType::Shielded, false);
-                }
-                "failure-shield" => {
-                    you.set_flag(FType::Shielded, false);
-                }
-                "speed" => {
-                    you.set_flag(FType::Speed, false);
-                }
-                "cloak" => {
-                    you.set_flag(FType::Cloak, false);
-                }
-                _ => {}
-            }
-            if infer_flay_target(&combat_action.target, agent_states).is_none() {
-                remove_through(
-                    &mut you,
-                    match combat_action.annotation.as_ref() {
-                        "rebounding" => FType::Rebounding,
-                        "fangbarrier" => FType::Fangbarrier,
-                        "shield" => FType::Shielded,
-                        "speed" => FType::Speed,
-                        "cloak" => FType::Cloak,
-                        _ => FType::Cloak,
-                    },
-                    &FLAY_ORDER.to_vec(),
-                )
-            }
-            agent_states.set_agent(&combat_action.caster, me);
-            agent_states.set_agent(&combat_action.target, you);
+            for_agent_closure(
+                agent_states,
+                &combat_action.target,
+                Box::new(move |you| {
+                    match annotation.as_ref() {
+                        "rebounding" => {
+                            you.set_flag(FType::Rebounding, false);
+                        }
+                        "failure-rebounding" => {
+                            you.set_flag(FType::Rebounding, false);
+                        }
+                        "fangbarrier" => {
+                            you.set_flag(FType::Fangbarrier, false);
+                        }
+                        "failure-fangbarrier" => {
+                            you.set_flag(FType::Fangbarrier, false);
+                        }
+                        "shield" => {
+                            you.set_flag(FType::Shielded, false);
+                        }
+                        "failure-shield" => {
+                            you.set_flag(FType::Shielded, false);
+                        }
+                        "speed" => {
+                            you.set_flag(FType::Speed, false);
+                        }
+                        "cloak" => {
+                            you.set_flag(FType::Cloak, false);
+                        }
+                        _ => {}
+                    }
+                    if targetless {
+                        remove_through(
+                            you,
+                            match annotation.as_ref() {
+                                "rebounding" => FType::Rebounding,
+                                "fangbarrier" => FType::Fangbarrier,
+                                "shield" => FType::Shielded,
+                                "speed" => FType::Speed,
+                                "cloak" => FType::Cloak,
+                                _ => FType::Cloak,
+                            },
+                            &FLAY_ORDER.to_vec(),
+                        )
+                    }
+                }),
+            );
         }
         "Hypnotise" => {
-            let mut you = agent_states.get_agent(&combat_action.target);
-            you.hypno_state.hypnotize();
-            agent_states.set_agent(&combat_action.target, you);
+            for_agent(agent_states, &combat_action.target, |you| {
+                you.hypno_state.hypnotize();
+            });
         }
         "Desway" => {
-            let mut you = agent_states.get_agent(&combat_action.target);
-            you.hypno_state.desway();
-            agent_states.set_agent(&combat_action.target, you);
+            for_agent(agent_states, &combat_action.target, |you| {
+                you.hypno_state.desway();
+            });
         }
         "Seal" => {
-            let mut me = agent_states.get_agent(&combat_action.caster);
-            let mut you = agent_states.get_agent(&combat_action.target);
-            apply_or_infer_balance(&mut me, (BType::Equil, 3.0), after);
-            you.hypno_state.seal(3.0);
-            agent_states.set_agent(&combat_action.caster, me);
-            agent_states.set_agent(&combat_action.target, you);
+            let observations = after.clone();
+            for_agent_closure(
+                agent_states,
+                &combat_action.caster,
+                Box::new(move |me| {
+                    apply_or_infer_balance(me, (BType::Equil, 3.0), &observations);
+                }),
+            );
+            for_agent(agent_states, &combat_action.target, |you| {
+                you.hypno_state.seal(3.0);
+            });
         }
         "Suggest" => {
-            let mut me = agent_states.get_agent(&combat_action.caster);
-            let mut you = agent_states.get_agent(&combat_action.target);
-            apply_or_infer_balance(&mut me, (BType::Equil, 2.25), after);
-            you.hypno_state
-                .push_suggestion(infer_suggestion(&combat_action.target, agent_states));
-            agent_states.set_agent(&combat_action.caster, me);
-            agent_states.set_agent(&combat_action.target, you);
+            let observations = after.clone();
+            for_agent_closure(
+                agent_states,
+                &combat_action.caster,
+                Box::new(move |me| {
+                    apply_or_infer_balance(me, (BType::Equil, 2.25), &observations);
+                }),
+            );
+            let suggestion = infer_suggestion(&combat_action.target, agent_states);
+            for_agent_closure(
+                agent_states,
+                &combat_action.target,
+                Box::new(move |you| {
+                    you.hypno_state.push_suggestion(suggestion.clone());
+                }),
+            );
         }
         "Fizzle" => {
-            let mut me = agent_states.get_agent(&combat_action.target);
-            me.hypno_state.pop_suggestion(false);
-            agent_states.set_agent(&combat_action.target, me);
+            for_agent(agent_states, &combat_action.target, |you| {
+                you.hypno_state.pop_suggestion(false);
+            });
         }
         "Snap" => {
             if let Some(target) =
                 agent_states.get_player_hint(&combat_action.caster, &"snap".into())
             {
-                let mut you = agent_states.get_agent(&target);
-                if you.hypno_state.sealed.is_some() {
-                    you.hypno_state.activate();
-                }
-                agent_states.set_agent(&target, you);
+                for_agent(agent_states, &combat_action.target, |you| {
+                    if you.hypno_state.sealed.is_some() {
+                        you.hypno_state.activate();
+                    }
+                });
             } else if !combat_action.target.eq(&"".to_string()) {
-                let mut you = agent_states.get_agent(&combat_action.target);
-                if you.hypno_state.sealed.is_some() {
-                    you.hypno_state.activate();
-                }
-                agent_states.set_agent(&combat_action.target, you);
+                for_agent(agent_states, &combat_action.target, |you| {
+                    if you.hypno_state.sealed.is_some() {
+                        you.hypno_state.activate();
+                    }
+                });
             }
         }
         "Bedazzle" => {
-            let mut you = agent_states.get_agent(&combat_action.target);
-            apply_or_infer_random_afflictions(&mut you, after)?;
-            agent_states.set_agent(&combat_action.target, you);
-            let mut me = agent_states.get_agent(&combat_action.caster);
-            apply_or_infer_balance(&mut me, (BType::Balance, 2.75), after);
-            agent_states.set_agent(&combat_action.caster, me);
+            let observations = after.clone();
+            for_agent_closure(
+                agent_states,
+                &combat_action.target,
+                Box::new(move |you| {
+                    apply_or_infer_random_afflictions(you, &observations);
+                }),
+            );
+            let observations = after.clone();
+            for_agent_closure(
+                agent_states,
+                &combat_action.caster,
+                Box::new(move |me| {
+                    apply_or_infer_balance(me, (BType::Balance, 2.75), &observations);
+                }),
+            );
         }
         "Fire" => {
-            let mut you = agent_states.get_agent(&combat_action.target);
-            apply_or_infer_suggestion(&mut you, after)?;
-            agent_states.set_agent(&combat_action.target, you)
+            let observations = after.clone();
+            for_agent_closure(
+                agent_states,
+                &combat_action.target,
+                Box::new(move |you| {
+                    apply_or_infer_suggestion(you, &observations);
+                }),
+            );
         }
         _ => {}
     }

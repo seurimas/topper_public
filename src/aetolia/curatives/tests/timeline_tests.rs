@@ -1,22 +1,22 @@
 mod timeline_tests {
-    use crate::timeline::{TimeSlice, BaseTimeline};
     use crate::aetolia::curatives::*;
-    use crate::aetolia::types::*;
     use crate::aetolia::timeline::*;
+    use crate::aetolia::types::*;
+    use crate::timeline::{BaseTimeline, TimeSlice};
 
     #[test]
     fn test_pill() {
         let mut timeline = AetTimeline::new();
-        {
-            let mut updated_seur = timeline.state.get_agent(&"Seurimas".to_string());
-            updated_seur.set_flag(FType::ThinBlood, true);
-            timeline.state.set_agent(&"Seurimas".into(), updated_seur);
-        }
-        {
-            let mut updated_bene = timeline.state.get_agent(&"Benedicto".to_string());
-            updated_bene.set_flag(FType::ThinBlood, true);
-            timeline.state.set_agent(&"Benedicto".into(), updated_bene);
-        }
+        timeline
+            .state
+            .for_agent(&"Seurimas".into(), |updated_seur| {
+                updated_seur.set_flag(FType::ThinBlood, true);
+            });
+        timeline
+            .state
+            .for_agent(&"Benedicto".into(), |updated_bene| {
+                updated_bene.set_flag(FType::ThinBlood, true);
+            });
         let coag_slice = TimeSlice {
             observations: Some(vec![AetObservation::SimpleCureAction(SimpleCureAction {
                 caster: "Benedicto".into(),
@@ -28,10 +28,10 @@ mod timeline_tests {
             me: "Seurimas".into(),
         };
         timeline.push_time_slice(coag_slice);
-        let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
+        let seur_state = timeline.state.borrow_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Pill), true);
         assert_eq!(seur_state.is(FType::ThinBlood), true);
-        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        let bene_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Pill), false);
         assert_eq!(bene_state.is(FType::ThinBlood), false);
     }
@@ -39,16 +39,16 @@ mod timeline_tests {
     #[test]
     fn test_mending() {
         let mut timeline = AetTimeline::new();
-        {
-            let mut updated_seur = timeline.state.get_agent(&"Seurimas".to_string());
-            updated_seur.set_flag(FType::LeftArmBroken, true);
-            timeline.state.set_agent(&"Seurimas".into(), updated_seur);
-        }
-        {
-            let mut updated_bene = timeline.state.get_agent(&"Benedicto".to_string());
-            updated_bene.set_flag(FType::LeftLegBroken, true);
-            timeline.state.set_agent(&"Benedicto".into(), updated_bene);
-        }
+        timeline
+            .state
+            .for_agent(&"Seurimas".into(), |updated_seur| {
+                updated_seur.set_flag(FType::LeftArmBroken, true);
+            });
+        timeline
+            .state
+            .for_agent(&"Benedicto".into(), |updated_bene| {
+                updated_bene.set_flag(FType::LeftArmBroken, true);
+            });
         let coag_slice = TimeSlice {
             observations: Some(vec![AetObservation::SimpleCureAction(SimpleCureAction {
                 caster: "Benedicto".into(),
@@ -60,10 +60,10 @@ mod timeline_tests {
             me: "Seurimas".into(),
         };
         timeline.push_time_slice(coag_slice);
-        let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
+        let seur_state = timeline.state.borrow_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Salve), true);
         assert_eq!(seur_state.is(FType::LeftArmBroken), true);
-        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        let bene_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Salve), false);
         assert_eq!(bene_state.is(FType::LeftArmBroken), false);
     }

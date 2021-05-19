@@ -1,7 +1,7 @@
 mod syssin_timeline_tests {
-    use crate::timeline::BaseTimeline;
-    use crate::aetolia::types::*;
     use crate::aetolia::timeline::*;
+    use crate::aetolia::types::*;
+    use crate::timeline::BaseTimeline;
 
     #[test]
     fn test_dstab_3p() {
@@ -23,11 +23,11 @@ mod syssin_timeline_tests {
             me: "Seurimas".into(),
         };
         timeline.push_time_slice(dstab_slice);
-        let savas_state = timeline.state.get_agent(&"Savas".to_string());
+        let savas_state = timeline.state.borrow_agent(&"Savas".to_string());
         assert_eq!(savas_state.balanced(BType::Balance), false);
         assert_eq!(savas_state.is(FType::Asthma), false);
         assert_eq!(savas_state.is(FType::Anorexia), false);
-        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        let bene_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Balance), true);
         assert_eq!(bene_state.is(FType::Asthma), true);
         assert_eq!(bene_state.is(FType::Anorexia), true);
@@ -56,11 +56,11 @@ mod syssin_timeline_tests {
             me: "Seurimas".into(),
         };
         timeline.push_time_slice(dstab_slice);
-        let savas_state = timeline.state.get_agent(&"Savas".to_string());
+        let savas_state = timeline.state.borrow_agent(&"Savas".to_string());
         assert_eq!(savas_state.balanced(BType::Balance), false);
         assert_eq!(savas_state.is(FType::Asthma), false);
         assert_eq!(savas_state.is(FType::Anorexia), false);
-        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        let bene_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Balance), true);
         assert_eq!(bene_state.is(FType::Asthma), true);
         assert_eq!(bene_state.is(FType::Anorexia), false);
@@ -87,11 +87,11 @@ mod syssin_timeline_tests {
             me: "Seurimas".into(),
         };
         timeline.push_time_slice(dstab_slice);
-        let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
+        let seur_state = timeline.state.borrow_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Balance), false);
         assert_eq!(seur_state.is(FType::Asthma), false);
         assert_eq!(seur_state.is(FType::Anorexia), false);
-        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        let bene_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Balance), true);
         assert_eq!(bene_state.is(FType::Asthma), true);
         assert_eq!(bene_state.is(FType::Anorexia), true);
@@ -118,11 +118,11 @@ mod syssin_timeline_tests {
             me: "Seurimas".into(),
         };
         timeline.push_time_slice(dstab_slice);
-        let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
+        let seur_state = timeline.state.borrow_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Balance), false);
         assert_eq!(seur_state.is(FType::LeftLegBroken), false);
         assert_eq!(seur_state.is(FType::LeftArmBroken), false);
-        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        let bene_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Balance), true);
         assert_eq!(bene_state.is(FType::LeftLegBroken), true);
         assert_eq!(bene_state.is(FType::LeftArmBroken), true);
@@ -149,11 +149,11 @@ mod syssin_timeline_tests {
             me: "Seurimas".into(),
         };
         timeline.push_time_slice(dstab_slice);
-        let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
+        let seur_state = timeline.state.borrow_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Balance), false);
         assert_eq!(seur_state.is(FType::Asthma), false);
         assert_eq!(seur_state.is(FType::Anorexia), false);
-        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        let bene_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Balance), true);
         assert_eq!(bene_state.is(FType::Asthma), true);
         assert_eq!(bene_state.is(FType::Anorexia), false);
@@ -180,11 +180,11 @@ mod syssin_timeline_tests {
             me: "Seurimas".into(),
         };
         timeline.push_time_slice(dstab_slice);
-        let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
+        let seur_state = timeline.state.borrow_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Balance), false);
         assert_eq!(seur_state.is(FType::Asthma), false);
         assert_eq!(seur_state.is(FType::Anorexia), false);
-        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        let bene_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Balance), true);
         assert_eq!(bene_state.is(FType::Rebounding), false);
         assert_eq!(bene_state.is(FType::Speed), false);
@@ -211,11 +211,11 @@ mod syssin_timeline_tests {
             me: "Seurimas".into(),
         };
         timeline.push_time_slice(dstab_slice);
-        let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
+        let seur_state = timeline.state.borrow_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Balance), false);
         assert_eq!(seur_state.is(FType::Asthma), false);
         assert_eq!(seur_state.is(FType::Anorexia), false);
-        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        let bene_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Balance), true);
         assert_eq!(bene_state.is(FType::Rebounding), true);
         assert_eq!(bene_state.is(FType::Speed), false);
@@ -244,13 +244,13 @@ mod syssin_timeline_tests {
             time: 0,
             me: "Seurimas".into(),
         };
-        let bene_state = timeline.state.get_agent(&"Seurimas".to_string());
+        let bene_state = timeline.state.borrow_agent(&"Seurimas".to_string());
         assert_eq!(bene_state.balanced(BType::Pill), true);
         assert_eq!(bene_state.is(FType::Stupidity), true);
         assert_eq!(bene_state.is(FType::Void), true);
         assert_eq!(bene_state.is(FType::Weakvoid), false);
         timeline.push_time_slice(dstab_slice);
-        let bene_state = timeline.state.get_agent(&"Seurimas".to_string());
+        let bene_state = timeline.state.borrow_agent(&"Seurimas".to_string());
         assert_eq!(bene_state.balanced(BType::Pill), false);
         assert_eq!(bene_state.is(FType::Stupidity), true);
         assert_eq!(bene_state.is(FType::Void), false);
@@ -279,13 +279,13 @@ mod syssin_timeline_tests {
             time: 0,
             me: "Seurimas".into(),
         };
-        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        let bene_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Pill), true);
         assert_eq!(bene_state.is(FType::Stupidity), true);
         assert_eq!(bene_state.is(FType::Void), true);
         assert_eq!(bene_state.is(FType::Weakvoid), false);
         timeline.push_time_slice(dstab_slice);
-        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        let bene_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Pill), false);
         assert_eq!(bene_state.is(FType::Stupidity), true);
         assert_eq!(bene_state.is(FType::Void), false);
@@ -314,13 +314,13 @@ mod syssin_timeline_tests {
             time: 0,
             me: "Seurimas".into(),
         };
-        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        let bene_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Pill), true);
         assert_eq!(bene_state.is(FType::Stupidity), true);
         assert_eq!(bene_state.is(FType::Void), false);
         assert_eq!(bene_state.is(FType::Weakvoid), true);
         timeline.push_time_slice(dstab_slice);
-        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        let bene_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Pill), false);
         assert_eq!(bene_state.is(FType::Stupidity), true);
         assert_eq!(bene_state.is(FType::Void), false);
@@ -349,11 +349,11 @@ mod syssin_timeline_tests {
             me: "Seurimas".into(),
         };
         timeline.push_time_slice(dstab_slice);
-        let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
+        let seur_state = timeline.state.borrow_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Balance), false);
         assert_eq!(seur_state.is(FType::Asthma), false);
         assert_eq!(seur_state.is(FType::Anorexia), false);
-        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        let bene_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Balance), true);
         assert_eq!(bene_state.is(FType::Asthma), false);
         assert_eq!(bene_state.is(FType::Anorexia), true);
@@ -420,21 +420,21 @@ mod syssin_timeline_tests {
         };
         timeline.push_time_slice(bite_slice);
         timeline.push_time_slice(dstab_slice);
-        let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
+        let seur_state = timeline.state.borrow_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Balance), false);
         assert_eq!(seur_state.is(FType::Asthma), false);
         assert_eq!(seur_state.is(FType::Anorexia), false);
-        let mut bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        let mut bene_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Balance), true);
         assert_eq!(bene_state.is(FType::Asthma), true);
         assert_eq!(bene_state.is(FType::Anorexia), true);
         timeline.push_time_slice(cure_slice);
-        let mut bene_cured_state = timeline.state.get_agent(&"Benedicto".to_string());
+        let mut bene_cured_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(bene_cured_state.balanced(BType::Balance), true);
         assert_eq!(bene_cured_state.is(FType::Asthma), false);
         assert_eq!(bene_cured_state.is(FType::Anorexia), false);
         timeline.push_time_slice(relapse_slice);
-        let mut bene_relapsed_state = timeline.state.get_agent(&"Benedicto".to_string());
+        let mut bene_relapsed_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(bene_relapsed_state.balanced(BType::Balance), true);
         assert_eq!(bene_relapsed_state.is(FType::Asthma), true);
         assert_eq!(bene_relapsed_state.is(FType::Anorexia), true);
@@ -511,26 +511,26 @@ mod syssin_timeline_tests {
             me: "Seurimas".into(),
         };
         timeline.push_time_slice(dstab_slice);
-        let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
+        let seur_state = timeline.state.borrow_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Balance), false);
         assert_eq!(seur_state.is(FType::Asthma), false);
         assert_eq!(seur_state.is(FType::Anorexia), false);
-        let mut bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        let mut bene_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Balance), true);
         assert_eq!(bene_state.is(FType::Asthma), true);
         assert_eq!(bene_state.is(FType::Anorexia), true);
         timeline.push_time_slice(cure_slice);
-        let mut bene_cured_state = timeline.state.get_agent(&"Benedicto".to_string());
+        let mut bene_cured_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(bene_cured_state.balanced(BType::Balance), true);
         assert_eq!(bene_cured_state.is(FType::Asthma), false);
         assert_eq!(bene_cured_state.is(FType::Anorexia), false);
         timeline.push_time_slice(relapse_slice_1);
-        let mut bene_relapsed_state = timeline.state.get_agent(&"Benedicto".to_string());
+        let mut bene_relapsed_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(bene_relapsed_state.balanced(BType::Balance), true);
         assert_eq!(bene_relapsed_state.is(FType::Asthma), false);
         assert_eq!(bene_relapsed_state.is(FType::Anorexia), false);
         timeline.push_time_slice(relapse_slice_2);
-        let mut bene_relapsed_state = timeline.state.get_agent(&"Benedicto".to_string());
+        let mut bene_relapsed_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(bene_relapsed_state.balanced(BType::Balance), true);
         assert_eq!(bene_relapsed_state.is(FType::Asthma), true);
         assert_eq!(bene_relapsed_state.is(FType::Anorexia), false);
@@ -559,11 +559,11 @@ mod syssin_timeline_tests {
             me: "Seurimas".into(),
         };
         timeline.push_time_slice(dstab_slice);
-        let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
+        let seur_state = timeline.state.borrow_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Balance), false);
         assert_eq!(seur_state.is(FType::Asthma), true);
         assert_eq!(seur_state.is(FType::Anorexia), true);
-        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        let bene_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Balance), true);
         assert_eq!(bene_state.is(FType::Asthma), false);
         assert_eq!(bene_state.is(FType::Anorexia), false);
@@ -586,10 +586,10 @@ mod syssin_timeline_tests {
             me: "Seurimas".into(),
         };
         timeline.push_time_slice(dstab_slice);
-        let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
+        let seur_state = timeline.state.borrow_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Balance), false);
         assert_eq!(seur_state.is(FType::ThinBlood), false);
-        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        let bene_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Balance), true);
         assert_eq!(bene_state.is(FType::ThinBlood), true);
     }
@@ -614,10 +614,10 @@ mod syssin_timeline_tests {
             me: "Seurimas".into(),
         };
         timeline.push_time_slice(dstab_slice);
-        let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
+        let seur_state = timeline.state.borrow_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Balance), false);
         assert_eq!(seur_state.is(FType::ThinBlood), false);
-        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        let bene_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Balance), true);
         assert_eq!(bene_state.is(FType::ThinBlood), false);
     }
@@ -642,10 +642,10 @@ mod syssin_timeline_tests {
             me: "Seurimas".into(),
         };
         timeline.push_time_slice(dstab_slice);
-        let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
+        let seur_state = timeline.state.borrow_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Balance), false);
         assert_eq!(seur_state.is(FType::ThinBlood), false);
-        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        let bene_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Balance), true);
         assert_eq!(bene_state.is(FType::ThinBlood), false);
     }
@@ -670,11 +670,11 @@ mod syssin_timeline_tests {
             me: "Seurimas".into(),
         };
         timeline.push_time_slice(dstab_slice);
-        let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
+        let seur_state = timeline.state.borrow_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Balance), false);
         assert_eq!(seur_state.is(FType::ThinBlood), false);
         assert_eq!(seur_state.get_parrying(), None);
-        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        let bene_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Balance), true);
         assert_eq!(bene_state.is(FType::ThinBlood), false);
         assert_eq!(bene_state.get_parrying(), Some(LType::HeadDamage));
@@ -700,9 +700,9 @@ mod syssin_timeline_tests {
             me: "Seurimas".into(),
         };
         timeline.push_time_slice(suggest_slice);
-        let seur_state = timeline.state.get_agent(&"Seurimas".to_string());
+        let seur_state = timeline.state.borrow_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Equil), false);
-        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        let bene_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(
             bene_state.hypno_state.hypnosis_stack.get(0),
             Some(&Hypnosis::Aff(FType::Stupidity))
@@ -731,7 +731,7 @@ mod syssin_timeline_tests {
             me: "Seurimas".into(),
         };
         timeline.push_time_slice(suggest_slice);
-        let bene_state = timeline.state.get_agent(&"Benedicto".to_string());
+        let bene_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(
             bene_state.hypno_state.hypnosis_stack.get(0),
             Some(&Hypnosis::Aff(FType::Stupidity))

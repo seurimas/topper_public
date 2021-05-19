@@ -19,6 +19,7 @@ pub struct AgentState {
     pub wield_state: WieldState,
     pub dodge_state: DodgeState,
     pub channel_state: ChannelState,
+    pub branch_state: BranchState,
 }
 
 impl PartialEq for AgentState {

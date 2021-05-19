@@ -1,12 +1,14 @@
 pub mod agent;
 pub mod general;
 pub mod limbs;
+pub mod branching;
 pub mod shapeshifter;
 pub mod syssin;
 pub mod zealot;
 pub use agent::*;
 pub use general::*;
 pub use limbs::*;
+pub use branching::*;
 pub use shapeshifter::*;
 pub use syssin::*;
 pub use zealot::*;

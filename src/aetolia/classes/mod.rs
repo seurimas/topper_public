@@ -4,8 +4,8 @@ use crate::aetolia::timeline::*;
 use crate::aetolia::topper::*;
 use crate::aetolia::types::*;
 use crate::topper::db::DatabaseModule;
-use std::collections::HashMap;
 use num_enum::TryFromPrimitive;
+use std::collections::HashMap;
 pub mod archivist;
 pub mod ascendril;
 pub mod carnifex;
@@ -332,6 +332,9 @@ pub fn handle_combat_action(
     after: &Vec<AetObservation>,
 ) -> Result<(), String> {
     match combat_action.category.as_ref() {
+        "Riving" | "Manifestation" | "Chirography" | "Warding" | "Ancestry" | "Communion" => {
+            mirrors::handle_combat_action(combat_action, agent_states, before, after)
+        }
         "Geometrics" | "Numerology" | "Bioessence" => {
             archivist::handle_combat_action(combat_action, agent_states, before, after)
         }
@@ -349,10 +352,6 @@ pub fn handle_combat_action(
         }
         "Spirituality" | "Devotion" | "Illumination" => {
             luminary::handle_combat_action(combat_action, agent_states, before, after)
-        }
-        "Riving" | "Manifestation" | "Chirography"
-            | "Warding" | "Ancestry" | "Communion" => {
-            mirrors::handle_combat_action(combat_action, agent_states, before, after)
         }
         "Tekura" | "Kaido" | "Telepathy" => {
             monk::handle_combat_action(combat_action, agent_states, before, after)
@@ -389,29 +388,42 @@ pub fn handle_combat_action(
         }
         "Survival" => match combat_action.skill.as_ref() {
             "Focus" => {
-                let mut me = agent_states.get_agent(&combat_action.caster);
-                let mut duration = 5.0;
-                if me.is(FType::NumbedSkin) {
-                    duration += 5.0;
-                }
-                if me.is(FType::Laxity) {
-                    duration += 2.0;
-                }
-                apply_or_infer_cures(&mut me, MENTAL_AFFLICTIONS.to_vec(), after)?;
-                apply_or_infer_balance(&mut me, (BType::Focus, duration), after);
-                agent_states.set_agent(&combat_action.caster, me);
+                let observations = after.clone();
+                for_agent_closure(
+                    agent_states,
+                    &combat_action.caster,
+                    Box::new(move |me| {
+                        let mut duration = 5.0;
+                        if me.is(FType::NumbedSkin) {
+                            duration += 5.0;
+                        }
+                        if me.is(FType::Laxity) {
+                            duration += 2.0;
+                        }
+                        apply_or_infer_cures(me, MENTAL_AFFLICTIONS.to_vec(), &observations);
+                        apply_or_infer_balance(me, (BType::Focus, duration), &observations);
+                    }),
+                );
                 Ok(())
             }
             _ => Ok(()),
         },
         "Tattoos" => match combat_action.skill.as_ref() {
             "Shield" => {
-                let mut me = agent_states.get_agent(&combat_action.caster);
-                me.set_flag(FType::Shielded, true);
+                let observations = after.clone();
+                for_agent(agent_states, &combat_action.caster, |me| {
+                    me.set_flag(FType::Shielded, true);
+                });
                 if !combat_action.annotation.eq("proc") {
-                    apply_or_infer_balance(&mut me, (BType::Equil, 4.0), after);
+                    let observations = after.clone();
+                    for_agent_closure(
+                        agent_states,
+                        &combat_action.caster,
+                        Box::new(move |me| {
+                            apply_or_infer_balance(me, (BType::Equil, 4.0), &observations);
+                        }),
+                    );
                 }
-                agent_states.set_agent(&combat_action.caster, me);
                 Ok(())
             }
             "Hammer" => {
@@ -421,37 +433,52 @@ pub fn handle_combat_action(
                 Ok(())
             }
             "Tree" => {
-                let mut me = agent_states.get_agent(&combat_action.caster);
-                let mut duration = 10.0;
-                if me.is(FType::NumbedSkin) {
-                    duration += 5.0;
-                }
-                if me.is(FType::Laxity) {
-                    duration += 2.0;
-                }
-                if me.is(FType::Paresis) || me.is(FType::Paralysis) {
-                    me.set_flag(FType::Paresis, false);
-                    me.set_flag(FType::Paralysis, false);
-                    warn!("Missed Paresis cure!");
-                }
-                apply_or_infer_balance(&mut me, (BType::Tree, duration), after);
-                agent_states.set_agent(&combat_action.caster, me);
+                let observations = after.clone();
+                for_agent_closure(
+                    agent_states,
+                    &combat_action.caster,
+                    Box::new(move |me| {
+                        let mut duration = 10.0;
+                        if me.is(FType::NumbedSkin) {
+                            duration += 5.0;
+                        }
+                        if me.is(FType::Laxity) {
+                            duration += 2.0;
+                        }
+                        if me.is(FType::Paresis) || me.is(FType::Paralysis) {
+                            me.set_flag(FType::Paresis, false);
+                            me.set_flag(FType::Paralysis, false);
+                            warn!("Missed Paresis cure!");
+                        }
+                        apply_or_infer_balance(me, (BType::Tree, duration), &observations);
+                    }),
+                );
                 Ok(())
             }
             _ => Ok(()),
         },
         "Hunting" => match combat_action.skill.as_ref() {
             "Regenerate" => {
-                let mut me = agent_states.get_agent(&combat_action.caster);
-                me.regenerate();
-                apply_or_infer_balance(&mut me, (BType::Regenerate, 15.0), after);
-                agent_states.set_agent(&combat_action.caster, me);
+                let observations = after.clone();
+                for_agent_closure(
+                    agent_states,
+                    &combat_action.caster,
+                    Box::new(move |me| {
+                        me.regenerate();
+                        apply_or_infer_balance(me, (BType::Regenerate, 15.0), &observations);
+                    }),
+                );
                 Ok(())
             }
             "Renew" => {
-                let mut me = agent_states.get_agent(&combat_action.caster);
-                apply_or_infer_balance(&mut me, (BType::Renew, 20.0), after);
-                agent_states.set_agent(&combat_action.caster, me);
+                let observations = after.clone();
+                for_agent_closure(
+                    agent_states,
+                    &combat_action.caster,
+                    Box::new(move |me| {
+                        apply_or_infer_balance(me, (BType::Renew, 20.0), &observations);
+                    }),
+                );
                 Ok(())
             }
             _ => Ok(()),

@@ -16,28 +16,6 @@ pub fn get_preferred_parry(
     Ok(LType::TorsoDamage)
 }
 
-fn apply_combo_balance(
-    agent_states: &mut AetTimelineState,
-    caster: &String,
-    expected: (BType, f32),
-    after: &Vec<AetObservation>,
-) {
-    let mut me = agent_states.get_agent(caster);
-    apply_or_infer_combo_balance(&mut me, expected, after);
-    agent_states.set_agent(caster, me);
-}
-
-fn attack_limb_damage(
-    agent_states: &mut AetTimelineState,
-    target: &String,
-    expected: (LType, f32, bool),
-    after: &Vec<AetObservation>,
-) {
-    let mut you = agent_states.get_agent(target);
-    apply_limb_damage(&mut you, expected, after);
-    agent_states.set_agent(target, you);
-}
-
 const PUMMEL_DAMAGE: f32 = 9.5;
 const WANEKICK_DAMAGE: f32 = 9.0;
 const CLAWTWIST_DAMAGE: f32 = 8.5;
@@ -405,14 +383,24 @@ pub fn handle_combat_action(
             });
         }
         "Pendulum" => {
-            let mut me = agent_states.get_agent(&combat_action.caster);
-            apply_or_infer_balance(&mut me, (BType::Equil, 3.0), after);
-            me.set_balance(BType::Pendulum, 10.0);
-            agent_states.set_agent(&combat_action.caster, me);
-
-            let mut you = agent_states.get_agent(&combat_action.target);
-            you.rotate_limbs(combat_action.annotation == "anti-clockwise");
-            agent_states.set_agent(&combat_action.target, you);
+            let observations = after.clone();
+            for_agent_closure(
+                agent_states,
+                &combat_action.caster,
+                Box::new(move |me| {
+                    apply_or_infer_balance(me, (BType::Equil, 3.0), &observations);
+                    me.set_balance(BType::Pendulum, 10.0);
+                }),
+            );
+            let annotation = combat_action.annotation.clone();
+            let observations = after.clone();
+            for_agent_closure(
+                agent_states,
+                &combat_action.target,
+                Box::new(move |you| {
+                    you.rotate_limbs(annotation == "anti-clockwise");
+                }),
+            );
         }
         "Whipburst" => {
             for_agent(agent_states, &combat_action.target, |you| {
@@ -422,27 +410,43 @@ pub fn handle_combat_action(
             });
         }
         "Quicken" => {
-            let mut me = agent_states.get_agent(&combat_action.caster);
-            let mut you = agent_states.get_agent(&combat_action.target);
-            apply_or_infer_balance(&mut me, (BType::Equil, 3.0), after);
-            you.tick_flag_up(FType::Ablaze);
-            you.tick_flag_up(FType::Ablaze);
-            you.tick_flag_up(FType::Ablaze);
-            agent_states.set_agent(&combat_action.caster, me);
-            agent_states.set_agent(&combat_action.target, you);
+            let observations = after.clone();
+            for_agent_closure(
+                agent_states,
+                &combat_action.caster,
+                Box::new(move |me| {
+                    apply_or_infer_balance(me, (BType::Equil, 3.0), &observations);
+                }),
+            );
+            for_agent(agent_states, &combat_action.target, |you| {
+                you.tick_flag_up(FType::Ablaze);
+                you.tick_flag_up(FType::Ablaze);
+                you.tick_flag_up(FType::Ablaze);
+            });
         }
         "Infernal" => {
-            let mut me = agent_states.get_agent(&combat_action.caster);
-            apply_or_infer_balance(&mut me, (BType::Equil, 2.0), after);
-            agent_states.set_agent(&combat_action.caster, me);
-            let mut you = agent_states.get_agent(&combat_action.target);
-            you.set_flag(FType::InfernalSeal, true);
-            agent_states.set_agent(&combat_action.target, you);
+            let observations = after.clone();
+            for_agent_closure(
+                agent_states,
+                &combat_action.caster,
+                Box::new(move |me| {
+                    apply_or_infer_balance(me, (BType::Equil, 2.0), &observations);
+                }),
+            );
+            let observations = after.clone();
+            for_agent(agent_states, &combat_action.target, |you| {
+                you.set_flag(FType::InfernalSeal, true);
+            });
         }
         "Scorch" => {
-            let mut me = agent_states.get_agent(&combat_action.caster);
-            apply_or_infer_balance(&mut me, (BType::Equil, 2.0), after);
-            agent_states.set_agent(&combat_action.caster, me);
+            let observations = after.clone();
+            for_agent_closure(
+                agent_states,
+                &combat_action.caster,
+                Box::new(move |me| {
+                    apply_or_infer_balance(me, (BType::Equil, 2.0), &observations);
+                }),
+            );
             attack_afflictions(
                 agent_states,
                 &combat_action.target,
@@ -451,13 +455,20 @@ pub fn handle_combat_action(
             );
         }
         "Heatspear" => {
-            let mut me = agent_states.get_agent(&combat_action.caster);
-            let mut you = agent_states.get_agent(&combat_action.target);
-            apply_or_infer_balance(&mut me, (BType::Equil, 3.0), after);
-            you.set_flag(FType::Ablaze, true);
-            you.set_flag(FType::Heatspear, true);
-            agent_states.set_agent(&combat_action.caster, me);
-            agent_states.set_agent(&combat_action.target, you);
+            let observations = after.clone();
+            for_agent_closure(
+                agent_states,
+                &combat_action.caster,
+                Box::new(move |me| {
+                    apply_or_infer_balance(me, (BType::Equil, 3.0), &observations);
+                }),
+            );
+            attack_afflictions(
+                agent_states,
+                &combat_action.target,
+                vec![FType::Ablaze, FType::Heatspear],
+                after,
+            );
         }
         "Firefist" => {
             for_agent(agent_states, &combat_action.caster, |me| {

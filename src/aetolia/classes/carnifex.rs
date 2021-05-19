@@ -9,16 +9,26 @@ pub fn handle_combat_action(
 ) -> Result<(), String> {
     match combat_action.skill.as_ref() {
         "Fitness" => {
-            let mut me = agent_states.get_agent(&combat_action.caster);
-            apply_or_infer_cures(&mut me, vec![FType::Asthma], after)?;
-            apply_or_infer_balance(&mut me, (BType::ClassCure1, 12.0), after);
-            agent_states.set_agent(&combat_action.caster, me);
+            let observations = after.clone();
+            for_agent_closure(
+                agent_states,
+                &combat_action.caster,
+                Box::new(move |me| {
+                    apply_or_infer_cures(me, vec![FType::Asthma], &observations);
+                    apply_or_infer_balance(me, (BType::ClassCure1, 12.0), &observations);
+                }),
+            );
         }
         "Shield" => {
-            let mut me = agent_states.get_agent(&combat_action.caster);
-            me.set_flag(FType::Shielded, true);
-            apply_or_infer_balance(&mut me, (BType::Equil, 4.0), after);
-            agent_states.set_agent(&combat_action.caster, me);
+            let observations = after.clone();
+            for_agent_closure(
+                agent_states,
+                &combat_action.caster,
+                Box::new(move |me| {
+                    me.set_flag(FType::Shielded, true);
+                    apply_or_infer_balance(me, (BType::Equil, 4.0), &observations);
+                }),
+            );
         }
         _ => {}
     }

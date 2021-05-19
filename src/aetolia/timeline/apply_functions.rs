@@ -39,7 +39,7 @@ pub fn apply_observation(
             timeline.set_flag_for_agent(&timeline.me.clone(), affliction, false)?;
         }
         AetObservation::FlameShield(who) => {
-            if timeline.get_agent(who).get_count(FType::Ablaze) <= 1 {
+            if timeline.borrow_agent(who).get_count(FType::Ablaze) <= 1 {
                 timeline.set_flag_for_agent(who, &"Ablaze".to_string(), false)?;
             }
         }
@@ -64,23 +64,28 @@ pub fn apply_observation(
             timeline.set_flag_for_agent(who, affliction, true)?;
         }
         AetObservation::Dodges(who) => {
-            let mut me = timeline.get_agent(who);
-            me.dodge_state.register_dodge();
-            timeline.set_agent(who, me)
+            for_agent(timeline, who, |me| {
+                me.dodge_state.register_dodge();
+            });
         }
         AetObservation::WoundStart(who) => {
-            let mut me = timeline.get_agent(who);
-            for after in after.iter() {
-                match after {
-                    AetObservation::Wound(limb, damage) => {
-                        if let Ok(limb) = get_limb_damage(limb) {
-                            me.set_limb_damage(limb, (damage * 100.0) as CType);
+            let observations = after.clone();
+            for_agent_closure(
+                timeline,
+                who,
+                Box::new(move |me| {
+                    for after in observations.iter() {
+                        match after {
+                            AetObservation::Wound(limb, damage) => {
+                                if let Ok(limb) = get_limb_damage(limb) {
+                                    me.set_limb_damage(limb, (damage * 100.0) as CType);
+                                }
+                            }
+                            _ => {}
                         }
                     }
-                    _ => {}
-                }
-            }
-            timeline.set_agent(who, me);
+                }),
+            );
         }
         AetObservation::Stripped(defense) => {
             timeline.set_flag_for_agent(&timeline.me.clone(), defense, false)?;
@@ -97,9 +102,9 @@ pub fn apply_observation(
         AetObservation::Gained(who, defence) => {
             timeline.set_flag_for_agent(who, defence, true)?;
             if defence.eq("rebounding") {
-                let mut me = timeline.get_agent(who);
-                me.set_balance(BType::Rebounding, 0.0);
-                timeline.set_agent(who, me);
+                for_agent(timeline, who, |me| {
+                    me.set_balance(BType::Rebounding, 0.0);
+                });
             }
         }
         AetObservation::LimbDamage(what, much) => {
@@ -115,7 +120,7 @@ pub fn apply_observation(
         AetObservation::Stand(who) => {
             timeline.set_flag_for_agent(who, &"asleep".to_string(), false);
             timeline.set_flag_for_agent(who, &"fallen".to_string(), false);
-            if timeline.get_agent(who).is(FType::Backstrain) {
+            if timeline.borrow_agent(who).is(FType::Backstrain) {
                 let after = after.clone();
                 for_agent_closure(
                     timeline,
@@ -134,22 +139,25 @@ pub fn apply_observation(
             timeline.set_flag_for_agent(who, &"fallen".to_string(), true);
         }
         AetObservation::ParryStart(who, what) => {
-            let mut me = timeline.get_agent(who);
             let limb = get_limb_damage(what)?;
-            me.set_parrying(limb);
-            timeline.set_agent(who, me);
+            for_agent_closure(
+                timeline,
+                who,
+                Box::new(move |me| {
+                    me.set_parrying(limb);
+                }),
+            );
         }
         AetObservation::Parry(who, what) => {
-            let mut me = timeline.get_agent(who);
             let limb = get_limb_damage(what)?;
-            me.set_parrying(limb);
-            timeline.set_agent(who, me);
-            if timeline.get_agent(who).is(FType::SoreWrist) {
-                let after = after.clone();
-                for_agent_closure(
-                    timeline,
-                    who,
-                    Box::new(move |you| {
+            let who = who.clone();
+            let after = after.clone();
+            for_agent_closure(
+                timeline,
+                &who,
+                Box::new(move |you| {
+                    you.set_parrying(limb);
+                    if you.is(FType::SoreWrist) {
                         apply_limb_damage(
                             you,
                             (LType::LeftArmDamage, 5.0, you.is(FType::Stiffness)),
@@ -160,9 +168,9 @@ pub fn apply_observation(
                             (LType::LeftArmDamage, 5.0, you.is(FType::Stiffness)),
                             &after,
                         );
-                    }),
-                );
-            }
+                    }
+                }),
+            );
         }
         AetObservation::Wield { who, what, hand } => {
             let left = if hand.eq("left") {
@@ -175,26 +183,45 @@ pub fn apply_observation(
             } else {
                 None
             };
-            let mut me = timeline.get_agent(who);
-            me.wield_multi(left, right);
-            timeline.set_agent(who, me);
+            for_agent_closure(
+                timeline,
+                &who,
+                Box::new(move |me| {
+                    me.wield_multi(left.clone(), right.clone());
+                }),
+            );
         }
         AetObservation::Unwield { who, what: _, hand } => {
             let left = hand.eq("left");
             let right = hand.eq("right");
-            let mut me = timeline.get_agent(who);
-            me.unwield_multi(left, right);
-            timeline.set_agent(who, me);
+            for_agent_closure(
+                timeline,
+                &who,
+                Box::new(move |me| {
+                    me.unwield_multi(left, right);
+                }),
+            );
         }
         AetObservation::DualWield { who, left, right } => {
-            let mut me = timeline.get_agent(who);
-            me.wield_multi(Some(left.clone()), Some(right.clone()));
-            timeline.set_agent(who, me);
+            let left = left.clone();
+            let right = right.clone();
+            for_agent_closure(
+                timeline,
+                &who,
+                Box::new(move |me| {
+                    me.wield_multi(Some(left.clone()), Some(right.clone()));
+                }),
+            );
         }
         AetObservation::TwoHandedWield(who, what) => {
-            let mut me = timeline.get_agent(who);
-            me.wield_two_hands(what.clone());
-            timeline.set_agent(who, me);
+            let what = what.clone();
+            for_agent_closure(
+                timeline,
+                &who,
+                Box::new(move |me| {
+                    me.wield_two_hands(what.clone());
+                }),
+            );
         }
         AetObservation::TickAff(who, what) => {
             timeline.tick_counter_up_for_agent(who, what)?;
@@ -206,9 +233,14 @@ pub fn apply_observation(
                 // We've already handled this block.
                 return Ok(());
             }
-            let mut you = timeline.get_agent(who);
-            apply_or_infer_relapse(&mut you, after)?;
-            timeline.set_agent(who, you);
+            let after = after.clone();
+            for_agent_closure(
+                timeline,
+                &who,
+                Box::new(move |you| {
+                    apply_or_infer_relapse(you, &after);
+                }),
+            );
         }
         _ => {}
     }
@@ -278,8 +310,9 @@ lazy_static! {
 }
 
 pub fn apply_weapon_hits(
-    attacker: &mut AgentState,
-    target: &mut AgentState,
+    agent_states: &mut AetTimelineState,
+    me: &String,
+    you: &String,
     observations: &Vec<AetObservation>,
     first_person: bool,
     venom_hints: &Option<String>,
@@ -288,12 +321,26 @@ pub fn apply_weapon_hits(
         for i in 0..observations.len() {
             if let Some(AetObservation::Devenoms(venom)) = observations.get(i) {
                 if let Some(AetObservation::Rebounds) = observations.get(i - 1) {
-                    target.set_flag(FType::Rebounding, true);
-                    apply_venom(attacker, venom, false)?;
+                    agent_states.for_agent(you, |you| {
+                        you.set_flag(FType::Rebounding, true);
+                    });
+                    let venom = venom.clone();
+                    agent_states.for_agent_closure(
+                        me,
+                        Box::new(move |me| {
+                            apply_venom(me, &venom, false);
+                        }),
+                    );
                 } else {
                     if let Some(AetObservation::PurgeVenom(_, _v2)) = observations.get(i + 1) {
                     } else {
-                        apply_venom(target, venom, false)?;
+                        let venom = venom.clone();
+                        agent_states.for_agent_closure(
+                            you,
+                            Box::new(move |you| {
+                                apply_venom(you, &venom, false);
+                            }),
+                        );
                     }
                 }
             } else if let Some(AetObservation::CombatAction(_)) = observations.get(i) {
@@ -318,9 +365,14 @@ pub fn apply_weapon_hits(
             venoms.pop();
         }
         println!("Caught {:?}", venoms);
-        for venom in venoms.iter() {
-            apply_venom(target, venom, false)?;
-        }
+        agent_states.for_agent_closure(
+            you,
+            Box::new(move |you| {
+                for venom in venoms.iter() {
+                    apply_venom(you, &venom, false);
+                }
+            }),
+        );
     }
     Ok(())
 }
@@ -667,8 +719,7 @@ pub fn apply_or_infer_cure(
 }
 
 pub fn for_agent(agent_states: &mut AetTimelineState, target: &String, act: fn(&mut AgentState)) {
-    let mut you = agent_states.get_mut_agent(target);
-    act(&mut you);
+    agent_states.for_agent(target, act)
 }
 
 pub fn for_agent_closure(
@@ -676,29 +727,7 @@ pub fn for_agent_closure(
     target: &String,
     act: Box<dyn Fn(&mut AgentState)>,
 ) {
-    let mut you = agent_states.get_mut_agent(target);
-    act(&mut you);
-}
-
-pub fn for_agent_pair(agent_states: &mut AetTimelineState, caster: &String, target: &String, act: fn(&mut AgentState, &mut AgentState)) {
-    let mut me = agent_states.get_agent(caster);
-    let mut you = agent_states.get_agent(target);
-    act(&mut me, &mut you);
-    agent_states.set_agent(caster, me);
-    agent_states.set_agent(target, you);
-}
-
-pub fn for_agent_pair_closure(
-    agent_states: &mut AetTimelineState,
-    caster: &String,
-    target: &String,
-    act: Box<dyn Fn(&mut AgentState, &mut AgentState)>,
-) {
-    let mut me = agent_states.get_agent(caster);
-    let mut you = agent_states.get_agent(target);
-    act(&mut me, &mut you);
-    agent_states.set_agent(caster, me);
-    agent_states.set_agent(target, you);
+    agent_states.for_agent_closure(target, act)
 }
 
 pub fn attack_afflictions(
@@ -708,11 +737,14 @@ pub fn attack_afflictions(
     after: &Vec<AetObservation>,
 ) {
     if attack_hit(after) {
-        let mut you = agent_states.get_agent(target);
-        for aff in affs.iter() {
-            you.set_flag(*aff, true);
-        }
-        agent_states.set_agent(target, you);
+        agent_states.for_agent_closure(
+            target,
+            Box::new(move |you| {
+                for aff in affs.clone().iter() {
+                    you.set_flag(*aff, true);
+                }
+            }),
+        );
     }
 }
 
@@ -723,11 +755,14 @@ pub fn attack_strip(
     after: &Vec<AetObservation>,
 ) {
     if attack_hit(after) {
-        let mut you = agent_states.get_agent(target);
-        for def in defs.iter() {
-            you.set_flag(*def, false);
-        }
-        agent_states.set_agent(target, you);
+        agent_states.for_agent_closure(
+            target,
+            Box::new(move |you| {
+                for def in defs.clone().iter() {
+                    you.set_flag(*def, false);
+                }
+            }),
+        );
     }
 }
 
@@ -738,16 +773,51 @@ pub fn attack_strip_or_afflict(
     after: &Vec<AetObservation>,
 ) {
     if attack_hit(after) {
-        let mut you = agent_states.get_agent(target);
-        for aff_def in aff_defs.iter() {
-            if !aff_def.is_affliction() && you.is(*aff_def) {
-                you.set_flag(*aff_def, false);
-                break;
-            } else if aff_def.is_affliction() && !you.is(*aff_def) {
-                you.set_flag(*aff_def, true);
-                break;
-            }
-        }
-        agent_states.set_agent(target, you);
+        agent_states.for_agent_closure(
+            target,
+            Box::new(move |you| {
+                for aff_def in aff_defs.clone().iter() {
+                    if !aff_def.is_affliction() && you.is(*aff_def) {
+                        you.set_flag(*aff_def, false);
+                        break;
+                    } else if aff_def.is_affliction() && !you.is(*aff_def) {
+                        you.set_flag(*aff_def, true);
+                        break;
+                    }
+                }
+            }),
+        );
     }
+}
+
+pub fn apply_combo_balance(
+    agent_states: &mut AetTimelineState,
+    caster: &String,
+    expected: (BType, f32),
+    after: &Vec<AetObservation>,
+) {
+    let observations = after.clone();
+    for_agent_closure(
+        agent_states,
+        caster,
+        Box::new(move |me| {
+            apply_or_infer_combo_balance(me, expected, &observations);
+        }),
+    );
+}
+
+pub fn attack_limb_damage(
+    agent_states: &mut AetTimelineState,
+    target: &String,
+    expected: (LType, f32, bool),
+    after: &Vec<AetObservation>,
+) {
+    let observations = after.clone();
+    for_agent_closure(
+        agent_states,
+        target,
+        Box::new(move |you| {
+            apply_limb_damage(you, expected, &observations);
+        }),
+    );
 }

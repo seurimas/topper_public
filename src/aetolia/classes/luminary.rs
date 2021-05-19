@@ -10,17 +10,26 @@ pub fn handle_combat_action(
 ) -> Result<(), String> {
     match combat_action.skill.as_ref() {
         "Aura" => {
-            let mut me = agent_states.get_agent(&combat_action.caster);
-            apply_or_infer_balance(&mut me, (BType::Equil, 3.0), after);
-            agent_states.set_agent(&combat_action.caster, me);
+            let observations = after.clone();
+            for_agent_closure(
+                agent_states,
+                &combat_action.caster,
+                Box::new(move |me| {
+                    apply_or_infer_balance(me, (BType::Equil, 3.0), &observations);
+                }),
+            );
             let mut affected = if combat_action.target == "" {
                 &combat_action.caster
             } else {
                 &combat_action.target
             };
-            let mut you = agent_states.get_agent(affected);
-            you.set_flag(FType::Shielded, true);
-            agent_states.set_agent(affected, you);
+            for_agent_closure(
+                agent_states,
+                affected,
+                Box::new(move |you| {
+                    you.set_flag(FType::Shielded, true);
+                }),
+            );
         }
         _ => {}
     }

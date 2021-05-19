@@ -210,22 +210,26 @@ impl TimelineState<AgentState> {
         flag_name: &String,
         val: bool,
     ) -> Result<(), String> {
-        let mut me = self.get_agent(who);
-        if let Some(aff_flag) = FType::from_name(flag_name) {
-            if aff_flag == FType::ThinBlood && !val {
-                me.clear_relapses();
-            }
-            if aff_flag == FType::Insomnia && val && me.is(FType::Hypersomnia) {
-                println!("Insomnia blocked by hypersomnia");
-            } else {
-                me.set_flag(aff_flag, val);
-            }
-        } else if let Ok((_damage_type, _damage_amount)) = get_damage_barrier(flag_name) {
-            // Do nothing...
-        } else {
-            return Err(format!("Failed to find flag {}", flag_name));
-        }
-        self.set_agent(who, me);
+        let flag_name = flag_name.clone();
+        self.for_agent_closure(
+            who,
+            Box::new(move |me| {
+                if let Some(aff_flag) = FType::from_name(&flag_name) {
+                    if aff_flag == FType::ThinBlood && !val {
+                        me.clear_relapses();
+                    }
+                    if aff_flag == FType::Insomnia && val && me.is(FType::Hypersomnia) {
+                        println!("Insomnia blocked by hypersomnia");
+                    } else {
+                        me.set_flag(aff_flag, val);
+                    }
+                } else if let Ok((_damage_type, _damage_amount)) = get_damage_barrier(&flag_name) {
+                    // Do nothing...
+                } else {
+                    // Err(format!("Failed to find flag {}", flag_name));
+                }
+            }),
+        );
         Ok(())
     }
 
@@ -234,18 +238,22 @@ impl TimelineState<AgentState> {
         who: &String,
         flag_name: &String,
     ) -> Result<(), String> {
-        let mut me = self.get_agent(who);
-        if let Some(aff_flag) = FType::from_name(flag_name) {
-            if aff_flag.is_counter() {
-                println!("Ticking up!");
-                me.tick_flag_up(aff_flag);
-            } else {
-                return Err(format!("Tried to tick non-counter: {}", flag_name));
-            }
-        } else {
-            return Err(format!("Failed to find flag {}", flag_name));
-        }
-        self.set_agent(who, me);
+        let flag_name = flag_name.clone();
+        self.for_agent_closure(
+            who,
+            Box::new(move |me| {
+                if let Some(aff_flag) = FType::from_name(&flag_name) {
+                    if aff_flag.is_counter() {
+                        println!("Ticking up!");
+                        me.tick_flag_up(aff_flag);
+                    } else {
+                        // return Err(format!("Tried to tick non-counter: {}", flag_name));
+                    }
+                } else {
+                    // return Err(format!("Failed to find flag {}", flag_name));
+                }
+            }),
+        );
         Ok(())
     }
 
@@ -255,18 +263,24 @@ impl TimelineState<AgentState> {
         what: &String,
         val: f32,
     ) -> Result<(), String> {
-        let mut me = self.get_agent(who);
         let limb = get_limb_damage(what)?;
-        me.limb_damage.adjust_limb(limb, (val * 100.0) as CType);
-        self.set_agent(who, me);
+        self.for_agent_closure(
+            who,
+            Box::new(move |me| {
+                me.limb_damage.adjust_limb(limb, (val * 100.0) as CType);
+            }),
+        );
         Ok(())
     }
 
     pub fn finish_agent_restore(&mut self, who: &String, what: &String) -> Result<(), String> {
-        let mut me = self.get_agent(who);
         let limb = get_limb_damage(what)?;
-        me.complete_restoration(limb);
-        self.set_agent(who, me);
+        self.for_agent_closure(
+            who,
+            Box::new(move |me| {
+                me.complete_restoration(limb);
+            }),
+        );
         Ok(())
     }
 
@@ -318,26 +332,27 @@ impl AetTimeline {
             self.state.agent_states = HashMap::new();
         } else {
             for (key, val) in self.state.agent_states.iter_mut() {
+                let mut agent = val.first_mut().unwrap();
                 let mut affs = Vec::new();
-                for aff in val.flags.aff_iter() {
+                for aff in agent.flags.aff_iter() {
                     affs.push(aff);
                 }
                 for aff in affs.iter() {
-                    val.set_flag(*aff, false);
+                    agent.set_flag(*aff, false);
                 }
-                val.set_flag(FType::Blindness, true);
-                val.set_flag(FType::Deafness, true);
-                val.set_flag(FType::Temperance, true);
-                val.set_flag(FType::Levitation, true);
-                val.set_flag(FType::Speed, true);
-                val.set_flag(FType::Temperance, true);
-                val.set_flag(FType::Vigor, true);
-                val.set_flag(FType::Rebounding, true);
-                val.set_flag(FType::Insomnia, true);
-                val.set_flag(FType::Fangbarrier, true);
-                val.set_flag(FType::Instawake, true);
-                val.set_flag(FType::Insulation, true);
-                val.limb_damage = LimbSet::default();
+                agent.set_flag(FType::Blindness, true);
+                agent.set_flag(FType::Deafness, true);
+                agent.set_flag(FType::Temperance, true);
+                agent.set_flag(FType::Levitation, true);
+                agent.set_flag(FType::Speed, true);
+                agent.set_flag(FType::Temperance, true);
+                agent.set_flag(FType::Vigor, true);
+                agent.set_flag(FType::Rebounding, true);
+                agent.set_flag(FType::Insomnia, true);
+                agent.set_flag(FType::Fangbarrier, true);
+                agent.set_flag(FType::Instawake, true);
+                agent.set_flag(FType::Insulation, true);
+                agent.limb_damage = LimbSet::default();
             }
         }
     }

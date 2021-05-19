@@ -18,9 +18,11 @@ pub trait BaseAgentState {
     fn wait(&mut self, time: i32);
 }
 
+pub type AgentStates<A> = HashMap<String, Vec<A>>;
+
 #[derive(Clone)]
 pub struct TimelineState<A> {
-    pub agent_states: HashMap<String, A>,
+    pub agent_states: AgentStates<A>,
     pub free_hints: HashMap<String, String>,
     pub time: CType,
     pub me: String,
@@ -53,9 +55,13 @@ impl<A: BaseAgentState + Clone> TimelineState<A> {
 
     pub fn get_mut_agent(&mut self, name: &String) -> &mut A {
         if let Some(agent) = self.agent_states.get(name) {
-            self.agent_states.get_mut(name).unwrap()
+            self.agent_states
+                .get_mut(name)
+                .and_then(|state| state.first_mut())
+                .unwrap()
         } else {
-            self.agent_states.insert(name.to_string(), A::get_base_state());
+            self.agent_states
+                .insert(name.to_string(), vec![A::get_base_state()]);
             self.get_mut_agent(name)
         }
     }
@@ -71,6 +77,7 @@ impl<A: BaseAgentState + Clone> TimelineState<A> {
     pub fn borrow_agent(&self, name: &String) -> A {
         self.agent_states
             .get(name)
+            .and_then(|state| state.first())
             .cloned()
             .unwrap_or_else(A::get_base_state)
     }
@@ -79,13 +86,20 @@ impl<A: BaseAgentState + Clone> TimelineState<A> {
         self.borrow_agent(&self.me.clone())
     }
 
-    pub fn set_agent(&mut self, name: &String, state: A) {
-        self.agent_states.insert(name.to_string(), state);
+    pub fn for_agent(&mut self, who: &String, act: fn(&mut A)) {
+        let mut you = self.get_mut_agent(who);
+        act(&mut you);
+    }
+    pub fn for_agent_closure(&mut self, who: &String, act: Box<dyn Fn(&mut A)>) {
+        let mut you = self.get_mut_agent(who);
+        act(&mut you);
     }
 
     fn wait(&mut self, duration: CType) {
         for agent_state in self.agent_states.values_mut() {
-            agent_state.wait(duration);
+            for agent_state in agent_state.iter_mut() {
+                agent_state.wait(duration);
+            }
         }
     }
 

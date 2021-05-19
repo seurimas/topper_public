@@ -396,17 +396,23 @@ pub fn handle_combat_action(
         "Slash" | "Stab" | "Slice" | "Thrust" | "Ambush" | "Flourish" => {
             let observations = after.clone();
             let first_person = combat_action.caster.eq(&agent_states.me);
-            let hints = agent_states.get_player_hint(&combat_action.caster, &"CALLED_VENOMS".to_string());
-            for_agent_pair_closure(agent_states, &combat_action.caster, &combat_action.target, Box::new(move |me, you| {
-                apply_weapon_hits(
-                    me,
-                    you,
-                    &observations,
-                    first_person,
-                    &hints,
-                );
-                apply_or_infer_balance(me, (BType::Balance, 2.65), &observations);
-            }));
+            let hints =
+                agent_states.get_player_hint(&combat_action.caster, &"CALLED_VENOMS".to_string());
+            apply_weapon_hits(
+                agent_states,
+                &combat_action.caster,
+                &combat_action.target,
+                after,
+                first_person,
+                &hints,
+            );
+            for_agent_closure(
+                agent_states,
+                &combat_action.caster,
+                Box::new(move |me| {
+                    apply_or_infer_balance(me, (BType::Balance, 2.65), &observations);
+                }),
+            );
         }
         "Pierce" | "Sever" => {
             let mut target = &combat_action.target;

@@ -44,26 +44,29 @@ pub fn handle_simple_cure_action(
     _before: &Vec<AetObservation>,
     after: &Vec<AetObservation>,
 ) -> Result<(), String> {
-    let mut me = agent_states.get_agent(&simple_cure.caster);
-    let results = match &simple_cure.cure_type {
-        SimpleCure::Pill(_) => {
-            apply_or_infer_balance(&mut me, (BType::Pill, 2.0), after);
-            apply_or_infer_cure(&mut me, &simple_cure.cure_type, after)?;
-            Ok(())
-        }
-        SimpleCure::Salve(_salve_name, _salve_loc) => {
-            apply_or_infer_balance(&mut me, (BType::Salve, 2.0), after);
-            apply_or_infer_cure(&mut me, &simple_cure.cure_type, after)?;
-            Ok(())
-        }
-        SimpleCure::Smoke(_) => {
-            apply_or_infer_balance(&mut me, (BType::Smoke, 2.0), after);
-            apply_or_infer_cure(&mut me, &simple_cure.cure_type, after)?;
-            Ok(())
-        } // _ => Ok(()),
-    };
-    agent_states.set_agent(&simple_cure.caster, me);
-    results
+    let observations = after.clone();
+    let cure_type = simple_cure.cure_type.clone();
+    for_agent_closure(
+        agent_states,
+        &simple_cure.caster,
+        Box::new(move |me| {
+            match &cure_type {
+                SimpleCure::Pill(_) => {
+                    apply_or_infer_balance(me, (BType::Pill, 2.0), &observations);
+                    apply_or_infer_cure(me, &cure_type, &observations);
+                }
+                SimpleCure::Salve(_salve_name, _salve_loc) => {
+                    apply_or_infer_balance(me, (BType::Salve, 2.0), &observations);
+                    apply_or_infer_cure(me, &cure_type, &observations);
+                }
+                SimpleCure::Smoke(_) => {
+                    apply_or_infer_balance(me, (BType::Smoke, 2.0), &observations);
+                    apply_or_infer_cure(me, &cure_type, &observations);
+                }
+            };
+        }),
+    );
+    Ok(())
 }
 
 #[derive(Debug, Default)]

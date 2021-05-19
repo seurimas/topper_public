@@ -1,7 +1,7 @@
 mod sentinel_timeline_tests {
-    use crate::timeline::BaseTimeline;
-    use crate::aetolia::types::*;
     use crate::aetolia::timeline::*;
+    use crate::aetolia::types::*;
+    use crate::timeline::BaseTimeline;
 
     #[test]
     fn test_salve_attacks() {
@@ -30,12 +30,12 @@ mod sentinel_timeline_tests {
             me: "Rinata".into(),
         };
         timeline.push_time_slice(breath_flourish_slice);
-        let me_state = timeline.state.get_agent(&"Rinata".to_string());
+        let me_state = timeline.state.borrow_agent(&"Rinata".to_string());
         assert_eq!(me_state.balanced(BType::Balance), false);
         assert_eq!(me_state.balanced(BType::Equil), false);
         assert_eq!(me_state.is(FType::Insulation), true);
         assert_eq!(me_state.is(FType::LeftLegBroken), false);
-        let you_state = timeline.state.get_agent(&"Illidan".to_string());
+        let you_state = timeline.state.borrow_agent(&"Illidan".to_string());
         assert_eq!(you_state.balanced(BType::Balance), true);
         assert_eq!(you_state.balanced(BType::Equil), true);
         assert_eq!(you_state.is(FType::Insulation), false);
