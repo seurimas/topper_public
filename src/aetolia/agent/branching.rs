@@ -1,9 +1,9 @@
+use super::*;
 use crate::timeline::BaseAgentState;
 use num_enum::TryFromPrimitive;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::fmt;
-use super::*;
 
 #[derive(Debug, Clone)]
 pub struct Branch {

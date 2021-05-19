@@ -12,5 +12,6 @@ extern crate log;
 extern crate chrono;
 extern crate simplelog;
 pub mod aetolia;
+pub mod combinatorics;
 pub mod timeline;
 pub mod topper;

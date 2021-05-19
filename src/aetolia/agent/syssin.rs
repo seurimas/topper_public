@@ -1,4 +1,5 @@
 use super::*;
+use crate::combinatorics::combinations;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -10,8 +11,14 @@ pub enum RelapseState {
 
 pub enum RelapseResult {
     Concrete(Vec<String>),
-    Uncertain(Vec<(CType, String)>),
+    Uncertain(usize, Vec<(CType, String)>),
     None,
+}
+
+impl RelapseResult {
+    fn branch(&self, me: &AgentState) -> Vec<AgentState> {
+        vec![]
+    }
 }
 
 impl Default for RelapseState {
@@ -87,7 +94,7 @@ impl RelapseState {
                     RelapseResult::Concrete(possible)
                 } else if possible.len() > 0 {
                     relapses.retain(|(time, _venom)| RelapseState::is_venom_alive(*time));
-                    RelapseResult::Uncertain(relapses.clone())
+                    RelapseResult::Uncertain(relapse_count, relapses.clone())
                 } else {
                     RelapseResult::None
                 }

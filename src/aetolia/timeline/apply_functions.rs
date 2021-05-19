@@ -234,12 +234,10 @@ pub fn apply_observation(
                 return Ok(());
             }
             let after = after.clone();
-            for_agent_closure(
+            for_agent_uncertain_closure(
                 timeline,
                 &who,
-                Box::new(move |you| {
-                    apply_or_infer_relapse(you, &after);
-                }),
+                Box::new(move |you| apply_or_infer_relapse(you, &after)),
             );
         }
         _ => {}
@@ -503,7 +501,7 @@ pub fn apply_limb_damage(
 pub fn apply_or_infer_relapse(
     who: &mut AgentState,
     after: &Vec<AetObservation>,
-) -> Result<(), String> {
+) -> Option<Vec<AgentState>> {
     let mut relapse_count = 1;
     let mut name = "";
     for observation in after.iter() {
@@ -522,17 +520,15 @@ pub fn apply_or_infer_relapse(
         RelapseResult::Concrete(venoms) => {
             println!("Relapses: {:?}", venoms);
             for venom in venoms.iter() {
-                apply_venom(who, &venom, true)?;
+                apply_venom(who, &venom, true);
             }
         }
-        RelapseResult::Uncertain(venoms) => {
-            println!("Possible relapses: {:?}", venoms);
-        }
+        RelapseResult::Uncertain(_len, venoms) => {}
         RelapseResult::None => {
             println!("No relapses found???");
         }
     }
-    Ok(())
+    None
 }
 
 pub fn apply_or_infer_balance(
@@ -728,6 +724,22 @@ pub fn for_agent_closure(
     act: Box<dyn Fn(&mut AgentState)>,
 ) {
     agent_states.for_agent_closure(target, act)
+}
+
+pub fn for_agent_uncertain(
+    agent_states: &mut AetTimelineState,
+    target: &String,
+    act: fn(&mut AgentState) -> Option<Vec<AgentState>>,
+) {
+    agent_states.for_agent_uncertain(target, act)
+}
+
+pub fn for_agent_uncertain_closure(
+    agent_states: &mut AetTimelineState,
+    target: &String,
+    act: Box<dyn Fn(&mut AgentState) -> Option<Vec<AgentState>>>,
+) {
+    agent_states.for_agent_uncertain_closure(target, act)
 }
 
 pub fn attack_afflictions(

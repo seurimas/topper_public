@@ -95,6 +95,23 @@ impl<A: BaseAgentState + Clone> TimelineState<A> {
         act(&mut you);
     }
 
+    pub fn for_agent_uncertain(&mut self, who: &String, act: fn(&mut A) -> Option<Vec<A>>) {
+        let mut you = self.get_mut_agent(who);
+        if let Some(branches) = act(&mut you) {
+            self.agent_states.insert(who.clone(), branches);
+        }
+    }
+    pub fn for_agent_uncertain_closure(
+        &mut self,
+        who: &String,
+        act: Box<dyn Fn(&mut A) -> Option<Vec<A>>>,
+    ) {
+        let mut you = self.get_mut_agent(who);
+        if let Some(branches) = act(&mut you) {
+            self.agent_states.insert(who.clone(), branches);
+        }
+    }
+
     fn wait(&mut self, duration: CType) {
         for agent_state in self.agent_states.values_mut() {
             for agent_state in agent_state.iter_mut() {
