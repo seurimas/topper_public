@@ -293,6 +293,23 @@ impl TimelineState<AgentState> {
         apply_observation(self, observation, before, after)
     }
 
+    fn strikeout(&mut self) {
+        for (key, values) in self.agent_states.iter_mut() {
+            let mut lowest_strikes = usize::MAX;
+            for branch in values.iter() {
+                if branch.branch_state.strikes() < lowest_strikes {
+                    lowest_strikes = branch.branch_state.strikes();
+                }
+            }
+            let before = values.len();
+            values.retain(|branch| branch.branch_state.strikes() == lowest_strikes);
+            let after = values.len();
+            if before != after {
+                println!("Strikeout! ({}: {} -> {})", key, before, after);
+            }
+        }
+    }
+
     fn apply_time_slice(
         &mut self,
         slice: &TimeSlice<AetObservation, AetPrompt>,
@@ -322,6 +339,7 @@ impl TimelineState<AgentState> {
                 }),
             );
         }
+        self.strikeout();
         Ok(())
     }
 }
@@ -331,6 +349,7 @@ impl AetTimeline {
         if full {
             self.state.agent_states = HashMap::new();
         } else {
+            let mut strikeout = false;
             for (key, val) in self.state.agent_states.iter_mut() {
                 let mut agent = val.first_mut().unwrap();
                 let mut affs = Vec::new();
@@ -339,6 +358,11 @@ impl AetTimeline {
                 }
                 for aff in affs.iter() {
                     agent.set_flag(*aff, false);
+                }
+                if strikeout {
+                    agent.branch_state.strike();
+                } else {
+                    strikeout = true;
                 }
                 agent.set_flag(FType::Blindness, true);
                 agent.set_flag(FType::Deafness, true);

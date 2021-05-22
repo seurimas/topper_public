@@ -13,28 +13,34 @@ fn revert_flag(flag: FType, val: bool) -> Box<Fn(&mut AgentState)> {
 }
 
 pub fn top_aff(who: &AgentState, afflictions: Vec<FType>) -> Option<FType> {
-    let mut top = None;
     for affliction in afflictions.iter() {
         if who.is(*affliction) {
-            top = Some(*affliction);
+            return Some(*affliction);
         }
     }
-    top
+    None
 }
 
-pub fn remove_in_order(
-    afflictions: Vec<FType>,
-) -> Box<Fn(&mut AgentState) -> Box<Fn(&mut AgentState)>> {
+pub fn top_missing_aff(who: &AgentState, afflictions: Vec<FType>) -> Option<FType> {
+    for affliction in afflictions.iter() {
+        if !who.is(*affliction) {
+            return Some(*affliction);
+        }
+    }
+    None
+}
+
+pub fn remove_in_order(afflictions: Vec<FType>) -> Box<Fn(&mut AgentState)> {
     Box::new(move |me| {
-        let mut revert = noop();
         for affliction in afflictions.iter() {
             if me.is(*affliction) {
-                revert = revert_flag(*affliction, true);
                 me.set_flag(*affliction, false);
-                break;
+                return;
             }
         }
-        revert
+        println!("{:?} {:?}", me.is(FType::Anorexia), afflictions);
+        // No affs found. Assume this is a poor quality branch.
+        me.branch_state.strike();
     })
 }
 
@@ -50,18 +56,16 @@ pub fn handle_simple_cure_action(
         agent_states,
         &simple_cure.caster,
         Box::new(move |me| {
+            apply_or_infer_cure(me, &cure_type, &observations);
             match &cure_type {
                 SimpleCure::Pill(_) => {
                     apply_or_infer_balance(me, (BType::Pill, 2.0), &observations);
-                    apply_or_infer_cure(me, &cure_type, &observations);
                 }
                 SimpleCure::Salve(_salve_name, _salve_loc) => {
                     apply_or_infer_balance(me, (BType::Salve, 2.0), &observations);
-                    apply_or_infer_cure(me, &cure_type, &observations);
                 }
                 SimpleCure::Smoke(_) => {
                     apply_or_infer_balance(me, (BType::Smoke, 2.0), &observations);
-                    apply_or_infer_cure(me, &cure_type, &observations);
                 }
             };
         }),

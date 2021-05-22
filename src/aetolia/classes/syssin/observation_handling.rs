@@ -291,28 +291,28 @@ pub fn handle_combat_action(
                 Box::new(move |you| {
                     match annotation.as_ref() {
                         "rebounding" => {
-                            you.set_flag(FType::Rebounding, false);
+                            you.toggle_flag(FType::Rebounding, false);
                         }
                         "failure-rebounding" => {
-                            you.set_flag(FType::Rebounding, false);
+                            you.observe_flag(FType::Rebounding, false);
                         }
                         "fangbarrier" => {
-                            you.set_flag(FType::Fangbarrier, false);
+                            you.toggle_flag(FType::Fangbarrier, false);
                         }
                         "failure-fangbarrier" => {
-                            you.set_flag(FType::Fangbarrier, false);
+                            you.observe_flag(FType::Fangbarrier, false);
                         }
                         "shield" => {
-                            you.set_flag(FType::Shielded, false);
+                            you.toggle_flag(FType::Shielded, false);
                         }
                         "failure-shield" => {
-                            you.set_flag(FType::Shielded, false);
+                            you.observe_flag(FType::Shielded, false);
                         }
                         "speed" => {
-                            you.set_flag(FType::Speed, false);
+                            you.toggle_flag(FType::Speed, false);
                         }
                         "cloak" => {
-                            you.set_flag(FType::Cloak, false);
+                            you.toggle_flag(FType::Cloak, false);
                         }
                         _ => {}
                     }

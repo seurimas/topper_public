@@ -1,9 +1,9 @@
+use super::*;
 use crate::timeline::BaseAgentState;
 use num_enum::TryFromPrimitive;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::fmt;
-use super::*;
 
 #[derive(Debug, Clone, Default)]
 pub struct AgentState {
@@ -75,6 +75,10 @@ impl BaseAgentState for AgentState {
         val.set_flag(FType::Insulation, true);
         val
     }
+
+    fn branch(&mut self, time: CType) {
+        self.branch_state.branch(time);
+    }
 }
 
 impl AgentState {
@@ -117,6 +121,26 @@ impl AgentState {
         return false;
     }
 
+    // The flag is observed to be a certain value (true or false).
+    pub fn observe_flag(&mut self, flag: FType, value: bool) {
+        if !value && self.is(flag) {
+            self.branch_state.strike_aff(flag, value);
+        } else if value && !self.is(flag) {
+            self.branch_state.strike_aff(flag, value);
+        }
+        self.set_flag(flag, value);
+    }
+
+    // The flag is observed switching to a certin value (true or false)
+    pub fn toggle_flag(&mut self, flag: FType, value: bool) {
+        if value && self.is(flag) {
+            self.branch_state.strike_aff(flag, !value);
+        } else if value && self.is(flag) {
+            self.branch_state.strike_aff(flag, !value);
+        }
+        self.set_flag(flag, value);
+    }
+
     pub fn set_flag(&mut self, flag: FType, value: bool) {
         match flag {
             FType::LeftLegBroken => self
@@ -153,6 +177,14 @@ impl AgentState {
                 });
             }
         }
+    }
+
+    // The flag is observed to be a certain value (true or false).
+    pub fn observe_flag_ticking(&mut self, flag: FType) {
+        if !self.is(flag) {
+            self.branch_state.strike_aff(flag, true);
+        }
+        self.tick_flag_up(flag);
     }
 
     pub fn tick_flag_up(&mut self, flag: FType) {

@@ -105,7 +105,7 @@ pub fn handle_combat_action(
         }
         "InfernalSeal" => {
             for_agent(agent_states, &combat_action.caster, |you| {
-                you.set_flag(FType::Ablaze, true);
+                you.observe_flag(FType::Ablaze, true);
                 you.set_flag(FType::InfernalSeal, true);
             });
         }
@@ -134,7 +134,7 @@ pub fn handle_combat_action(
             }
             "shield" => {
                 for_agent(agent_states, &combat_action.caster, |me| {
-                    me.set_flag(FType::Shielded, false);
+                    me.toggle_flag(FType::Shielded, false);
                 });
             }
             _ => {}
@@ -488,7 +488,7 @@ pub fn handle_combat_action(
         "Immolation" => {
             if combat_action.annotation.eq("failure") {
                 for_agent(agent_states, &combat_action.target, |me| {
-                    me.set_flag(FType::Ablaze, false);
+                    me.observe_flag(FType::Ablaze, false);
                 });
             }
         }

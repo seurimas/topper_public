@@ -320,7 +320,7 @@ pub fn apply_weapon_hits(
             if let Some(AetObservation::Devenoms(venom)) = observations.get(i) {
                 if let Some(AetObservation::Rebounds) = observations.get(i - 1) {
                     agent_states.for_agent(you, |you| {
-                        you.set_flag(FType::Rebounding, true);
+                        you.observe_flag(FType::Rebounding, true);
                     });
                     let venom = venom.clone();
                     agent_states.for_agent_closure(
@@ -502,6 +502,7 @@ pub fn apply_or_infer_relapse(
     who: &mut AgentState,
     after: &Vec<AetObservation>,
 ) -> Option<Vec<AgentState>> {
+    who.observe_flag(FType::ThinBlood, true);
     let mut relapse_count = 1;
     let mut name = "";
     for observation in after.iter() {
@@ -523,7 +524,21 @@ pub fn apply_or_infer_relapse(
                 apply_venom(who, &venom, true);
             }
         }
-        RelapseResult::Uncertain(_len, venoms) => {}
+        RelapseResult::Uncertain(len, venoms) => {
+            let possibilities = crate::combinatorics::combinations(venoms.as_slice(), len);
+            let mut branches = Vec::new();
+            for relapse_sets in possibilities.iter() {
+                let mut branch = who.clone();
+                for (time, venom) in relapse_sets.iter() {
+                    branch.relapses.drop_relapse(*time, venom);
+                    apply_venom(&mut branch, venom, true);
+                }
+                branches.push(branch);
+            }
+            if branches.len() > 0 {
+                return Some(branches);
+            }
+        }
         RelapseResult::None => {
             println!("No relapses found???");
         }
@@ -592,7 +607,7 @@ pub fn apply_or_infer_cures(
         match observation {
             AetObservation::Cured(aff_name) => {
                 if let Some(aff) = FType::from_name(&aff_name) {
-                    who.set_flag(aff, false);
+                    who.toggle_flag(aff, false);
                     if aff == FType::ThinBlood {
                         who.clear_relapses();
                     } else if aff == FType::Void {
@@ -603,7 +618,7 @@ pub fn apply_or_infer_cures(
             }
             AetObservation::Stripped(def_name) => {
                 if let Some(def) = FType::from_name(&def_name) {
-                    who.set_flag(def, false);
+                    who.toggle_flag(def, false);
                     found_cures.push(def);
                 }
             }
@@ -624,12 +639,58 @@ pub fn apply_or_infer_cure(
     let mut found_cures = Vec::new();
     if let Some(AetObservation::Cured(aff_name)) = after.get(1) {
         if let Some(aff) = FType::from_name(&aff_name) {
-            who.set_flag(aff, false);
+            match cure {
+                SimpleCure::Pill(pill_name) => {
+                    who.observe_flag(FType::Anorexia, false);
+                    if aff != FType::Void && aff != FType::Weakvoid {
+                        if let Some(order) = PILL_CURE_ORDERS.get(pill_name) {
+                            for pill_aff in order.iter() {
+                                if *pill_aff == aff {
+                                    break;
+                                } else {
+                                    who.observe_flag(*pill_aff, false);
+                                }
+                            }
+                        }
+                    }
+                }
+                SimpleCure::Salve(salve_name, salve_loc) => {
+                    who.observe_flag(FType::Slickness, false);
+                    if aff != FType::Void && aff != FType::Weakvoid {
+                        if let Some(order) =
+                            SALVE_CURE_ORDERS.get(&(salve_name.to_string(), salve_loc.to_string()))
+                        {
+                            for salve_aff in order.iter() {
+                                if *salve_aff == aff {
+                                    break;
+                                } else {
+                                    who.observe_flag(*salve_aff, false);
+                                }
+                            }
+                        }
+                    }
+                }
+                SimpleCure::Smoke(herb_name) => {
+                    who.observe_flag(FType::Asthma, false);
+                    if aff != FType::Void && aff != FType::Weakvoid {
+                        if let Some(order) = SMOKE_CURE_ORDERS.get(herb_name) {
+                            for herb_aff in order.iter() {
+                                if *herb_aff == aff {
+                                    break;
+                                } else {
+                                    who.observe_flag(*herb_aff, false);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            who.toggle_flag(aff, false);
             found_cures.push(aff);
         }
     } else if let Some(AetObservation::DiscernedCure(_you, aff_name)) = after.get(1) {
         if let Some(aff) = FType::from_name(&aff_name) {
-            who.set_flag(aff, false);
+            who.toggle_flag(aff, false);
             if aff == FType::Void {
                 who.set_flag(FType::Weakvoid, true);
             }
@@ -637,16 +698,13 @@ pub fn apply_or_infer_cure(
         }
     } else if let Some(AetObservation::Stripped(def_name)) = after.get(1) {
         if let Some(def) = FType::from_name(&def_name) {
-            who.set_flag(def, false);
+            who.toggle_flag(def, false);
             found_cures.push(def);
         }
     } else {
         match cure {
             SimpleCure::Pill(pill_name) => {
-                if who.is(FType::Anorexia) {
-                    who.set_flag(FType::Anorexia, false);
-                    warn!("Missed Anorexia cure!");
-                }
+                who.observe_flag(FType::Anorexia, false);
                 if pill_name == "anabiotic" {
                 } else if let Some(order) = PILL_CURE_ORDERS.get(pill_name) {
                     let cured = top_aff(who, order.to_vec());
@@ -665,10 +723,8 @@ pub fn apply_or_infer_cure(
                 }
             }
             SimpleCure::Salve(salve_name, salve_loc) => {
-                if who.is(FType::Slickness) {
-                    who.set_flag(FType::Slickness, false);
-                    warn!("Missed Slickness cure!");
-                }
+                who.observe_flag(FType::Slickness, false);
+                println!("SALVE");
                 if salve_name == "caloric" {
                     if who.some(CALORIC_TORSO_ORDER.to_vec()) {
                         remove_in_order(CALORIC_TORSO_ORDER.to_vec())(who);
@@ -697,10 +753,7 @@ pub fn apply_or_infer_cure(
                 }
             }
             SimpleCure::Smoke(herb_name) => {
-                if who.is(FType::Asthma) {
-                    who.set_flag(FType::Asthma, false);
-                    warn!("Missed Asthma cure!");
-                }
+                who.observe_flag(FType::Asthma, false);
                 if let Some(order) = SMOKE_CURE_ORDERS.get(herb_name) {
                     remove_in_order(order.to_vec())(who);
                 } else if herb_name == "reishi" {

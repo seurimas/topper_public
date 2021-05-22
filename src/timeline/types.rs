@@ -16,6 +16,7 @@ pub struct TimeSlice<O, P> {
 pub trait BaseAgentState {
     fn get_base_state() -> Self;
     fn wait(&mut self, time: i32);
+    fn branch(&mut self, time: i32);
 }
 
 pub type AgentStates<A> = HashMap<String, Vec<A>>;
@@ -53,12 +54,9 @@ impl<A: BaseAgentState + Clone> TimelineState<A> {
         self.borrow_agent(name)
     }
 
-    pub fn get_mut_agent(&mut self, name: &String) -> &mut A {
+    fn get_mut_agent(&mut self, name: &String) -> &mut Vec<A> {
         if let Some(agent) = self.agent_states.get(name) {
-            self.agent_states
-                .get_mut(name)
-                .and_then(|state| state.first_mut())
-                .unwrap()
+            self.agent_states.get_mut(name).unwrap()
         } else {
             self.agent_states
                 .insert(name.to_string(), vec![A::get_base_state()]);
@@ -87,17 +85,36 @@ impl<A: BaseAgentState + Clone> TimelineState<A> {
     }
 
     pub fn for_agent(&mut self, who: &String, act: fn(&mut A)) {
-        let mut you = self.get_mut_agent(who);
-        act(&mut you);
+        for you in self.get_mut_agent(who) {
+            act(you);
+        }
     }
     pub fn for_agent_closure(&mut self, who: &String, act: Box<dyn Fn(&mut A)>) {
-        let mut you = self.get_mut_agent(who);
-        act(&mut you);
+        for you in self.get_mut_agent(who) {
+            act(you);
+        }
     }
 
     pub fn for_agent_uncertain(&mut self, who: &String, act: fn(&mut A) -> Option<Vec<A>>) {
-        let mut you = self.get_mut_agent(who);
-        if let Some(branches) = act(&mut you) {
+        let mut branches = Vec::new();
+        let mut unbranched = Vec::new();
+        for (i, mut you) in self.get_mut_agent(who).iter_mut().enumerate() {
+            if let Some(mut new_branches) = act(you) {
+                branches.append(&mut new_branches);
+            } else {
+                unbranched.push(i);
+            }
+        }
+        if branches.len() > 0 {
+            branches.extend(self.get_mut_agent(who).drain(..).enumerate().filter_map(
+                |(i, agent)| {
+                    if unbranched.contains(&i) {
+                        Some(agent)
+                    } else {
+                        None
+                    }
+                },
+            ));
             self.agent_states.insert(who.clone(), branches);
         }
     }
@@ -106,8 +123,28 @@ impl<A: BaseAgentState + Clone> TimelineState<A> {
         who: &String,
         act: Box<dyn Fn(&mut A) -> Option<Vec<A>>>,
     ) {
-        let mut you = self.get_mut_agent(who);
-        if let Some(branches) = act(&mut you) {
+        let mut branches = Vec::new();
+        let mut unbranched = Vec::new();
+        for (i, mut you) in self.get_mut_agent(who).iter_mut().enumerate() {
+            if let Some(mut new_branches) = act(you) {
+                branches.append(&mut new_branches);
+            } else {
+                unbranched.push(i);
+            }
+        }
+        if branches.len() > 0 {
+            branches.extend(self.get_mut_agent(who).drain(..).enumerate().filter_map(
+                |(i, agent)| {
+                    if unbranched.contains(&i) {
+                        Some(agent)
+                    } else {
+                        None
+                    }
+                },
+            ));
+            branches.iter_mut().for_each(|branch| {
+                branch.branch(self.time);
+            });
             self.agent_states.insert(who.clone(), branches);
         }
     }

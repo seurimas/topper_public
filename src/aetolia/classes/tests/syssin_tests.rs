@@ -474,7 +474,7 @@ mod syssin_timeline_tests {
             time: 0,
             me: "Seurimas".into(),
         };
-        let cure_slice = AetTimeSlice {
+        let cure_slice_1 = AetTimeSlice {
             observations: Some(vec![
                 AetObservation::SimpleCureAction(SimpleCureAction {
                     caster: "Benedicto".into(),
@@ -482,7 +482,7 @@ mod syssin_timeline_tests {
                 }),
                 AetObservation::SimpleCureAction(SimpleCureAction {
                     caster: "Benedicto".into(),
-                    cure_type: SimpleCure::Salve("epidermal".into(), "head".into()),
+                    cure_type: SimpleCure::Salve("epidermal".into(), "torso".into()),
                 }),
             ]),
             lines: vec![],
@@ -491,16 +491,20 @@ mod syssin_timeline_tests {
             me: "Seurimas".into(),
         };
         let relapse_slice_1 = AetTimeSlice {
-            observations: Some(vec![
-                AetObservation::Relapse("Benedicto".into()),
-                AetObservation::SimpleCureAction(SimpleCureAction {
-                    caster: "Benedicto".into(),
-                    cure_type: SimpleCure::Salve("epidermal".into(), "head".into()),
-                }),
-            ]),
+            observations: Some(vec![AetObservation::Relapse("Benedicto".into())]),
             lines: vec![],
             prompt: AetPrompt::Blackout,
             time: 220,
+            me: "Seurimas".into(),
+        };
+        let cure_slice_2 = AetTimeSlice {
+            observations: Some(vec![AetObservation::SimpleCureAction(SimpleCureAction {
+                caster: "Benedicto".into(),
+                cure_type: SimpleCure::Salve("epidermal".into(), "torso".into()),
+            })]),
+            lines: vec![],
+            prompt: AetPrompt::Blackout,
+            time: 225,
             me: "Seurimas".into(),
         };
         let relapse_slice_2 = AetTimeSlice {
@@ -519,12 +523,13 @@ mod syssin_timeline_tests {
         assert_eq!(bene_state.balanced(BType::Balance), true);
         assert_eq!(bene_state.is(FType::Asthma), true);
         assert_eq!(bene_state.is(FType::Anorexia), true);
-        timeline.push_time_slice(cure_slice);
+        timeline.push_time_slice(cure_slice_1);
         let mut bene_cured_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(bene_cured_state.balanced(BType::Balance), true);
         assert_eq!(bene_cured_state.is(FType::Asthma), false);
         assert_eq!(bene_cured_state.is(FType::Anorexia), false);
         timeline.push_time_slice(relapse_slice_1);
+        timeline.push_time_slice(cure_slice_2);
         let mut bene_relapsed_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(bene_relapsed_state.balanced(BType::Balance), true);
         assert_eq!(bene_relapsed_state.is(FType::Asthma), false);

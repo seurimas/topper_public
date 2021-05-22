@@ -445,11 +445,8 @@ pub fn handle_combat_action(
                         if me.is(FType::Laxity) {
                             duration += 2.0;
                         }
-                        if me.is(FType::Paresis) || me.is(FType::Paralysis) {
-                            me.set_flag(FType::Paresis, false);
-                            me.set_flag(FType::Paralysis, false);
-                            warn!("Missed Paresis cure!");
-                        }
+                        me.observe_flag(FType::Paresis, false);
+                        me.observe_flag(FType::Paralysis, false);
                         apply_or_infer_balance(me, (BType::Tree, duration), &observations);
                     }),
                 );
@@ -509,22 +506,22 @@ pub fn handle_combat_action(
             "dizziness" => {
                 for_agent(agent_states, &combat_action.caster, |you| {
                     you.set_flag(FType::Fallen, true);
-                    you.set_flag(FType::Dizziness, true);
+                    you.observe_flag(FType::Dizziness, true);
                 });
                 Ok(())
             }
             "stupidity" => {
                 for_agent(agent_states, &combat_action.caster, |you| {
                     you.set_flag(FType::Fallen, true);
-                    you.set_flag(FType::Stupidity, true);
+                    you.observe_flag(FType::Stupidity, true);
                 });
                 Ok(())
             }
             "broken legs" => {
                 for_agent(agent_states, &combat_action.caster, |you| {
                     you.set_flag(FType::Fallen, true);
-                    you.set_flag(FType::LeftLegBroken, true);
-                    you.set_flag(FType::RightLegBroken, true);
+                    you.observe_flag(FType::LeftLegBroken, true);
+                    you.observe_flag(FType::RightLegBroken, true);
                 });
                 Ok(())
             }

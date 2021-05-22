@@ -15,12 +15,6 @@ pub enum RelapseResult {
     None,
 }
 
-impl RelapseResult {
-    fn branch(&self, me: &AgentState) -> Vec<AgentState> {
-        vec![]
-    }
-}
-
 impl Default for RelapseState {
     fn default() -> Self {
         RelapseState::Inactive
@@ -56,6 +50,15 @@ impl RelapseState {
 
     fn is_venom_alive(time: CType) -> bool {
         time < (7.1 * BALANCE_SCALE as f32) as CType
+    }
+
+    pub fn drop_relapse(&mut self, time: CType, venom: &String) {
+        match self {
+            RelapseState::Active(relapses) => {
+                relapses.retain(|(r_time, r_venom)| *r_time != time || !r_venom.eq(venom));
+            }
+            RelapseState::Inactive => {}
+        }
     }
 
     pub fn stalest(&self, venoms: Vec<String>) -> Option<String> {
