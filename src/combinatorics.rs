@@ -15,7 +15,7 @@ fn combinations_util<A: Clone>(
         added.push(items[0].clone());
         combinations_util(complete_combinations, &items[1..], added, len - 1);
     } else {
-        panic!("Impossible!");
+        // Do nothing. No valid combinations.
     }
 }
 

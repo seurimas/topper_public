@@ -75,14 +75,11 @@ pub fn infer_suggestion(name: &String, agent_states: &mut AetTimelineState) -> H
         } else if suggestion.eq("eradicate") {
             Hypnosis::Eradicate
         } else if let Some(aff) = FType::from_name(&suggestion) {
-            println!("Good {:?}", aff);
             Hypnosis::Aff(aff)
         } else {
-            println!("Bad {}", suggestion);
             Hypnosis::Aff(FType::Impatience)
         }
     } else {
-        println!("Bad, no hint");
         Hypnosis::Aff(FType::Impatience)
     }
 }

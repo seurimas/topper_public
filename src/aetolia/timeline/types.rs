@@ -12,7 +12,7 @@ use crate::topper::observations::EnumFromArgs;
 use log::warn;
 use regex::Regex;
 use serde::Deserialize;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Deserialize, Clone)]
 pub enum AetPrompt {
@@ -219,7 +219,6 @@ impl TimelineState<AgentState> {
                         me.clear_relapses();
                     }
                     if aff_flag == FType::Insomnia && val && me.is(FType::Hypersomnia) {
-                        println!("Insomnia blocked by hypersomnia");
                     } else {
                         me.set_flag(aff_flag, val);
                     }
@@ -244,7 +243,6 @@ impl TimelineState<AgentState> {
             Box::new(move |me| {
                 if let Some(aff_flag) = FType::from_name(&flag_name) {
                     if aff_flag.is_counter() {
-                        println!("Ticking up!");
                         me.tick_flag_up(aff_flag);
                     } else {
                         // return Err(format!("Tried to tick non-counter: {}", flag_name));
@@ -303,9 +301,17 @@ impl TimelineState<AgentState> {
             }
             let before = values.len();
             values.retain(|branch| branch.branch_state.strikes() == lowest_strikes);
+            let mid = values.len();
+            if mid > 32 {
+                let mut set = HashSet::new();
+                for branch in values.iter() {
+                    set.insert(branch.clone());
+                }
+                values.splice(.., set);
+            }
             let after = values.len();
             if before != after {
-                println!("Strikeout! ({}: {} -> {})", key, before, after);
+                println!("Strikeout! ({}: {} -> {} -> {})", key, before, mid, after);
             }
         }
     }
@@ -349,8 +355,8 @@ impl AetTimeline {
         if full {
             self.state.agent_states = HashMap::new();
         } else {
-            let mut strikeout = false;
             for (key, val) in self.state.agent_states.iter_mut() {
+                val.truncate(1);
                 let mut agent = val.first_mut().unwrap();
                 let mut affs = Vec::new();
                 for aff in agent.flags.aff_iter() {
@@ -359,11 +365,7 @@ impl AetTimeline {
                 for aff in affs.iter() {
                     agent.set_flag(*aff, false);
                 }
-                if strikeout {
-                    agent.branch_state.strike();
-                } else {
-                    strikeout = true;
-                }
+                agent.branch_state = BranchState::Single;
                 agent.set_flag(FType::Blindness, true);
                 agent.set_flag(FType::Deafness, true);
                 agent.set_flag(FType::Temperance, true);

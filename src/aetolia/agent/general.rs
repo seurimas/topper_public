@@ -420,6 +420,7 @@ impl FType {
 
 const COUNTERS_SIZE: usize = FType::FULL as usize - FType::SIZE as usize - 1;
 
+#[derive(PartialEq, Eq, Hash)]
 pub struct FlagSet {
     simple: [bool; FType::SIZE as usize],
     counters: [u8; COUNTERS_SIZE],
@@ -636,7 +637,7 @@ impl Clone for FlagSet {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum WieldState {
     Normal {
         left: Option<String>,
@@ -657,7 +658,7 @@ impl Default for WieldState {
 const SOFT_COOLDOWN: f32 = 2.0;
 const HARD_COOLDOWN: f32 = 6.0;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum DodgeState {
     Ready,
     Cooldown(CType),
@@ -713,7 +714,7 @@ impl DodgeState {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ClassState {
     Zealot(ZealotClassState),
     Shifter(HowlingState),
@@ -738,7 +739,7 @@ impl Default for ClassState {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ChannelState {
     Inactive,
     Heelrush(LType, CType),
@@ -765,7 +766,7 @@ impl Default for ChannelState {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TimedFlagState {
     Inactive,
     Active(CType),

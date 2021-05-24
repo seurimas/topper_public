@@ -146,7 +146,6 @@
     ],
     "observation_name": "CombatAction"
   },
-    
   {
     "regex": "^You have recovered balance on all limbs.$",
     "args": [

@@ -49,7 +49,6 @@ pub fn handle_combat_action(
                 agent_states,
                 &combat_action.caster,
                 Box::new(move |you| {
-                    println!("{:?} welt", limb);
                     you.limb_damage.welt(limb);
                 }),
             );
@@ -71,12 +70,6 @@ pub fn handle_combat_action(
                 "right leg" => LType::RightLegDamage,
                 _ => LType::SIZE, // I don't want to panic
             };
-            println!(
-                "{} {:?} hit? {}",
-                &combat_action.target,
-                limb,
-                attack_hit(after)
-            );
             attack_limb_damage(
                 agent_states,
                 &combat_action.caster,
@@ -165,7 +158,6 @@ pub fn handle_combat_action(
         }
         "Heelrush Two" => {
             if let Ok(limb) = get_limb_damage(&combat_action.annotation) {
-                println!("{:?}", limb);
                 attack_limb_damage(
                     agent_states,
                     &combat_action.target,
@@ -176,7 +168,6 @@ pub fn handle_combat_action(
         }
         "Heelrush Three" => {
             if let Ok(limb) = get_limb_damage(&combat_action.annotation) {
-                println!("{:?}", limb);
                 attack_limb_damage(
                     agent_states,
                     &combat_action.target,
@@ -1302,17 +1293,14 @@ lazy_static! {
             (
                 ComboType::ComboFirst,
                 if me.get_balance(BType::Secondary) < 3.0 {
-                    println!("On balance");
                     0.0
                 } else if let Some(class) = db_class(db) {
                     if is_affected_by(&class, FType::Clumsiness) {
                         25.0
                     } else {
-                    println!("Not affected");
                         0.0
                     }
                 } else {
-                    println!("No class");
                     0.0
                 },
             )
@@ -1644,15 +1632,6 @@ pub fn get_balance_attack(
         full_combo = format!("fend {};;{}", parry.to_string(), full_combo);
     }
     let db_p = db.map(|db| (db, target));
-    println!(
-        "Limbs: {} {} {} {} {} {}",
-        value_limb(LType::HeadDamage, &me, &you, db_p, strategy),
-        value_limb(LType::TorsoDamage, &me, &you, db_p, strategy),
-        value_limb(LType::LeftArmDamage, &me, &you, db_p, strategy),
-        value_limb(LType::RightArmDamage, &me, &you, db_p, strategy),
-        value_limb(LType::LeftLegDamage, &me, &you, db_p, strategy),
-        value_limb(LType::RightLegDamage, &me, &you, db_p, strategy),
-    );
     if let Some(hackles) = hackles {
         format!("qs {}%%qeb {}", hackles, full_combo)
     } else {

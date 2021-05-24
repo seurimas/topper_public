@@ -38,7 +38,6 @@ pub fn remove_in_order(afflictions: Vec<FType>) -> Box<Fn(&mut AgentState)> {
                 return;
             }
         }
-        println!("{:?} {:?}", me.is(FType::Anorexia), afflictions);
         // No affs found. Assume this is a poor quality branch.
         me.branch_state.strike();
     })

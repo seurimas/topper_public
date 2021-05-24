@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ZenithState {
     Inactive,
     Rising(CType),
@@ -56,7 +56,7 @@ impl ZenithState {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct ZealotClassState {
     pub zenith: ZenithState,
     pub pyromania: TimedFlagState,

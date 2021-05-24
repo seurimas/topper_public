@@ -3,15 +3,15 @@ use crate::combinatorics::combinations;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum RelapseState {
     Inactive,
     Active(Vec<(CType, String)>),
 }
 
 pub enum RelapseResult {
-    Concrete(Vec<String>),
-    Uncertain(usize, Vec<(CType, String)>),
+    Concrete(Vec<String>, usize),
+    Uncertain(usize, Vec<(CType, String)>, usize),
     None,
 }
 
@@ -85,19 +85,22 @@ impl RelapseState {
         match self {
             RelapseState::Active(relapses) => {
                 let mut possible = Vec::new();
+                let mut expired = 0;
                 for (time, venom) in relapses.iter() {
                     if RelapseState::is_venom_ripe(*time) {
                         possible.push(venom.to_string());
+                    } else if !RelapseState::is_venom_alive(*time) {
+                        expired += 1;
                     }
                 }
                 if possible.len() == relapse_count {
                     relapses.retain(|(time, _venom)| {
                         !RelapseState::is_venom_ripe(*time) && RelapseState::is_venom_alive(*time)
                     });
-                    RelapseResult::Concrete(possible)
+                    RelapseResult::Concrete(possible, expired)
                 } else if possible.len() > 0 {
                     relapses.retain(|(time, _venom)| RelapseState::is_venom_alive(*time));
-                    RelapseResult::Uncertain(relapse_count, relapses.clone())
+                    RelapseResult::Uncertain(relapse_count, relapses.clone(), expired)
                 } else {
                     RelapseResult::None
                 }
@@ -107,7 +110,7 @@ impl RelapseState {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Eq, Hash)]
 pub enum Hypnosis {
     Aff(FType),
     Action(String),
@@ -116,12 +119,23 @@ pub enum Hypnosis {
     Trigger(String),
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct HypnoState {
     pub hypnotized: bool,
     pub active: bool,
     pub sealed: Option<f32>,
     pub hypnosis_stack: Vec<Hypnosis>,
+}
+
+impl Eq for HypnoState {}
+
+impl std::hash::Hash for HypnoState {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.hypnotized.hash(state);
+        self.active.hash(state);
+        self.hypnosis_stack.hash(state);
+        self.sealed.is_some().hash(state);
+    }
 }
 
 impl HypnoState {

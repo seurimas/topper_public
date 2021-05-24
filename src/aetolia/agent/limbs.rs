@@ -1,9 +1,9 @@
+use super::*;
 use crate::timeline::BaseAgentState;
 use num_enum::TryFromPrimitive;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::fmt;
-use super::*;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, TryFromPrimitive)]
 #[repr(u8)]
@@ -104,7 +104,7 @@ pub fn get_damage_barrier(aff: &String) -> Result<(LType, CType), String> {
     }
 }
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Limb {
     pub damage: CType,
     pub broken: bool,
@@ -113,7 +113,7 @@ pub struct Limb {
     pub welt: bool,
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, PartialEq, Eq, Hash)]
 pub struct LimbSet {
     pub limbs: [Limb; LType::SIZE as usize],
     pub restoring: Option<LType>,

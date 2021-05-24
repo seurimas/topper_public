@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Howl {
     Terrorizing,
     Traumatic,
@@ -34,7 +34,7 @@ pub enum Howl {
     Lulling,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct HowlingState {
     pub snarling: bool,
     pub echoing: bool,

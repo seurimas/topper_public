@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::fmt;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct AgentState {
     pub balances: [CType; BType::SIZE as usize],
     pub stats: [CType; SType::SIZE as usize],
@@ -20,19 +20,6 @@ pub struct AgentState {
     pub dodge_state: DodgeState,
     pub channel_state: ChannelState,
     pub branch_state: BranchState,
-}
-
-impl PartialEq for AgentState {
-    fn eq(&self, other: &Self) -> bool {
-        let mut different = false;
-        for i in 0..self.balances.len() {
-            if self.balances[i] != other.balances[i] {
-                different = true;
-                break;
-            }
-        }
-        different
-    }
 }
 
 impl BaseAgentState for AgentState {

@@ -60,7 +60,6 @@ pub fn apply_observation(
                     }
                 }
             }
-            println!("{} {}", who, affliction);
             timeline.set_flag_for_agent(who, affliction, true)?;
         }
         AetObservation::Dodges(who) => {
@@ -108,7 +107,6 @@ pub fn apply_observation(
             }
         }
         AetObservation::LimbDamage(what, much) => {
-            println!("{} {}", what, much);
             timeline.adjust_agent_limb(&timeline.me.clone(), what, *much)?;
         }
         AetObservation::LimbHeal(what, much) => {
@@ -285,13 +283,10 @@ pub fn apply_venom(who: &mut AgentState, venom: &String, relapse: bool) -> Resul
     } else if venom == "camus" {
         who.set_stat(SType::Health, who.get_stat(SType::Health) - 1000);
     } else if venom == "delphinium" && who.is(FType::Insomnia) {
-        println!("Stripped insomnia");
         who.set_flag(FType::Insomnia, false);
     } else if venom == "delphinium" && !who.is(FType::Asleep) {
-        println!("Night night");
         who.set_flag(FType::Asleep, true);
     } else if venom == "delphinium" {
-        println!("Stripped instawake");
         who.set_flag(FType::Instawake, false);
     } else {
         return Err(format!("Could not determine effect of {}", venom));
@@ -356,13 +351,10 @@ pub fn apply_weapon_hits(
             venoms.push(captures.get(1).unwrap().as_str().to_string());
         }
         if let Some(AetObservation::Dodges(_)) = observations.get(1) {
-            println!("Dodged");
             venoms.pop();
         } else if let Some(AetObservation::Dodges(_)) = observations.get(1) {
-            println!("Dodged");
             venoms.pop();
         }
-        println!("Caught {:?}", venoms);
         agent_states.for_agent_closure(
             you,
             Box::new(move |you| {
@@ -516,16 +508,22 @@ pub fn apply_or_infer_relapse(
             }
         }
     }
-    println!("{} {}", relapse_count, name);
     match who.get_relapses(relapse_count) {
-        RelapseResult::Concrete(venoms) => {
-            println!("Relapses: {:?}", venoms);
+        RelapseResult::Concrete(venoms, expired) => {
             for venom in venoms.iter() {
                 apply_venom(who, &venom, true);
             }
+            if expired > 0 {
+                who.branch_state.strike();
+            }
         }
-        RelapseResult::Uncertain(len, venoms) => {
+        RelapseResult::Uncertain(len, venoms, expired) => {
             let possibilities = crate::combinatorics::combinations(venoms.as_slice(), len);
+            if possibilities.len() > 0 {
+                println!("Branching {} more times...", possibilities.len() - 1);
+            } else {
+                println!("Pruning branch for no possible relapses.");
+            }
             let mut branches = Vec::new();
             for relapse_sets in possibilities.iter() {
                 let mut branch = who.clone();
@@ -535,12 +533,15 @@ pub fn apply_or_infer_relapse(
                 }
                 branches.push(branch);
             }
+            if expired > 0 {
+                who.branch_state.strike();
+            }
             if branches.len() > 0 {
                 return Some(branches);
             }
         }
         RelapseResult::None => {
-            println!("No relapses found???");
+            who.branch_state.strike();
         }
     }
     None
@@ -714,7 +715,6 @@ pub fn apply_or_infer_cure(
                     }
                 } else if let Some(defence) = PILL_DEFENCES.get(pill_name) {
                     if *defence == FType::Insomnia && who.is(FType::Hypersomnia) {
-                        println!("Insomnia blocked by hypersomnia");
                     } else {
                         who.set_flag(*defence, true);
                     }
@@ -724,7 +724,6 @@ pub fn apply_or_infer_cure(
             }
             SimpleCure::Salve(salve_name, salve_loc) => {
                 who.observe_flag(FType::Slickness, false);
-                println!("SALVE");
                 if salve_name == "caloric" {
                     if who.some(CALORIC_TORSO_ORDER.to_vec()) {
                         remove_in_order(CALORIC_TORSO_ORDER.to_vec())(who);
