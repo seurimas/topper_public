@@ -86,10 +86,10 @@ impl CombatAction {
     }
     pub fn proc_observation(
         caster: &str,
-        target: &str,
         category: &str,
         skill: &str,
         annotation: &str,
+        target: &str,
     ) -> AetObservation {
         AetObservation::Proc(CombatAction {
             caster: caster.to_string(),

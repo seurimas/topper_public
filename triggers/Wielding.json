@@ -7,14 +7,53 @@
       },
       {
         "GroupAsTarget": 3
-      },
-      {
-        "Literal": ""
-      },
-      {
-        "Literal": ""
       }
     ],
     "observation_name": "TwoHandedWield"
+  },
+  {
+    "regex": "^(\\w+) fluidly swaps? (.*) with (.*) in \\w+ left hand and (.*) in \\w+ right hand.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "GroupAsTarget": 3
+      },
+      {
+        "GroupAsTarget": 4
+      }
+    ],
+    "observation_name": "DualWield"
+  },
+  {
+    "regex": "^(\\w+) fluidly swaps? (.*) with (.*) in \\w+ (\\w+) hand.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "GroupAsTarget": 3
+      },
+      {
+        "GroupAsTarget": 4
+      }
+    ],
+    "observation_name": "Wield"
+  },
+  {
+    "regex": "^(\\w+) pulls? (.*) and (.*) from (\\w+) weaponbelt fluidly into both hands.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "GroupAsTarget": 2
+      },
+      {
+        "GroupAsTarget": 3
+      }
+    ],
+    "observation_name": "DualWield"
   }
 ]
