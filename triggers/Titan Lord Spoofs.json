@@ -1,0 +1,23 @@
+[
+  {
+    "regex": "^The meridian lines upon (\\w+) flare with power as they absorb the affliction.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Titan"
+      },
+      {
+        "Literal": "Irradiance"
+      },
+      {
+        "Literal": "proc"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "CombatAction"
+  }
+]

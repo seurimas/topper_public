@@ -1,0 +1,359 @@
+[
+  {
+    "regex": "^(\\w+) (parries|parry) the attack on \\w+ (head|torso|left arm|right arm|left leg|right leg) with a deft maneuver.$",
+    "args": [
+      {
+        "Literal": "Parry"
+      },
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "GroupAsTarget": 3
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^With a free hand, (\\w+) fends? off the attack on (\\w+) (head|torso|left arm|right arm|left leg|right leg).$",
+    "args": [
+      {
+        "Literal": "Parry"
+      },
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "GroupAsTarget": 3
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^(\\w+)'?s? (left arm|right arm|left leg|right leg) is badly crippled under the dhurive.$",
+    "args": [
+      {
+        "Literal": "Connects"
+      },
+      {
+        "GroupAsTarget": 2
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^(\\w+)'?s? (head|torso|left arm|right arm|left leg|right leg) breaks from all the damage.$",
+    "args": [
+      {
+        "Literal": "Damaged"
+      },
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "GroupAsTarget": 2
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^(Your) (head|torso|left arm|right arm|left leg|right leg) has been mutilated beyond repair by ordinary means.$",
+    "args": [
+      {
+        "Literal": "Mangled"
+      },
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "GroupAsTarget": 2
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^(\\w+)'s (head|torso|left arm|right arm|left leg|right leg) has been beaten into uselessness.$",
+    "args": [
+      {
+        "Literal": "Mangled"
+      },
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "GroupAsTarget": 2
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "The attack rebounds back onto you!",
+    "args": [
+      {
+        "Literal": "Rebounds"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "Your fangs won't penetrate the odd waxy coating protecting them.",
+    "args": [
+      {
+        "Literal": "Fangbarrier"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^You have afflicted with (.*).$",
+    "args": [
+      {
+        "Literal": "DiscernedAfflict"
+      },
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^You discern that (\\w+) has been afflicted with (.*).$",
+    "args": [
+      {
+        "Literal": "OtherAfflicted"
+      },
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "GroupAsTarget": 2
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^Stepping quickly out of the way, (\\w+) dodges the attack.$",
+    "args": [
+      {
+        "Literal": "Dodges"
+      },
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "You miss your strike by mere inches.",
+    "args": [
+      {
+        "Literal": "Misses"
+      },
+      {
+        "Literal": "you"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^\\w+ misses by mere inches.$",
+    "args": [
+      {
+        "Literal": "Misses"
+      },
+      {
+        "Literal": "you"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^A hollow whine lifts from (\\w+)'s ylem remnant as it is destroyed.$",
+    "args": [
+      {
+        "Literal": "Absorbed"
+      },
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Remnant"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^(\\w+)'s face flushes as (\\w+) body purges the (\\w+) venom.",
+    "args": [
+      {
+        "Literal": "PurgeVenom"
+      },
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "GroupAsTarget": 3
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^The countercurrent coating (\\w+)'s skin wicks away (\\w+) before it can take.$",
+    "args": [
+      {
+        "Literal": "PurgeVenom"
+      },
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "GroupAsTarget": 2
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^(\\w+)'s shield of flame repels the fiery attack.$",
+    "args": [
+      {
+        "Literal": "FlameShield"
+      },
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  }
+]

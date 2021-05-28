@@ -1,5 +1,5 @@
 use crate::timeline::TimeSlice;
-use regex::{Captures, Match, Regex, RegexSet};
+use regex::{Captures, Match, Regex, RegexSet, RegexSetBuilder};
 use serde::{Deserialize, Serialize};
 
 pub trait EnumFromArgs {
@@ -83,8 +83,10 @@ impl<O> ObservationParser<O> {
             .iter()
             .map(|mapping| Regex::new(&mapping.regex.clone()).unwrap())
             .collect();
-        let regex_set =
-            RegexSet::new(mappings.iter().map(|mapping| mapping.regex.clone())).unwrap();
+        let regex_set = RegexSetBuilder::new(mappings.iter().map(|mapping| mapping.regex.clone()))
+            .size_limit(1 << 24)
+            .build()
+            .unwrap();
         ObservationParser {
             regexes,
             regex_set,

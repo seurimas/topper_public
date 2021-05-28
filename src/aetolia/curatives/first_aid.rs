@@ -36,9 +36,9 @@ impl ActiveTransition for FocusAction {
     fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
         ProbableEvent::certain(vec![CombatAction::observation(
             &self.caster,
-            &"",
             &"Survival",
             &"Focus",
+            &"",
             &"",
         )])
     }
@@ -63,9 +63,9 @@ impl ActiveTransition for TreeAction {
     fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
         ProbableEvent::certain(vec![CombatAction::observation(
             &self.caster,
-            &"",
             &"Tattoos",
             &"Tree",
+            &"",
             &"",
         )])
     }

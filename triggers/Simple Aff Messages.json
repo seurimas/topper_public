@@ -1,0 +1,65 @@
+[
+  {
+    "regex": "^Your (.*) defence has been stripped.$",
+    "args": [
+      {
+        "Literal": "Stripped"
+      },
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^Your (\\w+ ?\\w*) has taken ([\\d\\.]+)% damage.$",
+    "args": [
+      {
+        "Literal": "LimbDamage"
+      },
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "GroupAsTarget": 2
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^Your (\\w+ ?\\w*) has recovered ([\\d\\.]+)% damage.$",
+    "args": [
+      {
+        "Literal": "LimbHeal"
+      },
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "GroupAsTarget": 2
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  }
+]

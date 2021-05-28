@@ -1,3 +1,4 @@
+use super::*;
 use crate::aetolia::alpha_beta::ActionPlanner;
 use crate::aetolia::classes::*;
 use crate::aetolia::curatives::get_cure_depth;
@@ -5,7 +6,6 @@ use crate::aetolia::observables::*;
 use crate::aetolia::timeline::*;
 use crate::aetolia::topper::*;
 use crate::aetolia::types::*;
-use super::*;
 use regex::Regex;
 use std::collections::HashMap;
 
@@ -229,9 +229,9 @@ lazy_static! {
 
 lazy_static! {
     static ref SALVE_STACK: Vec<FType> = vec![
-        FType::Anorexia,
         FType::LeftLegBroken,
         FType::RightLegBroken,
+        FType::Anorexia,
         FType::LeftArmBroken,
         FType::RightArmBroken,
         FType::Stupidity,

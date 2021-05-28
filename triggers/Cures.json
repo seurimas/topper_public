@@ -1,0 +1,65 @@
+[
+  {
+    "regex": "^(\\w+) press(es)? an? (\\w+) poultice against (\\w+) (\\w+ ?\\w*), rubbing (it|the poultice) into (\\w+) flesh.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Salve"
+      },
+      {
+        "GroupAsTarget": 3
+      },
+      {
+        "GroupAsTarget": 5
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "SimpleCure"
+  },
+  {
+    "regex": "^(\\w+) swallows? an? (\\w+) pill.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Pill"
+      },
+      {
+        "GroupAsTarget": 2
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "SimpleCure"
+  },
+  {
+    "regex": "^(\\w+) takes? a long drag off (\\w+) pipe filled with (\\w+).$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Smoke"
+      },
+      {
+        "GroupAsTarget": 3
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "SimpleCure"
+  }
+]

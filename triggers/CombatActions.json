@@ -1,0 +1,338 @@
+[
+  {
+    "regex": "^(\\w+) uses? (\\w+) (\\w+ ?\\w*)( \\((.*)\\))?( on (.*))?.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "GroupAsTarget": 2
+      },
+      {
+        "GroupAsTarget": 3
+      },
+      {
+        "GroupAsTarget": 5
+      },
+      {
+        "GroupAsTarget": 7
+      }
+    ],
+    "observation_name": "CombatAction"
+  },
+  {
+    "regex": "^(\\w+) touch(es)? (a|the) tree of life tattoo.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Tattoos"
+      },
+      {
+        "Literal": "Tree"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "CombatAction"
+  },
+  {
+    "regex": "^With a sinister grin, (\\w+)'s body seems to repair itself before your very eyes.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Hunting"
+      },
+      {
+        "Literal": "Renew"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "CombatAction"
+  },
+  {
+    "regex": "^(\\w+) calms for a moment as \\w+ body renews itself in an act of recovery.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Hunting"
+      },
+      {
+        "Literal": "Renew"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "CombatAction"
+  },
+  {
+    "regex": "^(\\w+) smiles faintly as a healing glow seems to push afflictions from \\w+ body.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Hunting"
+      },
+      {
+        "Literal": "Renew"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "CombatAction"
+  },
+  {
+    "regex": "A look of extreme focus crosses the face of (\\w+).",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Survival"
+      },
+      {
+        "Literal": "Focus"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "CombatAction"
+  },
+  {
+    "regex": "^(You) focus your mind intently on curing your mental maladies.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Survival"
+      },
+      {
+        "Literal": "Focus"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "CombatAction"
+  },
+  {
+    "regex": "^Heat fills (\\w+) (head|torso|left arm|right arm|left leg|right leg) as you will it to regenerate with speed.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Hunting"
+      },
+      {
+        "Literal": "Regenerate"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "CombatAction"
+  },
+  {
+    "regex": "^(\\w+) becomes flushed as \\w+ (head|torso|left arm|right arm|left leg|right leg) heals with quickened haste.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Hunting"
+      },
+      {
+        "Literal": "Regenerate"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "CombatAction"
+  },
+  {
+    "regex": "^A dizzying beam of energy strikes \\w+ as \\w+ attack rebounds off of (\\w+)'s shield.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Tattoos"
+      },
+      {
+        "Literal": "Shield"
+      },
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "proc"
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^(Flames|Hot flames|White-hot flames|Deadly flames) \\w+ around (\\w+)( - you are on fire!|, charring \\w+ flesh.)$",
+    "args": [
+      {
+        "GroupAsTarget": 2
+      },
+      {
+        "Literal": "Aff"
+      },
+      {
+        "Literal": "ablaze"
+      },
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^(\\w+) appears? dizzy and falls? over.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Aff"
+      },
+      {
+        "Literal": "dizziness"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^The ground seems to tilt and (you) fall with a thump.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Aff"
+      },
+      {
+        "Literal": "dizziness"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^(You) attempt to stomp on your own earlobe, but gravity takes hold of you and you cannot stop yourself from falling.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Aff"
+      },
+      {
+        "Literal": "stupidity"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^(\\w+) wobbles uncertainly before falling to the ground, \\w+ leg pulled awkwardly behind \\w+ own head.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Aff"
+      },
+      {
+        "Literal": "stupidity"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^(\\w+)'?s? broken legs cause \\w+ to fall to the ground in a heap.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Aff"
+      },
+      {
+        "Literal": "broken legs"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  }
+]

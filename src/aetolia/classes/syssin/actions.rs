@@ -1,3 +1,4 @@
+use super::*;
 use crate::aetolia::alpha_beta::ActionPlanner;
 use crate::aetolia::classes::*;
 use crate::aetolia::curatives::get_cure_depth;
@@ -7,7 +8,6 @@ use crate::aetolia::topper::*;
 use crate::aetolia::types::*;
 use regex::Regex;
 use std::collections::HashMap;
-use super::*;
 
 /**
  *
@@ -76,10 +76,10 @@ impl ActiveTransition for FlayAction {
     fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
         let mut observations = vec![CombatAction::observation(
             &self.caster,
-            &self.target,
             &"Assassination",
             &"Flay",
             &self.annotation,
+            &self.target,
         )];
         if self.venom.len() > 0
             && (self.annotation.eq_ignore_ascii_case("shield")
@@ -119,10 +119,10 @@ impl ActiveTransition for SlitAction {
     fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
         let mut observations = vec![CombatAction::observation(
             &self.caster,
-            &self.target,
             &"Assassination",
             &"Slit",
             &"",
+            &self.target,
         )];
         observations.push(AetObservation::Devenoms(self.venom.clone()));
         ProbableEvent::certain(observations)
@@ -166,10 +166,10 @@ impl ActiveTransition for ShruggingAction {
     fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
         ProbableEvent::certain(vec![CombatAction::observation(
             &self.caster,
-            &"",
             &"Assassination",
             &"Shrugging",
             &self.shrugged,
+            &"",
         )])
     }
     fn act(&self, timeline: &AetTimeline) -> ActivateResult {
@@ -197,10 +197,10 @@ impl ActiveTransition for BiteAction {
     fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
         ProbableEvent::certain(vec![CombatAction::observation(
             &self.caster,
-            &self.target,
             &"Assassination",
             &"Bite",
             &self.venom,
+            &self.target,
         )])
     }
 
@@ -251,10 +251,10 @@ impl ActiveTransition for HypnotiseAction {
     fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
         ProbableEvent::certain(vec![CombatAction::observation(
             &self.caster,
-            &self.target,
             &"Hypnosis",
             &"Hypnotise",
             &"",
+            &self.target,
         )])
     }
     fn act(&self, timeline: &AetTimeline) -> ActivateResult {
@@ -292,7 +292,7 @@ impl ActiveTransition for SuggestAction {
     fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
         ProbableEvent::certain(vec![
             AetObservation::Sent(self.get_suggestion()),
-            CombatAction::observation(&self.caster, &self.target, &"Hypnosis", &"Suggest", &""),
+            CombatAction::observation(&self.caster, &"Hypnosis", &"Suggest", &"", &self.target),
         ])
     }
     fn act(&self, timeline: &AetTimeline) -> ActivateResult {
@@ -320,7 +320,7 @@ impl ActiveTransition for SealAction {
     fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
         ProbableEvent::certain(vec![
             AetObservation::Sent(format!("seal {} {}", self.target, self.duration)),
-            CombatAction::observation(&self.caster, &self.target, &"Hypnosis", &"Suggest", &""),
+            CombatAction::observation(&self.caster, &"Hypnosis", &"Suggest", &"", &self.target),
         ])
     }
     fn act(&self, timeline: &AetTimeline) -> ActivateResult {
@@ -346,7 +346,7 @@ impl ActiveTransition for SnapAction {
     fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
         ProbableEvent::certain(vec![
             AetObservation::Sent(format!("snap {}", self.target)),
-            CombatAction::observation(&self.caster, &self.target, &"Hypnosis", &"Snap", &""),
+            CombatAction::observation(&self.caster, &"Hypnosis", &"Snap", &"", &self.target),
         ])
     }
     fn act(&self, timeline: &AetTimeline) -> ActivateResult {
@@ -374,10 +374,10 @@ impl ActiveTransition for SleightAction {
     fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
         ProbableEvent::certain(vec![CombatAction::observation(
             &self.caster,
-            &self.target,
             &"Hypnosis",
             &"Sleight",
             &self.sleight,
+            &self.target,
         )])
     }
     fn act(&self, timeline: &AetTimeline) -> ActivateResult {

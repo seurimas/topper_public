@@ -1,0 +1,23 @@
+[
+  {
+    "regex": "^(\\w+) fluidly swaps? (.*) with (.*) in both hands.$",
+    "args": [
+      {
+        "Literal": "TwoHandedWield"
+      },
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "GroupAsTarget": 3
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  }
+]

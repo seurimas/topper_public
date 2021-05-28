@@ -3,7 +3,7 @@ mod observer_tests {
 
     lazy_static! {
         static ref observer: ObservationParser<AetObservation> =
-            ObservationParser::<AetObservation>::new_from_file("triggers.json".to_string())
+            ObservationParser::<AetObservation>::new_from_directory("triggers".to_string())
                 .unwrap();
     }
 
@@ -23,10 +23,10 @@ mod observer_tests {
         let mut expected = Vec::new();
         expected.push(CombatAction::observation(
             "Seurimas",
-            "Benedicto",
             "Assassination",
             "Doublestab",
             "",
+            "Benedicto",
         ));
         assert_eq!(observed, expected);
     }
@@ -47,10 +47,10 @@ mod observer_tests {
         let mut expected = Vec::new();
         expected.push(CombatAction::observation(
             "Seurimas",
-            "Benedicto",
             "Assassination",
             "Bite",
             "scytherus",
+            "Benedicto",
         ));
         assert_eq!(observed, expected);
     }
@@ -68,9 +68,9 @@ mod observer_tests {
         let mut expected = Vec::new();
         expected.push(CombatAction::observation(
             "Seurimas",
-            "",
             "Assassination",
             "Warding",
+            "",
             "",
         ));
         assert_eq!(observed, expected);
@@ -91,13 +91,13 @@ mod observer_tests {
         let observed = observer.observe(&slice);
         let mut expected = Vec::new();
         expected.push(CombatAction::observation(
-            "Seurimas", "", "Tattoos", "Tree", "",
+            "Seurimas", "Tattoos", "Tree", "", "",
         ));
         expected.push(CombatAction::observation(
             "Benedicto",
-            "",
             "Tattoos",
             "Tree",
+            "",
             "",
         ));
         assert_eq!(observed, expected);

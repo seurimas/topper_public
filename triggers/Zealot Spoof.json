@@ -1,0 +1,233 @@
+[
+  {
+    "regex": "^A throbbing welt forms on (\\w+)'?s? (head|torso|left leg|right leg|left arm|right arm).$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Zeal"
+      },
+      {
+        "Literal": "Welts"
+      },
+      {
+        "GroupAsTarget": 2
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^(\\w+) winces as \\w+ (head|torso|left leg|right leg|left arm|right arm) throbs from duress.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Zeal"
+      },
+      {
+        "Literal": "WeltHit"
+      },
+      {
+        "GroupAsTarget": 2
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^The prolonged dislocation of (\\w+)'?s? (left arm|right arm|left leg|right leg) has exacerbated the injury.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Zeal"
+      },
+      {
+        "Literal": "Dislocated"
+      },
+      {
+        "GroupAsTarget": 2
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^The Infernal Seal upon (\\w+) flares sharply, setting \\w+ ablaze.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Zeal"
+      },
+      {
+        "Literal": "InfernalSeal"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^A hellcat shreds (\\w+) with blazing claws, heat lashing forth to scourge \\w+.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Zeal"
+      },
+      {
+        "Literal": "Hellcat"
+      },
+      {
+        "GroupAsTarget": 2
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^With a directing thought, (you)r chains act of their own will.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Zeal"
+      },
+      {
+        "Literal": "Hackles"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^Whirling your foot around, (you) lands? it into (\\w+)'?s? (torso|head|left leg|right leg|left arm|right arm) with a second hit.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Zeal"
+      },
+      {
+        "Literal": "Heelrush Two"
+      },
+      {
+        "GroupAsTarget": 3
+      },
+      {
+        "GroupAsTarget": 2
+      }
+    ],
+    "observation_name": "CombatAction"
+  },
+  {
+    "regex": "^With the last of (\\w+)'?s? momentum, \\w+ heave a straight kick into (\\w+)'?s? (torso|head|left arm|right arm|left leg|right leg).$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Zeal"
+      },
+      {
+        "Literal": "Heelrush Three"
+      },
+      {
+        "GroupAsTarget": 3
+      },
+      {
+        "GroupAsTarget": 2
+      }
+    ],
+    "observation_name": "CombatAction"
+  },
+  {
+    "regex": "^The force of the heated air unbalances (\\w+) and \\w+ falls?.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Purification"
+      },
+      {
+        "Literal": "Pyromania"
+      },
+      {
+        "Literal": "fall"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^The ground vents open, and a hellish torrent of heat and ash scourge (\\w+).$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Purification"
+      },
+      {
+        "Literal": "Pyromania"
+      },
+      {
+        "Literal": "hit"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^The ground vents open, and a hellish torrent of heat destroys (\\w+)'s magical shield.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Purification"
+      },
+      {
+        "Literal": "Pyromania"
+      },
+      {
+        "Literal": "shield"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  }
+]

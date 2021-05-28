@@ -71,12 +71,27 @@ pub struct CombatAction {
 impl CombatAction {
     pub fn observation(
         caster: &str,
+        category: &str,
+        skill: &str,
+        annotation: &str,
+        target: &str,
+    ) -> AetObservation {
+        AetObservation::CombatAction(CombatAction {
+            caster: caster.to_string(),
+            target: target.to_string(),
+            category: category.to_string(),
+            skill: skill.to_string(),
+            annotation: annotation.to_string(),
+        })
+    }
+    pub fn proc_observation(
+        caster: &str,
         target: &str,
         category: &str,
         skill: &str,
         annotation: &str,
     ) -> AetObservation {
-        AetObservation::CombatAction(CombatAction {
+        AetObservation::Proc(CombatAction {
             caster: caster.to_string(),
             target: target.to_string(),
             category: category.to_string(),

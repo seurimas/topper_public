@@ -19,7 +19,7 @@ fn main() {
     let file = File::open(args.get(1).unwrap()).unwrap();
     let reader = BufReader::new(file);
     let observer =
-        ObservationParser::<AetObservation>::new_from_file("triggers.json".to_string()).unwrap();
+        ObservationParser::<AetObservation>::new_from_directory("triggers".to_string()).unwrap();
 
     for (index, line) in reader.lines().enumerate() {
         let line = line.unwrap();
@@ -28,18 +28,19 @@ fn main() {
         match r_slice {
             Ok(TopperMessage::AetEvent(slice)) => {
                 let new = observer.observe(&slice);
-                let prev = slice.observations.unwrap();
-                let prev_without_sent: Vec<&AetObservation> = prev
-                    .iter()
-                    .filter(|obs| match obs {
-                        AetObservation::Sent(_) => false,
-                        _ => true,
-                    })
-                    .collect();
-                if prev_without_sent.len() != new.len() {
-                    println!("{}: {:?} {:?}", index, prev_without_sent, new);
-                } else if !prev_without_sent.iter().zip(&new).all(|(a, b)| *a == b) {
-                    println!("{}: {:?} {:?}", index, prev_without_sent, new);
+                if let Some(prev) = slice.observations {
+                    let prev_without_sent: Vec<&AetObservation> = prev
+                        .iter()
+                        .filter(|obs| match obs {
+                            AetObservation::Sent(_) => false,
+                            _ => true,
+                        })
+                        .collect();
+                    if prev_without_sent.len() != new.len() {
+                        println!("{}: {:?} {:?}", index, prev_without_sent, new);
+                    } else if !prev_without_sent.iter().zip(&new).all(|(a, b)| *a == b) {
+                        println!("{}: {:?} {:?}", index, prev_without_sent, new);
+                    }
                 }
             }
             _ => {}

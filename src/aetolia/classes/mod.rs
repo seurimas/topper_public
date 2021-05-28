@@ -394,7 +394,7 @@ pub fn handle_combat_action(
                     &combat_action.caster,
                     Box::new(move |me| {
                         let mut duration = 5.0;
-                        if me.is(FType::NumbedSkin) {
+                        if me.is(FType::MentalFatigue) {
                             duration += 5.0;
                         }
                         if me.is(FType::Laxity) {
