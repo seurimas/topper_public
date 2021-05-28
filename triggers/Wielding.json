@@ -3,9 +3,6 @@
     "regex": "^(\\w+) fluidly swaps? (.*) with (.*) in both hands.$",
     "args": [
       {
-        "Literal": "TwoHandedWield"
-      },
-      {
         "GroupAsTarget": 1
       },
       {
@@ -18,6 +15,6 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "TwoHandedWield"
   }
 ]

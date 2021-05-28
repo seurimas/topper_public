@@ -31,7 +31,7 @@ impl ArgumentCapture {
             },
             ArgumentCapture::GroupAsTarget(idx) => match captures.get(*idx) {
                 Some(text) => match text.as_str() {
-                    "You" | "you" | "yourself" | "your" => slice.me.clone(),
+                    "You" | "you" | "yourself" | "your" | "Your" => slice.me.clone(),
                     x => x.to_string(),
                 },
                 None => "".to_string(),

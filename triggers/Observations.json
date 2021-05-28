@@ -3,9 +3,6 @@
     "regex": "^You discern that (\\w+) has cured the effects of (.*).$",
     "args": [
       {
-        "Literal": "DiscernedCure"
-      },
-      {
         "GroupAsTarget": 1
       },
       {
@@ -18,15 +15,12 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "DiscernedCure"
   },
   {
     "regex": "^You discern that (\\w+) has resisted the (.*) affliction.$",
     "args": [
       {
-        "Literal": "DiscernedCure"
-      },
-      {
         "GroupAsTarget": 1
       },
       {
@@ -39,14 +33,11 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "DiscernedCure"
   },
   {
     "regex": "A thick, hardened shell of paste has formed around (\\w+).",
     "args": [
-      {
-        "Literal": "Gained"
-      },
       {
         "GroupAsTarget": 1
       },
@@ -60,14 +51,11 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "Gained"
   },
   {
     "regex": "You suddenly perceive the vague outline of an aura of rebounding around (\\w+).",
     "args": [
-      {
-        "Literal": "Gained"
-      },
       {
         "GroupAsTarget": 1
       },
@@ -81,14 +69,11 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "Gained"
   },
   {
     "regex": "^(\\w+) clenches \\w+ fists and grits? \\w+ teeth.$",
     "args": [
-      {
-        "Literal": "Gained"
-      },
       {
         "GroupAsTarget": 1
       },
@@ -102,14 +87,11 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "Gained"
   },
   {
     "regex": "^(\\w+)'s aura of weapons rebounding disappears.$",
     "args": [
-      {
-        "Literal": "LostRebound"
-      },
       {
         "GroupAsTarget": 1
       },
@@ -123,14 +105,47 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "LostRebound"
+  },
+  {
+    "regex": "You have recovered balance on all limbs.",
+    "args": [
+      {
+        "Literal": "Balance"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "BalanceBack"
+  },
+  {
+    "regex": "You have recovered equilibrium.",
+    "args": [
+      {
+        "Literal": "Equil"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "BalanceBack"
   },
   {
     "regex": "^The shadowy void around (\\w+) disappears.$",
     "args": [
-      {
-        "Literal": "DiscernedCure"
-      },
       {
         "GroupAsTarget": 1
       },
@@ -144,14 +159,11 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "DiscernedCure"
   },
   {
     "regex": "^The shadowy void around (\\w+) weakens.$",
     "args": [
-      {
-        "Literal": "DiscernedCure"
-      },
       {
         "GroupAsTarget": 1
       },
@@ -165,15 +177,12 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "DiscernedCure"
   },
   {
     "regex": "^(\\w+) swoons? as (\\w+) suffers? a toxic relapse.$",
     "args": [
       {
-        "Literal": "Relapse"
-      },
-      {
         "GroupAsTarget": 1
       },
       {
@@ -186,15 +195,12 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "Relapse"
   },
   {
     "regex": "^(\\w+)'s eyes close suddenly as (\\w+) falls? asleep.$",
     "args": [
       {
-        "Literal": "OtherAfflicted"
-      },
-      {
         "GroupAsTarget": 1
       },
       {
@@ -207,15 +213,12 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "OtherAfflicted"
   },
   {
     "regex": "^(\\w+) opens (\\w+) eyes and yawns? mightily.$",
     "args": [
       {
-        "Literal": "DiscernedCure"
-      },
-      {
         "GroupAsTarget": 1
       },
       {
@@ -228,15 +231,12 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "DiscernedCure"
   },
   {
     "regex": "^(\\w+) wakes? up with a gasp of pain.$",
     "args": [
       {
-        "Literal": "DiscernedCure"
-      },
-      {
         "GroupAsTarget": 1
       },
       {
@@ -249,15 +249,12 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "DiscernedCure"
   },
   {
     "regex": "^The hardened paste coating (\\w+)'s body sloughs off from (\\w+) skin.$",
     "args": [
       {
-        "Literal": "LostFangBarrier"
-      },
-      {
         "GroupAsTarget": 1
       },
       {
@@ -270,15 +267,12 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "LostFangBarrier"
   },
   {
     "regex": "^The protective shield around (\\w+) dissipates.$",
     "args": [
       {
-        "Literal": "LostShield"
-      },
-      {
         "GroupAsTarget": 1
       },
       {
@@ -291,15 +285,12 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "LostShield"
   },
   {
     "regex": "^You have restored your (\\w+ ?\\w*) as best as you can!$",
     "args": [
       {
-        "Literal": "LimbDone"
-      },
-      {
         "GroupAsTarget": 1
       },
       {
@@ -312,15 +303,12 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "LimbDone"
   },
   {
     "regex": "^Your (\\w+ ?\\w*) is greatly healed, but still damaged.$",
     "args": [
       {
-        "Literal": "LimbDone"
-      },
-      {
         "GroupAsTarget": 1
       },
       {
@@ -333,14 +321,11 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "LimbDone"
   },
   {
     "regex": "^(\\w+) cringes? as a dark red rash spreads painfully across \\w+ skin.$",
     "args": [
-      {
-        "Literal": "TickAff"
-      },
       {
         "GroupAsTarget": 1
       },
@@ -354,15 +339,12 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "TickAff"
   },
   {
     "regex": "^(You) will now attempt to parry attacks to your (.*)\\.$",
     "args": [
       {
-        "Literal": "ParryStart"
-      },
-      {
         "GroupAsTarget": 1
       },
       {
@@ -375,15 +357,12 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "ParryStart"
   },
   {
     "regex": "^You see (\\w+) shift \\w+ parry to \\w+ (.*)\\.$",
     "args": [
       {
-        "Literal": "ParryStart"
-      },
-      {
         "GroupAsTarget": 1
       },
       {
@@ -396,15 +375,12 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "ParryStart"
   },
   {
     "regex": "^(You) will now try and fend off attacks aimed at your (.*).$",
     "args": [
       {
-        "Literal": "ParryStart"
-      },
-      {
         "GroupAsTarget": 1
       },
       {
@@ -417,15 +393,12 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "ParryStart"
   },
   {
     "regex": "^(\\w+) stands? up and stretche?s? \\w+ arms out wide.$",
     "args": [
       {
-        "Literal": "Stand"
-      },
-      {
         "GroupAsTarget": 1
       },
       {
@@ -438,36 +411,12 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
-  },
-  {
-    "regex": "^(You) stand up and stretch your arms out wide.$",
-    "args": [
-      {
-        "Literal": "Stand"
-      },
-      {
-        "GroupAsTarget": 1
-      },
-      {
-        "Literal": ""
-      },
-      {
-        "Literal": ""
-      },
-      {
-        "Literal": ""
-      }
-    ],
-    "observation_name": "Proc"
+    "observation_name": "Stand"
   },
   {
     "regex": "^(\\w+)'s broken legs cause \\w+ to fall to the ground in a heap.$",
     "args": [
       {
-        "Literal": "Fall"
-      },
-      {
         "GroupAsTarget": 1
       },
       {
@@ -480,6 +429,6 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "Fall"
   }
 ]

@@ -3,9 +3,6 @@
     "regex": "^(\\w+) (parries|parry) the attack on \\w+ (head|torso|left arm|right arm|left leg|right leg) with a deft maneuver.$",
     "args": [
       {
-        "Literal": "Parry"
-      },
-      {
         "GroupAsTarget": 1
       },
       {
@@ -18,15 +15,12 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "Parry"
   },
   {
     "regex": "^With a free hand, (\\w+) fends? off the attack on (\\w+) (head|torso|left arm|right arm|left leg|right leg).$",
     "args": [
       {
-        "Literal": "Parry"
-      },
-      {
         "GroupAsTarget": 1
       },
       {
@@ -39,15 +33,12 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "Parry"
   },
   {
     "regex": "^(\\w+)'?s? (left arm|right arm|left leg|right leg) is badly crippled under the dhurive.$",
     "args": [
       {
-        "Literal": "Connects"
-      },
-      {
         "GroupAsTarget": 2
       },
       {
@@ -60,15 +51,12 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "Connects"
   },
   {
     "regex": "^(\\w+)'?s? (head|torso|left arm|right arm|left leg|right leg) breaks from all the damage.$",
     "args": [
       {
-        "Literal": "Damaged"
-      },
-      {
         "GroupAsTarget": 1
       },
       {
@@ -81,14 +69,11 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "Damaged"
   },
   {
-    "regex": "^(Your) (head|torso|left arm|right arm|left leg|right leg) has been mutilated beyond repair by ordinary means.$",
+    "regex": "^(You)r (head|torso|left arm|right arm|left leg|right leg) has been mutilated beyond repair by ordinary means.$",
     "args": [
-      {
-        "Literal": "Mangled"
-      },
       {
         "GroupAsTarget": 1
       },
@@ -102,15 +87,12 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "Mangled"
   },
   {
     "regex": "^(\\w+)'s (head|torso|left arm|right arm|left leg|right leg) has been beaten into uselessness.$",
     "args": [
       {
-        "Literal": "Mangled"
-      },
-      {
         "GroupAsTarget": 1
       },
       {
@@ -123,15 +105,12 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "Mangled"
   },
   {
     "regex": "The attack rebounds back onto you!",
     "args": [
       {
-        "Literal": "Rebounds"
-      },
-      {
         "Literal": ""
       },
       {
@@ -144,35 +123,11 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "Rebounds"
   },
   {
-    "regex": "Your fangs won't penetrate the odd waxy coating protecting them.",
+    "regex": "^You discern that a layer of (\\w+) has rubbed off your weapon.$",
     "args": [
-      {
-        "Literal": "Fangbarrier"
-      },
-      {
-        "Literal": ""
-      },
-      {
-        "Literal": ""
-      },
-      {
-        "Literal": ""
-      },
-      {
-        "Literal": ""
-      }
-    ],
-    "observation_name": "Proc"
-  },
-  {
-    "regex": "^You have afflicted with (.*).$",
-    "args": [
-      {
-        "Literal": "DiscernedAfflict"
-      },
       {
         "GroupAsTarget": 1
       },
@@ -186,14 +141,47 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "Devenoms"
+  },
+  {
+    "regex": "Your fangs won't penetrate the odd waxy coating protecting them.",
+    "args": [
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Fangbarrier"
+  },
+  {
+    "regex": "^You have afflicted with (.*).$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "DiscernedAfflict"
   },
   {
     "regex": "^You discern that (\\w+) has been afflicted with (.*).$",
     "args": [
-      {
-        "Literal": "OtherAfflicted"
-      },
       {
         "GroupAsTarget": 1
       },
@@ -207,14 +195,11 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "OtherAfflicted"
   },
   {
     "regex": "^Stepping quickly out of the way, (\\w+) dodges the attack.$",
     "args": [
-      {
-        "Literal": "Dodges"
-      },
       {
         "GroupAsTarget": 1
       },
@@ -228,15 +213,12 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "Dodges"
   },
   {
     "regex": "You miss your strike by mere inches.",
     "args": [
       {
-        "Literal": "Misses"
-      },
-      {
         "Literal": "you"
       },
       {
@@ -249,15 +231,12 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "Misses"
   },
   {
     "regex": "^\\w+ misses by mere inches.$",
     "args": [
       {
-        "Literal": "Misses"
-      },
-      {
         "Literal": "you"
       },
       {
@@ -270,14 +249,11 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "Misses"
   },
   {
     "regex": "^A hollow whine lifts from (\\w+)'s ylem remnant as it is destroyed.$",
     "args": [
-      {
-        "Literal": "Absorbed"
-      },
       {
         "GroupAsTarget": 1
       },
@@ -291,14 +267,11 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "Absorbed"
   },
   {
     "regex": "^(\\w+)'s face flushes as (\\w+) body purges the (\\w+) venom.",
     "args": [
-      {
-        "Literal": "PurgeVenom"
-      },
       {
         "GroupAsTarget": 1
       },
@@ -312,14 +285,11 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "PurgeVenom"
   },
   {
     "regex": "^The countercurrent coating (\\w+)'s skin wicks away (\\w+) before it can take.$",
     "args": [
-      {
-        "Literal": "PurgeVenom"
-      },
       {
         "GroupAsTarget": 1
       },
@@ -333,14 +303,11 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "PurgeVenom"
   },
   {
     "regex": "^(\\w+)'s shield of flame repels the fiery attack.$",
     "args": [
-      {
-        "Literal": "FlameShield"
-      },
       {
         "GroupAsTarget": 1
       },
@@ -354,6 +321,6 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "FlameShield"
   }
 ]

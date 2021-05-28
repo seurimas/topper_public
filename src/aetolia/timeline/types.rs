@@ -132,6 +132,7 @@ impl SimpleCureAction {
         }
     }
 }
+
 #[derive(Debug, Deserialize, PartialEq, Clone, EnumFromArgs)]
 pub enum AetObservation {
     // Basic actions

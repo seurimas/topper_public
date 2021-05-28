@@ -1,9 +1,9 @@
 [
   {
-    "regex": "^Walking up to (\\w+), you momentarily bring your hand back into reality and grab",
+    "regex": "^Walking up to (\\w+), (you) momentarily bring your hand back into reality and grab",
     "args": [
       {
-        "Literal": "You"
+        "GroupAsTarget": 2
       },
       {
         "Literal": "Subterfuge"

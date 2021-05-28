@@ -1,9 +1,9 @@
 [
   {
-    "regex": "^You have lost your sway over (\\w+).$",
+    "regex": "^(You) have lost your sway over (\\w+).$",
     "args": [
       {
-        "Literal": "You"
+        "GroupAsTarget": 1
       },
       {
         "Literal": "Hypnosis"
@@ -15,16 +15,16 @@
         "Literal": ""
       },
       {
-        "GroupAsTarget": 1
+        "GroupAsTarget": 2
       }
     ],
     "observation_name": "CombatAction"
   },
   {
-    "regex": "^Your absence has addled a suggestion from (\\w+)'s mind.$",
+    "regex": "^(You)r absence has addled a suggestion from (\\w+)'s mind.$",
     "args": [
       {
-        "Literal": "You"
+        "GroupAsTarget": 1
       },
       {
         "Literal": "Hypnosis"
@@ -36,7 +36,7 @@
         "Literal": ""
       },
       {
-        "GroupAsTarget": 1
+        "GroupAsTarget": 2
       }
     ],
     "observation_name": "CombatAction"
@@ -45,7 +45,7 @@
     "regex": "^(\\w+) appears confused for a moment.$",
     "args": [
       {
-        "Literal": "You"
+        "GroupAsTarget": 1
       },
       {
         "Literal": "Hypnosis"
@@ -60,13 +60,13 @@
         "GroupAsTarget": 1
       }
     ],
-    "observation_name": "CombatAction"
+    "observation_name": "Proc"
   },
   {
-    "regex": "^You draw (\\w+) out of (\\w+) hypnotic daze, your suggestions indelibly printed on (\\w+) mind.$",
+    "regex": "^(You) draw (\\w+) out of (\\w+) hypnotic daze, your suggestions indelibly printed on (\\w+) mind.$",
     "args": [
       {
-        "Literal": "You"
+        "GroupAsTarget": 1
       },
       {
         "Literal": "Hypnosis"
@@ -78,16 +78,16 @@
         "Literal": ""
       },
       {
-        "GroupAsTarget": 1
+        "GroupAsTarget": 2
       }
     ],
     "observation_name": "CombatAction"
   },
   {
-    "regex": "^You issue the suggestion, concealing it deep within (\\w+)'s mind.$",
+    "regex": "^(You) issue the suggestion, concealing it deep within (\\w+)'s mind.$",
     "args": [
       {
-        "Literal": "You"
+        "GroupAsTarget": 1
       },
       {
         "Literal": "Hypnosis"
@@ -99,16 +99,16 @@
         "Literal": ""
       },
       {
-        "GroupAsTarget": 1
+        "GroupAsTarget": 2
       }
     ],
     "observation_name": "CombatAction"
   },
   {
-    "regex": "^You fix (\\w+) with an entrancing stare, and smile in satisfaction as you realise that (\\w+) mind is yours.$",
+    "regex": "^(You) fix (\\w+) with an entrancing stare, and smile in satisfaction as you realise that (\\w+) mind is yours.$",
     "args": [
       {
-        "Literal": "You"
+        "GroupAsTarget": 1
       },
       {
         "Literal": "Hypnosis"
@@ -120,16 +120,16 @@
         "Literal": ""
       },
       {
-        "GroupAsTarget": 1
+        "GroupAsTarget": 2
       }
     ],
     "observation_name": "CombatAction"
   },
   {
-    "regex": "^You snap your fingers in front of (.*), who enters a trance.$",
+    "regex": "^(You) snap your fingers in front of (.*), who enters a trance.$",
     "args": [
       {
-        "Literal": "You"
+        "GroupAsTarget": 1
       },
       {
         "Literal": "Hypnosis"
@@ -141,7 +141,7 @@
         "Literal": ""
       },
       {
-        "GroupAsTarget": 1
+        "GroupAsTarget": 2
       }
     ],
     "observation_name": "CombatAction"

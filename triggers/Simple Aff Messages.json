@@ -1,10 +1,7 @@
 [
   {
-    "regex": "^Your (.*) defence has been stripped.$",
+    "regex": "^You are afflicted with (.*).$",
     "args": [
-      {
-        "Literal": "Stripped"
-      },
       {
         "GroupAsTarget": 1
       },
@@ -18,15 +15,84 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "Afflicted"
+  },
+  {
+    "regex": "^You have discovered (.*).$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Afflicted"
+  },
+  {
+    "regex": "^(You) have gained the (.*) defence.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "GroupAsTarget": 2
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Gained"
+  },
+  {
+    "regex": "^You have cured ([\\w_]+).$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Cured"
+  },
+  {
+    "regex": "^Your (.*) defence has been stripped.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Stripped"
   },
   {
     "regex": "^Your (\\w+ ?\\w*) has taken ([\\d\\.]+)% damage.$",
     "args": [
       {
-        "Literal": "LimbDamage"
-      },
-      {
         "GroupAsTarget": 1
       },
       {
@@ -39,15 +105,12 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "LimbDamage"
   },
   {
     "regex": "^Your (\\w+ ?\\w*) has recovered ([\\d\\.]+)% damage.$",
     "args": [
       {
-        "Literal": "LimbHeal"
-      },
-      {
         "GroupAsTarget": 1
       },
       {
@@ -60,6 +123,6 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Proc"
+    "observation_name": "LimbHeal"
   }
 ]
