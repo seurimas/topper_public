@@ -65,6 +65,27 @@ impl ObservationMapping {
                 .collect()
         }
     }
+    fn try_get_arguments<'t, O, P>(
+        &self,
+        slice: &TimeSlice<O, P>,
+        regex: &Regex,
+        line: &String,
+    ) -> Option<Vec<String>> {
+        if let Some(captures) = regex.captures(line) {
+            if self.args.len() == 0 {
+                Some(vec![])
+            } else {
+                Some(
+                    self.args
+                        .iter()
+                        .map(|arg| arg.get_argument(slice, &captures))
+                        .collect(),
+                )
+            }
+        } else {
+            None
+        }
+    }
 }
 
 pub struct ObservationParser<O> {
@@ -110,14 +131,23 @@ impl<O> ObservationParser<O> {
         let mut observations = Vec::new();
         for (line, idx) in slice.lines.iter() {
             let stripped = strip_ansi(line);
-            for match_num in self.regex_set.matches(&stripped) {
+            // for match_num in self.regex_set.matches(&stripped) {
+            //     let mapping = self.mappings.get(match_num).unwrap();
+            //     let regex = self.regexes.get(match_num).unwrap();
+            //     let arguments = mapping.get_arguments(&slice, &regex, &stripped);
+            //     observations.push((self.observation_creator)(
+            //         &mapping.observation_name,
+            //         arguments,
+            //     ));
+            // }
+            for (match_num, regex) in self.regexes.iter().enumerate() {
                 let mapping = self.mappings.get(match_num).unwrap();
-                let regex = self.regexes.get(match_num).unwrap();
-                let arguments = mapping.get_arguments(&slice, &regex, &stripped);
-                observations.push((self.observation_creator)(
-                    &mapping.observation_name,
-                    arguments,
-                ));
+                if let Some(arguments) = mapping.try_get_arguments(&slice, &regex, &stripped) {
+                    observations.push((self.observation_creator)(
+                        &mapping.observation_name,
+                        arguments,
+                    ));
+                }
             }
         }
         observations

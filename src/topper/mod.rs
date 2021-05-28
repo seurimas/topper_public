@@ -13,6 +13,7 @@ pub mod telnet;
 pub mod timeline;
 mod web_ui;
 use log::info;
+use observations::ObservationParser;
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
 use std::collections::HashMap;
@@ -192,13 +193,14 @@ pub struct Topper<O, P, A, B> {
     pub battlestats_module: BattleStatsModule,
     pub database_module: DatabaseModule,
     pub web_module: WebModule,
+    pub observation_parser: ObservationParser<O>,
 }
 
 pub trait TopperHandler {
     type Message;
     fn handle_request_or_event(
         &mut self,
-        topper_msg: &Self::Message,
+        topper_msg: &mut Self::Message,
     ) -> Result<TopperResponse, String>;
     fn from_str(&self, line: &String) -> Result<Self::Message, String>;
 }
@@ -227,7 +229,7 @@ where
         let start = Instant::now();
         let parsed = self.from_str(line);
         let result = match parsed {
-            Ok(topper_msg) => self.handle_request_or_event(&topper_msg),
+            Ok(mut topper_msg) => self.handle_request_or_event(&mut topper_msg),
             Err(error) => Err(error.to_string()),
         };
         let millis = start.elapsed().as_millis();

@@ -41,6 +41,10 @@ fn main() {
         .get(2)
         .map_or("topper.db".to_string(), |string| string.to_string());
 
+    let triggers_dir = args
+        .get(3)
+        .map_or("triggers".to_string(), |string| string.to_string());
+
     WriteLogger::init(
         LevelFilter::Debug,
         Config::default(),
@@ -49,7 +53,7 @@ fn main() {
     .unwrap();
     let (send_lines, receive_lines): (Sender<String>, Receiver<String>) = mpsc::channel();
     let t = thread::spawn(|| {
-        let mut topper = AetTopper::new(send_lines, db_dir);
+        let mut topper = AetTopper::new(send_lines, db_dir, triggers_dir);
         topper.provide_action();
     });
     thread::spawn(|| {

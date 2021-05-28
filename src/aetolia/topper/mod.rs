@@ -1,7 +1,9 @@
 use crate::aetolia::classes::get_attack;
+use crate::aetolia::timeline::observations;
 use crate::aetolia::timeline::{AetObservation, AetPrompt, AetTimeSlice, AetTimeline};
 use crate::aetolia::types::AgentState;
 use crate::timeline::BaseTimeline;
+use crate::topper::observations::ObservationParser;
 use crate::topper::{
     DatabaseModule, TelnetModule, TimelineModule, Topper, TopperCore, TopperHandler, TopperMessage,
     TopperModule, TopperRequest, TopperResponse, WebModule,
@@ -95,7 +97,7 @@ impl<'s> TopperModule<'s> for BattleModule {
 pub type AetTopper = Topper<AetObservation, AetPrompt, AgentState, BattleModule>;
 
 impl AetTopper {
-    pub fn new(send_lines: Sender<String>, path: String) -> Self {
+    pub fn new(send_lines: Sender<String>, path: String, triggers_dir: String) -> Self {
         println!("DB: {:?}", std::fs::canonicalize(path.clone()).unwrap());
         Topper {
             timeline_module: AetTimelineModule::new(),
@@ -105,6 +107,10 @@ impl AetTopper {
             battlestats_module: BattleStatsModule::new(),
             database_module: DatabaseModule::new(path),
             web_module: WebModule::new(),
+            observation_parser: ObservationParser::<AetObservation>::new_from_directory(
+                triggers_dir,
+            )
+            .unwrap(),
         }
     }
 }
@@ -118,8 +124,18 @@ impl TopperHandler for AetTopper {
 
     fn handle_request_or_event(
         &mut self,
-        topper_msg: &TopperMessage,
+        topper_msg: &mut TopperMessage,
     ) -> Result<TopperResponse, String> {
+        match topper_msg {
+            TopperMessage::AetEvent(slice) => {
+                let mut new_observations = self.observation_parser.observe(&slice);
+                slice
+                    .observations
+                    .get_or_insert(Vec::new())
+                    .append(&mut new_observations);
+            }
+            _ => {}
+        }
         Ok(self
             .core_module
             .handle_message(&topper_msg, ())?
