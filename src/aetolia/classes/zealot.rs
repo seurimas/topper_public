@@ -429,6 +429,11 @@ pub fn handle_combat_action(
                 you.set_flag(FType::InfernalSeal, true);
             });
         }
+        "InfernalShroud" => {
+            for_agent(agent_states, &combat_action.caster, |you| {
+                you.set_flag(FType::Shielded, false);
+            });
+        }
         "Scorch" => {
             let observations = after.clone();
             for_agent_closure(
@@ -667,7 +672,9 @@ fn value_heelrush(
         && !limb_state.damaged
         && !limb_state.is_restoring
         && !limb_state.is_parried
+        && !me.is(FType::Paresis)
         && can_kick(me)
+        && !me.is(FType::Zenith)
     {
         value_limb(limb, me, you, db, strategy) * 1.5
     } else {

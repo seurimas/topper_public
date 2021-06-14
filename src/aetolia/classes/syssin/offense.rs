@@ -524,7 +524,7 @@ fn should_slit(me: &AgentState, target: &AgentState, strategy: &String) -> bool 
     if !target.is_prone() {
         false
     } else if target.is(FType::Asleep) {
-        true
+        target.is(FType::Rebounding) || target.aff_count() > 3
     } else if target.is(FType::Haemophilia)
         && target.affs_count(&vec![FType::Lethargy, FType::Allergies, FType::Vomiting]) >= 1
     {
@@ -705,12 +705,11 @@ pub fn add_delphs(
     if you.is(FType::Hypersomnia) {
         if you.is(FType::Insomnia) {
             venoms.push("delphinium");
-        }
-        if !you.is(FType::Asleep) {
+        } else if !you.is(FType::Asleep) {
             venoms.push("delphinium");
-        }
-        if you.is(FType::Instawake) {
-            venoms.push("delphinium");
+            if you.is(FType::Instawake) {
+                venoms.push("delphinium");
+            }
         }
         if venoms.len() >= 2 && Some(&"darkshade") == venoms.get(venoms.len() - 2) {
             venoms.remove(venoms.len() - 2);
@@ -771,9 +770,10 @@ pub fn get_balance_attack<'s>(
             .map(|act| act.starts_with("seal"))
         {
             return Box::new(Inactivity);
-        } else if you.is(FType::Shielded)
+        } else if (you.is(FType::Shielded)
             || you.is(FType::Rebounding)
-            || you.will_be_rebounding(me.get_qeb_balance())
+            || you.will_be_rebounding(me.get_qeb_balance()))
+            && !should_slit(&me, &you, &strategy)
         {
             if !you.is(FType::Shielded) && should_bedazzle(&me, &you, &strategy, true) {
                 return Box::new(BedazzleAction::new(who_am_i, &target));

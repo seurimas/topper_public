@@ -210,6 +210,27 @@
     "observation_name": "Proc"
   },
   {
+    "regex": "^Flames creep up (\\w+)'s magical shield from within, \\w+ burning shroud consuming it in an instant.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Purification"
+      },
+      {
+        "Literal": "InfernalShroud"
+      },
+      {
+        "Literal": "shield"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
     "regex": "^The ground vents open, and a hellish torrent of heat destroys (\\w+)'s magical shield.$",
     "args": [
       {

@@ -95,7 +95,10 @@ pub struct ObservationParser<O> {
     observation_creator: fn(&String, Vec<String>) -> O,
 }
 
-impl<O> ObservationParser<O> {
+impl<O> ObservationParser<O>
+where
+    O: std::fmt::Debug,
+{
     pub fn new(
         mappings: Vec<ObservationMapping>,
         observation_creator: fn(&String, Vec<String>) -> O,
@@ -147,6 +150,7 @@ impl<O> ObservationParser<O> {
                         &mapping.observation_name,
                         arguments,
                     ));
+                    log::info!("{:?}", observations.get(observations.len() - 1));
                 }
             }
         }
