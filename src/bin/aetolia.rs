@@ -11,6 +11,7 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 use topper::aetolia::topper::AetTopper;
 use topper::topper::telnet::proxy;
+use topper::topper::Topper;
 
 fn main() {
     // dummy_dstab_simulation();

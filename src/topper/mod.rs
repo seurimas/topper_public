@@ -32,6 +32,7 @@ pub enum TopperRequest {
     Assume(String, String, bool),
     Reset(String),
     Api(String),
+    Group(String),
     // DB Methods
     Inspect(String, String),
     SetPriority(String, usize, Option<VenomPlan>),
@@ -185,62 +186,28 @@ impl TopperResponse {
     }
 }
 
-pub struct Topper<O, P, A, B> {
-    pub timeline_module: TimelineModule<O, P, A>,
-    pub core_module: TopperCore,
-    pub telnet_module: TelnetModule,
-    pub battle_module: B,
-    pub battlestats_module: BattleStatsModule,
-    pub database_module: DatabaseModule,
-    pub web_module: WebModule,
-    pub observation_parser: ObservationParser<O>,
-}
+pub trait Topper<O, P, A: BaseAgentState + Clone, B> {
+    fn get_timeline_module(&self) -> &TimelineModule<O, P, A>;
+    fn get_core_module(&self) -> &TopperCore;
+    fn get_database(&mut self) -> &mut DatabaseModule;
+    fn get_mut_timeline_module(&mut self) -> &mut TimelineModule<O, P, A>;
 
-pub trait TopperHandler {
-    type Message;
-    fn handle_request_or_event(
-        &mut self,
-        topper_msg: &mut Self::Message,
-    ) -> Result<TopperResponse, String>;
-    fn from_str(&self, line: &String) -> Result<Self::Message, String>;
-}
-
-impl<O, P, A: BaseAgentState + Clone, B> Topper<O, P, A, B>
-where
-    Topper<O, P, A, B>: TopperHandler,
-{
-    pub fn me(&self) -> String {
-        self.timeline_module.timeline.who_am_i()
+    fn me(&self) -> String {
+        self.get_timeline_module().timeline.who_am_i()
     }
 
-    pub fn get_target(&self) -> Option<String> {
-        self.core_module.target.clone()
+    fn get_target(&self) -> Option<String> {
+        self.get_core_module().target.clone()
     }
 
-    pub fn get_timeline(&mut self) -> &mut Timeline<O, P, A> {
-        &mut self.timeline_module.timeline
+    fn get_timeline(&mut self) -> &mut Timeline<O, P, A> {
+        &mut self.get_mut_timeline_module().timeline
     }
 
-    pub fn get_database(&mut self) -> &mut DatabaseModule {
-        &mut self.database_module
-    }
-
-    pub fn parse_request_or_event(&mut self, line: &String) -> Result<TopperResponse, String> {
-        let start = Instant::now();
-        let parsed = self.from_str(line);
-        let result = match parsed {
-            Ok(mut topper_msg) => self.handle_request_or_event(&mut topper_msg),
-            Err(error) => Err(error.to_string()),
-        };
-        let millis = start.elapsed().as_millis();
-        info!("({}) {}", millis, line);
-        if millis > 50 {
-            println!("{} millis to process...", millis);
-        }
-        result
-    }
-
-    pub fn provide_action(&mut self) {
+    fn provide_action(&mut self)
+    where
+        Self: TopperHandler,
+    {
         loop {
             let mut input = String::new();
             match io::stdin().read_line(&mut input) {
@@ -264,6 +231,30 @@ where
             }
             thread::yield_now();
         }
+    }
+}
+
+pub trait TopperHandler {
+    type Message;
+    fn handle_request_or_event(
+        &mut self,
+        topper_msg: &mut Self::Message,
+    ) -> Result<TopperResponse, String>;
+    fn from_str(&self, line: &String) -> Result<Self::Message, String>;
+
+    fn parse_request_or_event(&mut self, line: &String) -> Result<TopperResponse, String> {
+        let start = Instant::now();
+        let parsed = self.from_str(line);
+        let result = match parsed {
+            Ok(mut topper_msg) => self.handle_request_or_event(&mut topper_msg),
+            Err(error) => Err(error.to_string()),
+        };
+        let millis = start.elapsed().as_millis();
+        info!("({}) {}", millis, line);
+        if millis > 50 {
+            println!("{} millis to process...", millis);
+        }
+        result
     }
 }
 

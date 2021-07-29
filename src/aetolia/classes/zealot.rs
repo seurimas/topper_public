@@ -834,7 +834,7 @@ lazy_static! {
                 if you.is(FType::Shielded) { 100.0 } else { 0.0 },
             )
         }),
-        ("respiration hold", |me, you, db, strategy| {
+        ("respiration hold;;firstaid halt for channel on", |me, you, db, strategy| {
             (
                 ComboType::Full,
                 if me.get_count(FType::SappedStrength) >= SWAGGER_LIMIT {
@@ -1124,27 +1124,27 @@ lazy_static! {
                 },
             )
         }),
-        ("heelrush head", |me, you, db, strategy| (
+        ("heelrush head;;firstaid halt for channel off", |me, you, db, strategy| (
             ComboType::ComboSecond,
             value_heelrush(LType::HeadDamage, me, you, db, strategy),
             )),
-        ("heelrush torso", |me, you, db, strategy| (
+        ("heelrush torso;;firstaid halt for channel off", |me, you, db, strategy| (
             ComboType::ComboSecond,
             value_heelrush(LType::TorsoDamage, me, you, db, strategy),
             )),
-        ("heelrush left arm", |me, you, db, strategy| (
+        ("heelrush left arm;;firstaid halt for channel off", |me, you, db, strategy| (
             ComboType::ComboSecond,
             value_heelrush(LType::LeftArmDamage, me, you, db, strategy),
             )),
-        ("heelrush right arm", |me, you, db, strategy| (
+        ("heelrush right arm;;firstaid halt for channel off", |me, you, db, strategy| (
             ComboType::ComboSecond,
             value_heelrush(LType::RightArmDamage, me, you, db, strategy),
             )),
-        ("heelrush left leg", |me, you, db, strategy| (
+        ("heelrush left leg;;firstaid halt for channel off", |me, you, db, strategy| (
             ComboType::ComboSecond,
             value_heelrush(LType::LeftLegDamage, me, you, db, strategy),
             )),
-        ("heelrush right leg", |me, you, db, strategy| (
+        ("heelrush right leg;;firstaid halt for channel off", |me, you, db, strategy| (
             ComboType::ComboSecond,
             value_heelrush(LType::RightLegDamage, me, you, db, strategy),
             )),

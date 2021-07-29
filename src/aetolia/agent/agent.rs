@@ -20,11 +20,13 @@ pub struct AgentState {
     pub dodge_state: DodgeState,
     pub channel_state: ChannelState,
     pub branch_state: BranchState,
+    pub resin_state: ResinState,
 }
 
 impl BaseAgentState for AgentState {
     fn wait(&mut self, duration: i32) {
         self.relapses.wait(duration);
+        self.resin_state.wait(duration);
         self.class_state.wait(duration);
         self.dodge_state.wait(duration);
         if let Some(cured_aff) = self.limb_damage.wait(duration) {
@@ -361,6 +363,7 @@ impl AgentState {
     pub fn can_parry(&self) -> bool {
         !self.is(FType::Indifference)
             && !self.is(FType::Frozen)
+            && !self.is(FType::Paresis)
             && !self.is(FType::Paralysis)
             && !(self.is(FType::LeftArmBroken) && self.is(FType::RightArmBroken))
     }

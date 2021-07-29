@@ -9,10 +9,12 @@ use crate::topper::{
     TopperModule, TopperRequest, TopperResponse, WebModule,
 };
 use battle_stats::BattleStatsModule;
+use group::GroupModule;
 use serde_json::from_str;
 use std::sync::mpsc::Sender;
 pub mod battle_stats;
 pub mod curing;
+pub mod group;
 use crate::aetolia::topper::curing::prioritize_cures;
 
 pub type AetTimelineModule = TimelineModule<AetObservation, AetPrompt, AgentState>;
@@ -94,18 +96,45 @@ impl<'s> TopperModule<'s> for BattleModule {
     }
 }
 
-pub type AetTopper = Topper<AetObservation, AetPrompt, AgentState, BattleModule>;
+pub struct AetTopper {
+    pub timeline_module: AetTimelineModule,
+    pub core_module: TopperCore,
+    pub telnet_module: TelnetModule,
+    pub battle_module: BattleModule,
+    pub group_module: GroupModule,
+    pub battlestats_module: BattleStatsModule,
+    pub database_module: DatabaseModule,
+    pub web_module: WebModule,
+    pub observation_parser: ObservationParser<AetObservation>,
+}
+
+impl Topper<AetObservation, AetPrompt, AgentState, BattleModule> for AetTopper {
+    fn get_timeline_module(&self) -> &AetTimelineModule {
+        &self.timeline_module
+    }
+    fn get_mut_timeline_module(&mut self) -> &mut AetTimelineModule {
+        &mut self.timeline_module
+    }
+    fn get_core_module(&self) -> &TopperCore {
+        &self.core_module
+    }
+    fn get_database(&mut self) -> &mut DatabaseModule {
+        &mut self.database_module
+    }
+}
 
 impl AetTopper {
     pub fn new(send_lines: Sender<String>, path: String, triggers_dir: String) -> Self {
         println!("DB: {:?}", std::fs::canonicalize(path.clone()).unwrap());
-        Topper {
+        let database_module = DatabaseModule::new(path);
+        AetTopper {
             timeline_module: AetTimelineModule::new(),
             core_module: TopperCore::new(),
             telnet_module: TelnetModule::new(send_lines),
             battle_module: BattleModule::default(),
+            group_module: GroupModule::new(&database_module),
             battlestats_module: BattleStatsModule::new(),
-            database_module: DatabaseModule::new(path),
+            database_module,
             web_module: WebModule::new(),
             observation_parser: ObservationParser::<AetObservation>::new_from_directory(
                 triggers_dir,
@@ -153,6 +182,14 @@ impl TopperHandler for AetTopper {
                 self.database_module
                     .handle_message(&topper_msg, (self.timeline_module.timeline.who_am_i()))?,
             )
+            .then(self.group_module.handle_message(
+                &topper_msg,
+                (
+                    &self.me(),
+                    &self.timeline_module.timeline,
+                    &self.database_module,
+                ),
+            )?)
             .then(self.web_module.handle_message(&topper_msg, ())?)
             .then(self.battle_module.handle_message(
                 &topper_msg,

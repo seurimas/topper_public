@@ -394,7 +394,7 @@ impl FType {
 
     pub fn from_name(aff_name: &String) -> Option<FType> {
         let pretty = aff_name
-            .split(|c| c == '_' || c == '-')
+            .split(|c| c == ' ' || c == '_' || c == '-')
             .map(|word| {
                 let mut c = word.chars();
                 match c.next() {
@@ -717,6 +717,7 @@ impl DodgeState {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ClassState {
     Zealot(ZealotClassState),
+    Sentinel(SentinelClassState),
     Shifter(HowlingState),
     Unknown,
 }

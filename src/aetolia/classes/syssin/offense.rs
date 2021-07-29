@@ -922,6 +922,13 @@ pub fn get_balance_attack<'s>(
         } else {
             return Box::new(BiteAction::new(who_am_i, &target, &"camus"));
         }
+    } else if strategy == "group" {
+        let you = timeline.state.borrow_agent(target);
+        if you.is_prone() {
+            return Box::new(GarroteAction::new(who_am_i, target));
+        } else {
+            return get_balance_attack(timeline, who_am_i, target, &"salve".to_string(), db);
+        }
     } else if strategy == "shield" {
         let me = timeline.state.borrow_me();
         if me.can_touch() && !me.is(FType::Shielded) {

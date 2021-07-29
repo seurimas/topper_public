@@ -349,6 +349,8 @@ pub fn apply_weapon_hits(
             venoms.push(captures.get(2).unwrap().as_str().to_string());
         } else if let Some(captures) = CALLED_VENOM.captures(&venom_hints) {
             venoms.push(captures.get(1).unwrap().as_str().to_string());
+        } else {
+            return Ok(());
         }
         if let Some(AetObservation::Dodges(_)) = observations.get(1) {
             venoms.pop();

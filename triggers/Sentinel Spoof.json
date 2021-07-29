@@ -1,5 +1,26 @@
 [
   {
+    "regex": "^The superheated resin fumes swarm (\\w+)'s senses and (the )?\\w+ looks around dazed.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Tracking"
+      },
+      {
+        "Literal": "Lysirine"
+      },
+      {
+        "Literal": "hot"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
     "regex": "^An azure icewyrm opens its maw wide before breathing forth a stream of freezing air towards (\\w+).$",
     "args": [
       {

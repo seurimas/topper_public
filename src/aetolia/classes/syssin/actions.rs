@@ -209,6 +209,36 @@ impl ActiveTransition for BiteAction {
     }
 }
 
+pub struct GarroteAction {
+    pub caster: String,
+    pub target: String,
+}
+
+impl GarroteAction {
+    pub fn new(caster: &str, target: &str) -> Self {
+        GarroteAction {
+            caster: caster.to_string(),
+            target: target.to_string(),
+        }
+    }
+}
+
+impl ActiveTransition for GarroteAction {
+    fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
+        ProbableEvent::certain(vec![CombatAction::observation(
+            &self.caster,
+            &"Assassination",
+            &"Garrote",
+            &"",
+            &self.target,
+        )])
+    }
+
+    fn act(&self, timeline: &AetTimeline) -> ActivateResult {
+        Ok(format!("garrote {}", self.target))
+    }
+}
+
 pub struct BedazzleAction {
     pub caster: String,
     pub target: String,

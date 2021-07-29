@@ -162,6 +162,7 @@ affliction_plan_stacker!(
 fn assume_hit(who: &mut AgentState, strike: &FirstStrike) {
     if let Some(affs) = FIRST_STRIKE_AFFS.get(strike) {
         for aff in affs {
+            println!("Hit {:?}", aff);
             who.set_flag(*aff, true);
         }
     }
@@ -350,6 +351,26 @@ impl ActiveTransition for DualrazeAction {
     }
 }
 
+pub struct SpinecutAction {
+    pub caster: String,
+    pub target: String,
+}
+
+impl SpinecutAction {
+    pub fn new(caster: String, target: String) -> Self {
+        SpinecutAction { caster, target }
+    }
+}
+
+impl ActiveTransition for SpinecutAction {
+    fn simulate(&self, _timeline: &AetTimeline) -> Vec<ProbableEvent> {
+        Vec::new()
+    }
+    fn act(&self, _timeline: &AetTimeline) -> ActivateResult {
+        Ok(format!("dhuriv spinecut {}", self.target))
+    }
+}
+
 pub struct FitnessAction {
     pub caster: String,
 }
@@ -510,6 +531,17 @@ pub fn handle_combat_action(
                 after,
             );
         }
+        "Lysirine" => match combat_action.annotation.as_ref() {
+            "hot" => {
+                attack_afflictions(
+                    agent_states,
+                    &combat_action.caster,
+                    vec![FType::Paresis, FType::Hallucinations, FType::Confusion],
+                    after,
+                );
+            }
+            _ => {}
+        },
         "Crosscut" => {
             if agent_states
                 .borrow_agent(&combat_action.target)
@@ -518,14 +550,14 @@ pub fn handle_combat_action(
                 attack_afflictions(
                     agent_states,
                     &combat_action.target,
-                    vec![FType::Impairment],
+                    vec![FType::Addiction],
                     after,
                 );
             } else {
                 attack_afflictions(
                     agent_states,
                     &combat_action.target,
-                    vec![FType::Addiction],
+                    vec![FType::Impairment],
                     after,
                 );
             }
@@ -692,23 +724,23 @@ pub fn handle_combat_action(
 
 lazy_static! {
     static ref DEFAULT_STACK: Vec<FType> = vec![
+        FType::Paresis,
         FType::Impatience,
         FType::Epilepsy,
-        FType::Paresis,
         FType::Asthma,
         FType::Clumsiness,
-        FType::Impairment,
-        FType::Stupidity,
-        FType::Vomiting,
         FType::Slickness,
         FType::Anorexia,
+        FType::Stupidity,
+        FType::Confusion,
+        FType::Heartflutter,
         FType::LeftLegBroken,
         FType::RightLegBroken,
+        FType::Vomiting,
+        FType::Impairment,
         FType::LeftArmBroken,
         FType::RightArmBroken,
         FType::Dizziness,
-        FType::Confusion,
-        FType::Impatience,
         FType::Epilepsy,
         FType::Sensitivity,
         FType::Recklessness,
@@ -717,14 +749,14 @@ lazy_static! {
 
 fn get_stack<'s>(
     timeline: &AetTimeline,
-    target: &String,
+    you: &AgentState,
     strategy: &String,
     db: Option<&DatabaseModule>,
 ) -> Vec<VenomPlan> {
     let mut vec = db
         .and_then(|db| db.get_venom_plan(&format!("sentinel_{}", strategy)))
         .unwrap_or(get_simple_plan(DEFAULT_STACK.to_vec()));
-    let you = timeline.state.borrow_agent(target);
+    println!("{:?}", you.can_parry());
     vec.retain(move |aff| match aff.affliction() {
         FType::Impatience
         | FType::Epilepsy
@@ -747,8 +779,21 @@ fn want_might(me: &AgentState) -> bool {
         && me.affs_count(&vec![FType::Anorexia, FType::Asthma, FType::Slickness]) >= 2
 }
 
+fn want_spinecut(you: &AgentState) -> bool {
+    you.affs_count(&vec![
+        FType::LeftLegBroken,
+        FType::RightLegBroken,
+        FType::Confusion,
+        FType::Heartflutter,
+    ]) >= 4
+}
+
 fn want_pierce(you: &AgentState) -> Option<String> {
-    if you.can_parry() || you.is(FType::Rebounding) || you.is(FType::Shielded) {
+    if you.can_parry()
+        || you.is(FType::Rebounding)
+        || you.is(FType::Shielded)
+        || you.is(FType::Confusion)
+    {
         return None;
     } else if you.limb_damage.broken(LType::LeftLegDamage)
         && !you.limb_damage.damaged(LType::LeftLegDamage)
@@ -766,7 +811,11 @@ fn want_pierce(you: &AgentState) -> Option<String> {
 }
 
 fn want_sever(you: &AgentState) -> Option<String> {
-    if you.can_parry() || you.is(FType::Rebounding) || you.is(FType::Shielded) {
+    if you.can_parry()
+        || you.is(FType::Rebounding)
+        || you.is(FType::Shielded)
+        || you.is(FType::Confusion)
+    {
         return None;
     } else if you.limb_damage.broken(LType::LeftArmDamage)
         && !you.limb_damage.damaged(LType::LeftArmDamage)
@@ -793,10 +842,12 @@ pub fn get_balance_attack<'s>(
     if strategy.eq("damage") {
         return Box::new(Inactivity);
     } else {
-        let stack = get_stack(timeline, target, strategy, db);
         let me = timeline.state.borrow_agent(who_am_i);
         let mut you = timeline.state.borrow_agent(target);
-        if want_fitness(&me) {
+        let mut stack = get_stack(timeline, &you, strategy, db);
+        if want_spinecut(&you) {
+            return Box::new(SpinecutAction::new(who_am_i.to_string(), target.clone()));
+        } else if want_fitness(&me) {
             return Box::new(FitnessAction::new(who_am_i.to_string()));
         } else if want_might(&me) {
             return Box::new(MightAction::new(who_am_i.to_string()));
@@ -821,6 +872,7 @@ pub fn get_balance_attack<'s>(
                     first_strike = FirstStrike::Reave;
                 }
                 assume_hit(&mut you, &first_strike);
+                stack = get_stack(timeline, &you, strategy, db);
                 let second_strike = if first_strike.flourish() {
                     get_venoms_from_plan(&stack, 1, &you)
                         .pop()
