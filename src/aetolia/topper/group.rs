@@ -1,5 +1,6 @@
 use crate::aetolia::timeline::{AetObservation, AetTimeSlice, AetTimeline, CombatAction};
 use crate::timeline::CType;
+use crate::topper::observations::strip_ansi;
 use crate::topper::{DatabaseModule, TopperMessage, TopperModule, TopperRequest, TopperResponse};
 use regex::Regex;
 use std::collections::HashMap;
@@ -13,20 +14,24 @@ fn set_target_priority(db: &DatabaseModule, who: &String, target_priority: i32) 
 }
 
 lazy_static! {
+    static ref PLAYER: Regex = Regex::new(r"^\w+$").unwrap();
     static ref SLAIN_BY: Regex = Regex::new(r"^(\w+) has been slain by (.*)\.$").unwrap();
     static ref NO_SUCH_TARGET: Regex =
         Regex::new(r"^You can find no such target as '(\w+)'\.$").unwrap();
+    static ref WHO_LINE: Regex = Regex::new(r"^\s+(\w+) - .{38} -(| v\d+)").unwrap();
+    static ref PRIORITY: Regex = Regex::new(r"^priority (\w+) (\d+)$").unwrap();
 }
 
 const AGGRO_DURATION: CType = 100 * 60 * 10;
 
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub enum Tether {
     Spirit,
     Shadow,
     Neutral,
 }
 
+#[derive(Debug)]
 pub struct Aggro {
     tether: Option<Tether>,
     last_seen: CType,
@@ -94,21 +99,28 @@ impl GroupModule {
             })
             .collect::<Vec<(&String, &Aggro)>>()
     }
+    fn get_filter(&self, tether: Tether, in_room: bool) -> impl FnMut(&(&String, &Aggro)) -> bool {
+        let now = self.now;
+        move |(who, aggro)| {
+            if now - aggro.last_seen > AGGRO_DURATION {
+                false
+            } else if aggro.last_seen == 0 {
+                false
+            } else if Some(tether) != aggro.tether {
+                false
+            } else if in_room && !aggro.in_room {
+                false
+            } else {
+                true
+            }
+        }
+    }
     fn call_target(&self, tether: Tether, in_room: bool, db: &DatabaseModule) -> Option<String> {
         self.aggro
             .iter()
-            .filter(|(who, aggro)| {
-                if self.now - aggro.last_seen > AGGRO_DURATION {
-                    false
-                } else if Some(tether) != aggro.tether {
-                    false
-                } else if in_room && !aggro.in_room {
-                    false
-                } else {
-                    true
-                }
-            })
-            .max_by_key(|(who, aggro)| get_target_priority(db, who).unwrap_or(0))
+            .filter(self.get_filter(tether, in_room))
+            .filter(|(who, aggro)| get_target_priority(db, who).is_some())
+            .min_by_key(|(who, aggro)| get_target_priority(db, who).unwrap_or(0))
             .map(|(who, _aggro)| format!("X {}", who))
     }
     fn call_target_list(
@@ -120,25 +132,19 @@ impl GroupModule {
         let mut sorted_targets = self
             .aggro
             .iter()
-            .filter(|(who, aggro)| {
-                if self.now - aggro.last_seen > AGGRO_DURATION {
-                    false
-                } else if Some(tether) != aggro.tether {
-                    false
-                } else if in_room && !aggro.in_room {
-                    false
-                } else {
-                    true
-                }
-            })
+            .filter(self.get_filter(tether, in_room))
+            .filter(|(who, aggro)| get_target_priority(db, who).is_some())
             .collect::<Vec<(&String, &Aggro)>>();
-        sorted_targets.sort_by_key(|(who, aggro)| get_target_priority(db, who).unwrap_or(0));
+        sorted_targets.sort_by_key(|(who, aggro)| get_target_priority(db, who).unwrap());
         let target_list = sorted_targets
             .into_iter()
             .map(|(who, aggro)| who.clone())
             .collect::<Vec<String>>()
             .join(", ");
-        Some(format!("X{}", target_list))
+        Some(format!(
+            "X {}%%wt Target list: {}",
+            target_list, target_list
+        ))
     }
 }
 
@@ -166,14 +172,32 @@ impl<'s> TopperModule<'s> for GroupModule {
                             AetObservation::CombatAction(CombatAction {
                                 caster, target, ..
                             }) => {
-                                {
-                                    let caster = self.aggro.entry(caster.to_string()).or_default();
-                                    caster.in_room = true;
+                                if PLAYER.is_match(caster) {
+                                    let caster_aggro =
+                                        self.aggro.entry(caster.to_string()).or_default();
+                                    caster_aggro.last_seen = self.now;
+                                    caster_aggro.in_room = true;
+                                    if get_target_priority(db, &caster.to_string())
+                                        .unwrap_or_default()
+                                        == 0
+                                    {
+                                        println!("Adding default priority for {}", caster);
+                                        set_target_priority(db, &caster.to_string(), 50);
+                                    }
                                 }
-                                {
-                                    let target = self.aggro.entry(target.to_string()).or_default();
-                                    target.in_room = true;
-                                    target.last_hit = self.now;
+                                if PLAYER.is_match(target) {
+                                    let target_aggro =
+                                        self.aggro.entry(target.to_string()).or_default();
+                                    target_aggro.last_seen = self.now;
+                                    target_aggro.in_room = true;
+                                    target_aggro.last_hit = self.now;
+                                    if get_target_priority(db, &target.to_string())
+                                        .unwrap_or_default()
+                                        == 0
+                                    {
+                                        println!("Adding default priority for {}", target);
+                                        set_target_priority(db, &target.to_string(), 50);
+                                    }
                                 }
                             }
                             _ => {}
@@ -181,61 +205,84 @@ impl<'s> TopperModule<'s> for GroupModule {
                     }
                 }
                 for line in timeslice.lines.iter() {
-                    if let Some(captures) = SLAIN_BY.captures(&line.0) {
-                        {
-                            let target = self
-                                .aggro
-                                .entry(captures.get(1).unwrap().as_str().to_string())
-                                .or_default();
-                            target.in_room = false;
+                    let line = strip_ansi(&line.0);
+                    if let Some(captures) = SLAIN_BY.captures(&line) {
+                        let target = self
+                            .aggro
+                            .entry(captures.get(1).unwrap().as_str().to_string())
+                            .or_default();
+                        target.in_room = false;
+                    } else if let Some(captures) = NO_SUCH_TARGET.captures(&line) {
+                        let target = self
+                            .aggro
+                            .entry(captures.get(1).unwrap().as_str().to_string())
+                            .or_default();
+                        target.in_room = false;
+                    } else if let Some(captures) = WHO_LINE.captures(&line) {
+                        let target = self
+                            .aggro
+                            .entry(captures.get(1).unwrap().as_str().to_string())
+                            .or_default();
+                        target.last_seen = self.now;
+                    }
+                }
+            }
+            TopperMessage::Request(TopperRequest::ModuleMsg(module, command)) => {
+                if module.eq("group") {
+                    match command.as_ref() {
+                        "call_list" => {
+                            if let Some(tether) = self.my_tether {
+                                calls = self.call_target_list(tether, false, db);
+                            } else {
+                                println!("No tether. Set one before calling.");
+                            }
                         }
-                    } else if let Some(captures) = NO_SUCH_TARGET.captures(&line.0) {
-                        {
-                            let target = self
-                                .aggro
-                                .entry(captures.get(1).unwrap().as_str().to_string())
-                                .or_default();
-                            target.in_room = false;
+                        "call_in" => {
+                            if let Some(tether) = self.my_tether {
+                                calls = self.call_target(tether, true, db);
+                            } else {
+                                println!("No tether. Set one before calling.");
+                            }
+                        }
+                        "call_all" => {
+                            if let Some(tether) = self.my_tether {
+                                calls = self.call_target(tether, false, db);
+                            } else {
+                                println!("No tether. Set one before calling.");
+                            }
+                        }
+                        "reset" => {
+                            self.my_tether = None;
+                            self.aggro = HashMap::new();
+                        }
+                        "tether shadow" => {
+                            self.my_tether = Some(Tether::Spirit);
+                        }
+                        "tether spirit" => {
+                            self.my_tether = Some(Tether::Shadow);
+                        }
+                        "check" => {
+                            println!("Aggros: {:?}", self.aggro);
+                        }
+                        _ => {
+                            if let Some(captures) = PRIORITY.captures(command) {
+                                let who = captures.get(1).unwrap().as_str().to_string();
+                                let priority = captures
+                                    .get(2)
+                                    .unwrap()
+                                    .as_str()
+                                    .to_string()
+                                    .parse::<i32>()
+                                    .unwrap();
+                                set_target_priority(db, &who, priority);
+                                println!("Set {} to {}", who, priority);
+                            } else {
+                                println!("No such command: {}", command);
+                            }
                         }
                     }
                 }
             }
-            TopperMessage::Request(TopperRequest::Group(command)) => match command.as_ref() {
-                "call_list" => {
-                    if let Some(tether) = self.my_tether {
-                        calls = self.call_target_list(tether, false, db);
-                    } else {
-                        println!("No tether. Set one before calling.");
-                    }
-                }
-                "call_in" => {
-                    if let Some(tether) = self.my_tether {
-                        calls = self.call_target(tether, true, db);
-                    } else {
-                        println!("No tether. Set one before calling.");
-                    }
-                }
-                "call_all" => {
-                    if let Some(tether) = self.my_tether {
-                        calls = self.call_target(tether, false, db);
-                    } else {
-                        println!("No tether. Set one before calling.");
-                    }
-                }
-                "reset" => {
-                    self.my_tether = None;
-                    self.aggro = HashMap::new();
-                }
-                "tether shadow" => {
-                    self.my_tether = Some(Tether::Spirit);
-                }
-                "tether spirit" => {
-                    self.my_tether = Some(Tether::Shadow);
-                }
-                _ => {
-                    println!("No such command: {}", command);
-                }
-            },
             _ => {}
         }
         if let Some(calls) = calls {

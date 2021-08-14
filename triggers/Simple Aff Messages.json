@@ -124,5 +124,23 @@
       }
     ],
     "observation_name": "LimbHeal"
+  },
+  {
+    "regex": "^You have been afflicted with a hidden affliction!$",
+    "args": [
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "HiddenAff"
   }
 ]

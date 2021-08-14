@@ -19,6 +19,7 @@ pub struct AgentState {
     pub wield_state: WieldState,
     pub dodge_state: DodgeState,
     pub channel_state: ChannelState,
+    pub hidden_state: HiddenState,
     pub branch_state: BranchState,
     pub resin_state: ResinState,
 }
@@ -110,12 +111,21 @@ impl AgentState {
         return false;
     }
 
+    pub fn add_guess(&mut self, flag: FType) -> bool {
+        self.hidden_state.add_guess(flag)
+    }
+
     // The flag is observed to be a certain value (true or false).
     pub fn observe_flag(&mut self, flag: FType, value: bool) {
         if !value && self.is(flag) {
             self.branch_state.strike_aff(flag, value);
         } else if value && !self.is(flag) {
-            self.branch_state.strike_aff(flag, value);
+            if !self.hidden_state.found_out() {
+                self.branch_state.strike_aff(flag, value);
+            }
+        } else if value {
+            // We've observed this is true, so no need to guess!
+            self.hidden_state.unhide(flag);
         }
         self.set_flag(flag, value);
     }
@@ -124,13 +134,18 @@ impl AgentState {
     pub fn toggle_flag(&mut self, flag: FType, value: bool) {
         if value && self.is(flag) {
             self.branch_state.strike_aff(flag, !value);
-        } else if value && self.is(flag) {
-            self.branch_state.strike_aff(flag, !value);
+        } else if !value && !self.is(flag) {
+            if !self.hidden_state.found_out() {
+                self.branch_state.strike_aff(flag, !value);
+            }
         }
         self.set_flag(flag, value);
     }
 
     pub fn set_flag(&mut self, flag: FType, value: bool) {
+        if !value {
+            self.hidden_state.unhide(flag);
+        }
         match flag {
             FType::LeftLegBroken => self
                 .limb_damage

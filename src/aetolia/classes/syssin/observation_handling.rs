@@ -30,6 +30,7 @@ lazy_static! {
 
 lazy_static! {
     static ref FLAY_ORDER: Vec<FType> = vec![
+        FType::Reflection,
         FType::Shielded,
         FType::Rebounding,
         FType::Fangbarrier,
@@ -168,7 +169,11 @@ pub fn handle_combat_action(
         "Bite" => {
             let observations = after.clone();
             let venom = combat_action.annotation.clone();
-            if let Some(AetObservation::Parry(who, _what)) = observations.get(1) {
+            if combat_action.annotation.eq("failure") {
+                for_agent(agent_states, &combat_action.target, |you| {
+                    you.observe_flag(FType::Fangbarrier, true);
+                });
+            } else if let Some(AetObservation::Parry(who, _what)) = observations.get(1) {
                 if !who.eq(&combat_action.target) {
                     for_agent_closure(
                         agent_states,
@@ -287,6 +292,9 @@ pub fn handle_combat_action(
                 &combat_action.target,
                 Box::new(move |you| {
                     match annotation.as_ref() {
+                        "reflection" => {
+                            you.toggle_flag(FType::Reflection, false);
+                        }
                         "rebounding" => {
                             you.toggle_flag(FType::Rebounding, false);
                         }
@@ -317,6 +325,7 @@ pub fn handle_combat_action(
                         remove_through(
                             you,
                             match annotation.as_ref() {
+                                "reflection" => FType::Reflection,
                                 "rebounding" => FType::Rebounding,
                                 "fangbarrier" => FType::Fangbarrier,
                                 "shield" => FType::Shielded,
@@ -395,11 +404,22 @@ pub fn handle_combat_action(
         }
         "Bedazzle" => {
             let observations = after.clone();
-            for_agent_closure(
+            for_agent_uncertain_closure(
                 agent_states,
                 &combat_action.target,
                 Box::new(move |you| {
-                    apply_or_infer_random_afflictions(you, &observations);
+                    apply_or_infer_random_afflictions(
+                        you,
+                        &observations,
+                        Some((
+                            2,
+                            BEDAZZLE_AFFS
+                                .iter()
+                                .filter(|aff| !you.is(**aff))
+                                .map(|aff| *aff)
+                                .collect(),
+                        )),
+                    )
                 }),
             );
             let observations = after.clone();

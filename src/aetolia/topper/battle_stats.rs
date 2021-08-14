@@ -38,7 +38,12 @@ fn get_hypno_warning(state: &AgentState) -> Option<String> {
 fn get_lock_warning(state: &AgentState) -> Option<String> {
     use crate::aetolia::classes::get_venoms;
     use crate::aetolia::classes::syssin::{should_lock, SOFT_STACK};
-    if should_lock(None, state, &get_venoms(SOFT_STACK.to_vec(), 3, &state)) {
+    if should_lock(
+        None,
+        state,
+        &"".to_string(),
+        &get_venoms(SOFT_STACK.to_vec(), 3, &state),
+    ) {
         Some(format!("<pink>Close to a lock!"))
     } else {
         None

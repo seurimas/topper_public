@@ -505,21 +505,21 @@ pub fn handle_combat_action(
             }
             "dizziness" => {
                 for_agent(agent_states, &combat_action.caster, |you| {
-                    you.set_flag(FType::Fallen, true);
+                    you.toggle_flag(FType::Fallen, true);
                     you.observe_flag(FType::Dizziness, true);
                 });
                 Ok(())
             }
             "stupidity" => {
                 for_agent(agent_states, &combat_action.caster, |you| {
-                    you.set_flag(FType::Fallen, true);
+                    you.toggle_flag(FType::Fallen, true);
                     you.observe_flag(FType::Stupidity, true);
                 });
                 Ok(())
             }
             "broken legs" => {
                 for_agent(agent_states, &combat_action.caster, |you| {
-                    you.set_flag(FType::Fallen, true);
+                    you.toggle_flag(FType::Fallen, true);
                     you.observe_flag(FType::LeftLegBroken, true);
                     you.observe_flag(FType::RightLegBroken, true);
                 });

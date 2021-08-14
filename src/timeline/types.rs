@@ -50,8 +50,8 @@ impl<A: BaseAgentState + Clone> TimelineState<A> {
             .cloned()
     }
 
-    pub fn get_agent(&mut self, name: &String) -> A {
-        self.borrow_agent(name)
+    pub fn get_agent(&self, name: &String) -> Option<&Vec<A>> {
+        self.agent_states.get(name)
     }
 
     fn get_mut_agent(&mut self, name: &String) -> &mut Vec<A> {
@@ -62,10 +62,6 @@ impl<A: BaseAgentState + Clone> TimelineState<A> {
                 .insert(name.to_string(), vec![A::get_base_state()]);
             self.get_mut_agent(name)
         }
-    }
-
-    pub fn get_me(&mut self) -> A {
-        self.get_agent(&self.me.clone())
     }
 
     pub fn get_my_hint(&self, hint_type: &String) -> Option<String> {

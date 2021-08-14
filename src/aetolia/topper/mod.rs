@@ -9,6 +9,7 @@ use crate::topper::{
     TopperModule, TopperRequest, TopperResponse, WebModule,
 };
 use battle_stats::BattleStatsModule;
+use curing::CureModule;
 use group::GroupModule;
 use serde_json::from_str;
 use std::sync::mpsc::Sender;
@@ -60,7 +61,7 @@ impl<'s> TopperModule<'s> for AetTimelineModule {
 }
 
 #[derive(Default)]
-pub struct BattleModule;
+pub struct BattleModule(CureModule);
 
 impl<'s> TopperModule<'s> for BattleModule {
     type Siblings = (
@@ -91,12 +92,14 @@ impl<'s> TopperModule<'s> for BattleModule {
                 }
                 _ => Ok(TopperResponse::silent()),
             },
-            _ => Ok(prioritize_cures(&timeline, me, &target, db)),
+            _ => Ok(prioritize_cures(self, &timeline, me, &target, db)),
         }
     }
 }
 
 pub struct AetTopper {
+    pub debug_mode: bool,
+    triggers_dir: String,
     pub timeline_module: AetTimelineModule,
     pub core_module: TopperCore,
     pub telnet_module: TelnetModule,
@@ -128,6 +131,8 @@ impl AetTopper {
         println!("DB: {:?}", std::fs::canonicalize(path.clone()).unwrap());
         let database_module = DatabaseModule::new(path);
         AetTopper {
+            debug_mode: false,
+            triggers_dir: triggers_dir.clone(),
             timeline_module: AetTimelineModule::new(),
             core_module: TopperCore::new(),
             telnet_module: TelnetModule::new(send_lines),
@@ -158,10 +163,30 @@ impl TopperHandler for AetTopper {
         match topper_msg {
             TopperMessage::AetEvent(slice) => {
                 let mut new_observations = self.observation_parser.observe(&slice);
+                if self.debug_mode {
+                    println!("{:?}", new_observations);
+                }
                 slice
                     .observations
                     .get_or_insert(Vec::new())
                     .append(&mut new_observations);
+            }
+            TopperMessage::Request(TopperRequest::ModuleMsg(module, command)) => {
+                if "core".eq(module) && "debug".eq(command) {
+                    self.debug_mode = !self.debug_mode;
+                    if self.debug_mode {
+                        println!("Debug mode on!");
+                    } else {
+                        println!("Debug mode off!");
+                    }
+                } else if "core".eq(module) && "reload triggers".eq(command) {
+                    println!("Reloading triggers");
+                    self.observation_parser =
+                        ObservationParser::<AetObservation>::new_from_directory(
+                            self.triggers_dir.clone(),
+                        )
+                        .map_err(|err| err.to_string())?;
+                }
             }
             _ => {}
         }

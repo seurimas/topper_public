@@ -120,6 +120,8 @@ pub enum FType {
     // Tattoos
     Flame,
     Cloak,
+    // General
+    Reflection,
 
     // Syssin defences
     Shroud,
@@ -299,6 +301,7 @@ pub enum FType {
 
     // Restoration Head
     Voidgaze,
+    Voidtrapped,
     MauledFace,
     SmashedThroat,
 

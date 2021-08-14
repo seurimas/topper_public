@@ -3,6 +3,8 @@ use crate::aetolia::topper::*;
 use crate::aetolia::types::*;
 use crate::topper::Topper;
 
+const CRUSH_DAMAGE: f32 = 12.5;
+const SMASH_DAMAGE: f32 = 25.0;
 pub fn handle_combat_action(
     combat_action: &CombatAction,
     agent_states: &mut AetTimelineState,
@@ -31,6 +33,26 @@ pub fn handle_combat_action(
                     you.set_flag(FType::Shielded, true);
                 }),
             );
+        }
+        "Smash" => {
+            if let Ok(limb) = get_limb_damage(&combat_action.annotation) {
+                attack_limb_damage(
+                    agent_states,
+                    &combat_action.target,
+                    (limb, SMASH_DAMAGE, true),
+                    after,
+                );
+            };
+        }
+        "Crush" => {
+            if let Ok(limb) = get_limb_damage(&combat_action.annotation) {
+                attack_limb_damage(
+                    agent_states,
+                    &combat_action.target,
+                    (limb, CRUSH_DAMAGE, true),
+                    after,
+                );
+            };
         }
         _ => {}
     }

@@ -1,12 +1,12 @@
 [
   {
-    "regex": "^(\\w+) (parries|parry) the attack on \\w+ (head|torso|left arm|right arm|left leg|right leg) with a deft maneuver.$",
+    "regex": "^(\\w+) (parries|parry) the attack (to|on) \\w+ (head|torso|left arm|right arm|left leg|right leg) with a deft maneuver.$",
     "args": [
       {
         "GroupAsTarget": 1
       },
       {
-        "GroupAsTarget": 3
+        "GroupAsTarget": 4
       },
       {
         "Literal": ""
@@ -18,13 +18,13 @@
     "observation_name": "Parry"
   },
   {
-    "regex": "^With a free hand, (\\w+) fends? off the attack on (\\w+) (head|torso|left arm|right arm|left leg|right leg).$",
+    "regex": "^With a free hand, (\\w+) fends? off the attack (to|on) (\\w+) (head|torso|left arm|right arm|left leg|right leg).$",
     "args": [
       {
         "GroupAsTarget": 1
       },
       {
-        "GroupAsTarget": 3
+        "GroupAsTarget": 4
       },
       {
         "Literal": ""
@@ -108,7 +108,7 @@
     "observation_name": "Mangled"
   },
   {
-    "regex": "The attack rebounds back onto you!",
+    "regex": "^The attack rebounds back onto you!$",
     "args": [
       {
         "Literal": ""
@@ -144,7 +144,7 @@
     "observation_name": "Devenoms"
   },
   {
-    "regex": "Your fangs won't penetrate the odd waxy coating protecting them.",
+    "regex": "^Your fangs won't penetrate the odd waxy coating protecting them.$",
     "args": [
       {
         "Literal": ""
@@ -214,6 +214,24 @@
       }
     ],
     "observation_name": "Dodges"
+  },
+  {
+    "regex": "^A reflection of (\\w+) blinks out of existence.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Reflection"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Absorbed"
   },
   {
     "regex": "You miss your strike by mere inches.",

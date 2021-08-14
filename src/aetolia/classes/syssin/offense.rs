@@ -215,8 +215,8 @@ lazy_static! {
         FType::Paresis,
         FType::Asthma,
         FType::Clumsiness,
-        FType::Allergies,
         FType::Stupidity,
+        FType::Allergies,
         FType::Vomiting,
         FType::Slickness,
         FType::LeftArmBroken,
@@ -360,14 +360,13 @@ lazy_static! {
 
 lazy_static! {
     static ref INDORANI_STACK: Vec<VenomPlan> = vec![
-        VenomPlan::OnTree(FType::Paresis),
         VenomPlan::Stick(FType::Asthma),
         VenomPlan::IfNotDo(
             FType::Hypochondria,
             Box::new(VenomPlan::Stick(FType::Clumsiness))
         ),
-        VenomPlan::OneOf(FType::Paresis, FType::Allergies),
-        VenomPlan::OneOf(FType::Disfigurement, FType::Weariness),
+        VenomPlan::OneOf(FType::Paresis, FType::Disfigurement),
+        VenomPlan::OneOf(FType::Allergies, FType::Weariness),
         VenomPlan::OneOf(FType::Slickness, FType::Anorexia),
         VenomPlan::OneOf(FType::LeftLegBroken, FType::LeftArmBroken),
         VenomPlan::OneOf(FType::RightLegBroken, FType::RightLegBroken),
@@ -615,9 +614,15 @@ fn go_for_thin_blood(_timeline: &AetTimeline, you: &AgentState, _strategy: &Stri
         && (!you.is(FType::Fangbarrier) || you.get_balance(BType::Renew) > 8.0)
 }
 
-pub fn should_lock(me: Option<&AgentState>, you: &AgentState, lockers: &Vec<&str>) -> bool {
+pub fn should_lock(
+    me: Option<&AgentState>,
+    you: &AgentState,
+    strategy: &String,
+    lockers: &Vec<&str>,
+) -> bool {
     if let Some(me) = me {
-        if lockers.len() == 2
+        if !strategy.eq("aggro")
+            && lockers.len() == 2
             && ((you.dodge_state.can_dodge_at(me.get_qeb_balance())
                 && you.affs_count(&vec![
                     FType::Hypochondria,
@@ -633,7 +638,7 @@ pub fn should_lock(me: Option<&AgentState>, you: &AgentState, lockers: &Vec<&str
         && (!you.can_tree(true) || you.get_balance(BType::Tree) > 2.5)
         && lockers.len() < 3
         && lockers.len() > 0
-        && (you.aff_count() >= 4 || you.get_balance(BType::Renew) > 4.0)
+        && (you.aff_count() >= 4 || you.get_balance(BType::Renew) > 4.0 || strategy.eq("aggro"))
 }
 
 pub fn call_venom(target: &String, v1: &String) -> String {
@@ -802,7 +807,7 @@ pub fn get_balance_attack<'s>(
             let mut venoms = get_venoms_from_plan(&stack.to_vec(), 2, &you);
             let lockers = get_venoms(SOFT_STACK.to_vec(), 3, &you);
             let mut priority_buffer = false;
-            if !strategy.eq("slit") && should_lock(Some(&me), &you, &lockers) {
+            if !strategy.eq("slit") && should_lock(Some(&me), &you, &strategy, &lockers) {
                 add_buffers(&mut venoms, &lockers);
                 priority_buffer = true;
             } else if !strategy.eq("slit") && lockers.len() == 0 {

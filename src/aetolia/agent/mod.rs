@@ -1,6 +1,7 @@
 pub mod agent;
 pub mod branching;
 pub mod general;
+pub mod hidden;
 pub mod limbs;
 pub mod sentinel;
 pub mod shapeshifter;
@@ -10,6 +11,7 @@ pub use crate::timeline::CType;
 pub use agent::*;
 pub use branching::*;
 pub use general::*;
+pub use hidden::*;
 pub use limbs::*;
 pub use sentinel::*;
 pub use shapeshifter::*;

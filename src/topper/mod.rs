@@ -32,7 +32,7 @@ pub enum TopperRequest {
     Assume(String, String, bool),
     Reset(String),
     Api(String),
-    Group(String),
+    ModuleMsg(String, String),
     // DB Methods
     Inspect(String, String),
     SetPriority(String, usize, Option<VenomPlan>),

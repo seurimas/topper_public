@@ -170,6 +170,7 @@ pub enum AetObservation {
     Mangled(String, String),
     Absorbed(String, String),
     DiscernedAfflict(String),
+    HiddenAff,
     Rebounds,
     Diverts,
     Dodges(String),

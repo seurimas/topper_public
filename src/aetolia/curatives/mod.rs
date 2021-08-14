@@ -4,14 +4,6 @@ pub mod first_aid;
 pub mod statics;
 pub use statics::*;
 
-fn noop() -> Box<Fn(&mut AgentState)> {
-    Box::new(|_me| {})
-}
-
-fn revert_flag(flag: FType, val: bool) -> Box<Fn(&mut AgentState)> {
-    Box::new(move |me2: &mut AgentState| me2.set_flag(flag, val))
-}
-
 pub fn top_aff(who: &AgentState, afflictions: Vec<FType>) -> Option<FType> {
     for affliction in afflictions.iter() {
         if who.is(*affliction) {
@@ -51,11 +43,18 @@ pub fn handle_simple_cure_action(
 ) -> Result<(), String> {
     let observations = after.clone();
     let cure_type = simple_cure.cure_type.clone();
+    let first_person = agent_states.me.eq(&simple_cure.caster);
     for_agent_closure(
         agent_states,
         &simple_cure.caster,
         Box::new(move |me| {
-            apply_or_infer_cure(me, &cure_type, &observations);
+            let mut seared = false;
+            if let Some(AetObservation::Proc(proc)) = observations.get(1) {
+                if proc.skill.eq("Sear") {
+                    seared = true;
+                }
+            }
+            apply_or_infer_cure(me, &cure_type, &observations, first_person);
             match &cure_type {
                 SimpleCure::Pill(_) => {
                     apply_or_infer_balance(me, (BType::Pill, 2.0), &observations);

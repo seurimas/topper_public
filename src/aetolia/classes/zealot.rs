@@ -92,14 +92,14 @@ pub fn handle_combat_action(
                     let limb_state = you.get_limb_state(limb);
                     let damage_change = 33.34 - limb_state.damage;
                     you.limb_damage.set_limb_damaged(limb, true);
-                    you.set_flag(dislocation, false);
+                    you.toggle_flag(dislocation, false);
                 }),
             );
         }
         "InfernalSeal" => {
             for_agent(agent_states, &combat_action.caster, |you| {
                 you.observe_flag(FType::Ablaze, true);
-                you.set_flag(FType::InfernalSeal, true);
+                you.toggle_flag(FType::InfernalSeal, true);
             });
         }
         "Zenith" => {
@@ -122,7 +122,7 @@ pub fn handle_combat_action(
             }
             "fall" => {
                 for_agent(agent_states, &combat_action.caster, |me| {
-                    me.set_flag(FType::Fallen, true);
+                    me.toggle_flag(FType::Fallen, true);
                 });
             }
             "shield" => {
@@ -1302,7 +1302,7 @@ lazy_static! {
                 if me.get_balance(BType::Secondary) < 3.0 {
                     0.0
                 } else if let Some(class) = db_class(db) {
-                    if is_affected_by(&class, FType::Clumsiness) {
+                    if is_affected_by(&class, FType::Clumsiness) && !you.is(FType::BlurryVision) {
                         25.0
                     } else {
                         0.0
@@ -1660,3 +1660,7 @@ pub fn get_attack(
 
     attack
 }
+
+#[cfg(test)]
+#[path = "./tests/zealot_tests.rs"]
+mod zealot_timeline_tests;

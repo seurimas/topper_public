@@ -158,12 +158,12 @@ pub fn apply_observation(
                     if you.is(FType::SoreWrist) {
                         apply_limb_damage(
                             you,
-                            (LType::LeftArmDamage, 5.0, you.is(FType::Stiffness)),
+                            (LType::LeftArmDamage, 4.0, you.is(FType::Stiffness)),
                             &after,
                         );
                         apply_limb_damage(
                             you,
-                            (LType::LeftArmDamage, 5.0, you.is(FType::Stiffness)),
+                            (LType::LeftArmDamage, 4.0, you.is(FType::Stiffness)),
                             &after,
                         );
                     }
@@ -259,6 +259,7 @@ pub fn apply_or_infer_suggestion(
 }
 
 pub fn apply_venom(who: &mut AgentState, venom: &String, relapse: bool) -> Result<(), String> {
+    let mut guessed_aff = None;
     if who.is(FType::ThinBlood) && !relapse {
         who.push_toxin(venom.clone());
     }
@@ -269,17 +270,22 @@ pub fn apply_venom(who: &mut AgentState, venom: &String, relapse: bool) -> Resul
     } else if venom == "epseth" {
         if who.is(FType::LeftLegBroken) {
             who.set_flag(FType::RightLegBroken, true);
+            guessed_aff = Some(FType::RightLegBroken);
         } else {
             who.set_flag(FType::LeftLegBroken, true);
+            guessed_aff = Some(FType::LeftLegBroken);
         }
     } else if venom == "epteth" {
         if who.is(FType::LeftArmBroken) {
             who.set_flag(FType::RightArmBroken, true);
+            guessed_aff = Some(FType::RightArmBroken);
         } else {
             who.set_flag(FType::LeftArmBroken, true);
+            guessed_aff = Some(FType::LeftArmBroken);
         }
     } else if let Some(affliction) = VENOM_AFFLICTS.get(venom) {
         who.set_flag(*affliction, true);
+        guessed_aff = Some(*affliction);
     } else if venom == "camus" {
         who.set_stat(SType::Health, who.get_stat(SType::Health) - 1000);
     } else if venom == "delphinium" && who.is(FType::Insomnia) {
@@ -290,6 +296,11 @@ pub fn apply_venom(who: &mut AgentState, venom: &String, relapse: bool) -> Resul
         who.set_flag(FType::Instawake, false);
     } else {
         return Err(format!("Could not determine effect of {}", venom));
+    }
+    if relapse {
+        if let Some(guessed_aff) = guessed_aff {
+            who.add_guess(guessed_aff);
+        }
     }
     Ok(())
 }
@@ -383,6 +394,10 @@ pub fn attack_hit(observations: &Vec<AetObservation>) -> bool {
             }
             (_, AetObservation::Misses(_)) => {
                 // Attack missed.
+                return false;
+            }
+            (_, AetObservation::Absorbed(_, _)) => {
+                // Attack absorbed.
                 return false;
             }
             (_, AetObservation::Parry(_, _)) => {
@@ -586,18 +601,54 @@ pub fn apply_or_infer_combo_balance(
 pub fn apply_or_infer_random_afflictions(
     who: &mut AgentState,
     after: &Vec<AetObservation>,
-) -> Result<(), String> {
-    for observation in after.iter() {
-        match observation {
-            AetObservation::DiscernedAfflict(aff_name) => {
+    possible_affs: Option<(usize, Vec<FType>)>,
+) -> Option<Vec<AgentState>> {
+    let mut discerned = false;
+    for (i, observation) in after.iter().enumerate() {
+        match (i, observation) {
+            (0, AetObservation::CombatAction(_)) => {}
+            (_, AetObservation::CombatAction(_)) => {
+                // We're into the next CombatAction!
+                break;
+            }
+            (_, AetObservation::Afflicted(aff_name)) => {
                 if let Some(aff) = FType::from_name(&aff_name) {
                     who.set_flag(aff, true);
                 }
+                discerned = true;
+            }
+            (_, AetObservation::DiscernedAfflict(aff_name)) => {
+                if let Some(aff) = FType::from_name(&aff_name) {
+                    who.set_flag(aff, true);
+                }
+                discerned = true;
             }
             _ => {}
         }
     }
-    Ok(())
+    if discerned {
+        None
+    } else if let Some((len, affs)) = possible_affs {
+        let possibilities = crate::combinatorics::combinations(affs.as_slice(), len);
+        if possibilities.len() > 0 {
+            println!("Branching {} more times...", possibilities.len() - 1);
+        } else {
+            println!("No branching!");
+            return None;
+        }
+        let mut branches = Vec::new();
+        for aff_sets in possibilities.iter() {
+            let mut branch = who.clone();
+            for aff in aff_sets.iter() {
+                branch.set_flag(*aff, true);
+                branch.add_guess(*aff);
+            }
+            branches.push(branch);
+        }
+        Some(branches)
+    } else {
+        None
+    }
 }
 
 pub fn apply_or_infer_cures(
@@ -638,6 +689,7 @@ pub fn apply_or_infer_cure(
     who: &mut AgentState,
     cure: &SimpleCure,
     after: &Vec<AetObservation>,
+    first_person: bool,
 ) -> Result<Vec<FType>, String> {
     let mut found_cures = Vec::new();
     if let Some(AetObservation::Cured(aff_name)) = after.get(1) {
@@ -710,10 +762,16 @@ pub fn apply_or_infer_cure(
                 who.observe_flag(FType::Anorexia, false);
                 if pill_name == "anabiotic" {
                 } else if let Some(order) = PILL_CURE_ORDERS.get(pill_name) {
-                    let cured = top_aff(who, order.to_vec());
-                    remove_in_order(order.to_vec())(who);
-                    if cured == Some(FType::ThinBlood) {
-                        who.clear_relapses();
+                    if first_person {
+                        for pill_aff in order.iter() {
+                            who.observe_flag(*pill_aff, false);
+                        }
+                    } else {
+                        let cured = top_aff(who, order.to_vec());
+                        remove_in_order(order.to_vec())(who);
+                        if cured == Some(FType::ThinBlood) {
+                            who.clear_relapses();
+                        }
                     }
                 } else if let Some(defence) = PILL_DEFENCES.get(pill_name) {
                     if *defence == FType::Insomnia && who.is(FType::Hypersomnia) {
@@ -747,7 +805,13 @@ pub fn apply_or_infer_cure(
                             println!("{} fizzled on {}", salve_name, salve_loc);
                         }
                     } else {
-                        remove_in_order(order.to_vec())(who);
+                        if first_person {
+                            for salve_aff in order.iter() {
+                                who.observe_flag(*salve_aff, false);
+                            }
+                        } else {
+                            remove_in_order(order.to_vec())(who);
+                        }
                     }
                 } else {
                     return Err(format!("Could not find {} on {}", salve_name, salve_loc));
@@ -756,7 +820,13 @@ pub fn apply_or_infer_cure(
             SimpleCure::Smoke(herb_name) => {
                 who.observe_flag(FType::Asthma, false);
                 if let Some(order) = SMOKE_CURE_ORDERS.get(herb_name) {
-                    remove_in_order(order.to_vec())(who);
+                    if first_person {
+                        for smoke_aff in order.iter() {
+                            who.observe_flag(*smoke_aff, false);
+                        }
+                    } else {
+                        remove_in_order(order.to_vec())(who);
+                    }
                 } else if herb_name == "reishi" {
                     who.set_balance(BType::Rebounding, 6.25);
                 } else {

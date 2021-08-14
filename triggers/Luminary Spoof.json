@@ -1,0 +1,44 @@
+[
+  {
+    "regex": "^A burst of colorful steam rises from (\\w+)'s skin with sudden surprise.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Spirituality"
+      },
+      {
+        "Literal": "Sear"
+      },
+      {
+        "Literal": "fire"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^The remedy evaporates as it comes in contact with your seared skin.$",
+    "args": [
+      {
+        "Literal": "You"
+      },
+      {
+        "Literal": "Spirituality"
+      },
+      {
+        "Literal": "Sear"
+      },
+      {
+        "Literal": "fire"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  }
+]
