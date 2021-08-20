@@ -1,0 +1,23 @@
+[
+  {
+    "regex": "^The (\\w+) tarot has passed on the (\\w+) affliction.$",
+    "args": [
+      {
+        "GroupAsTarget": 2
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "DiscernedAfflict"
+  }
+]

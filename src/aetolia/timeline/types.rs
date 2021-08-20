@@ -8,6 +8,7 @@ use crate::aetolia::curatives::{
 };
 use crate::aetolia::types::*;
 use crate::timeline::types::*;
+use crate::topper::db::DatabaseModule;
 use crate::topper::observations::EnumFromArgs;
 use log::warn;
 use regex::Regex;
@@ -133,6 +134,13 @@ impl SimpleCureAction {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Copy)]
+pub enum Perspective {
+    Attacker,
+    Target,
+    Bystander,
+}
+
 #[derive(Debug, Deserialize, PartialEq, Clone, EnumFromArgs)]
 pub enum AetObservation {
     // Basic actions
@@ -189,6 +197,7 @@ pub enum AetObservation {
     Wound(String, f32),
     // First-Aid simples
     Afflicted(String),
+    Discovered(String),
     Cured(String),
     Gained(String, String),
     Stripped(String),
@@ -213,14 +222,24 @@ impl BaseTimeline<AetObservation, AetPrompt> for AetTimeline {
     fn push_time_slice(
         &mut self,
         slice: TimeSlice<AetObservation, AetPrompt>,
+        db: Option<&DatabaseModule>,
     ) -> Result<(), String> {
-        let result = self.state.apply_time_slice(&slice);
+        let result = self.state.apply_time_slice(&slice, db);
         self.slices.push(slice);
         result
     }
 }
 
 impl TimelineState<AgentState> {
+    pub fn get_perspective(&self, combat_action: &CombatAction) -> Perspective {
+        if combat_action.caster.eq(&self.me) {
+            Perspective::Attacker
+        } else if combat_action.target.eq(&self.me) {
+            Perspective::Target
+        } else {
+            Perspective::Bystander
+        }
+    }
     pub fn set_flag_for_agent(
         &mut self,
         who: &String,
@@ -304,8 +323,9 @@ impl TimelineState<AgentState> {
         observation: &AetObservation,
         before: &Vec<AetObservation>,
         after: &Vec<AetObservation>,
+        db: Option<&DatabaseModule>,
     ) -> Result<(), String> {
-        apply_observation(self, observation, before, after)
+        apply_observation(self, observation, before, after, db)
     }
 
     fn strikeout(&mut self) {
@@ -336,6 +356,7 @@ impl TimelineState<AgentState> {
     fn apply_time_slice(
         &mut self,
         slice: &TimeSlice<AetObservation, AetPrompt>,
+        db: Option<&DatabaseModule>,
     ) -> Result<(), String> {
         self.me = slice.me.clone();
         self.update_time(slice.time);
@@ -343,7 +364,7 @@ impl TimelineState<AgentState> {
         let observations = slice.get_observations().clone();
         let mut after = observations.clone();
         for observation in observations.iter() {
-            let obs_results = self.apply_observation(observation, &before, &after);
+            let obs_results = self.apply_observation(observation, &before, &after, db);
             if let Err(error) = obs_results {
                 println!("Bad observation: {:?} ({})", observation, error);
             }

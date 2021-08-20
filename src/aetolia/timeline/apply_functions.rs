@@ -8,6 +8,7 @@ use crate::aetolia::curatives::{
 use crate::aetolia::timeline::*;
 use crate::aetolia::types::*;
 use crate::timeline::CType;
+use crate::topper::db::DatabaseModule;
 use log::warn;
 use regex::Regex;
 use serde::Deserialize;
@@ -18,12 +19,16 @@ pub fn apply_observation(
     observation: &AetObservation,
     before: &Vec<AetObservation>,
     after: &Vec<AetObservation>,
+    db: Option<&DatabaseModule>,
 ) -> Result<(), String> {
     match observation {
         AetObservation::Sent(command) => {
             handle_sent(command, timeline);
         }
         AetObservation::CombatAction(combat_action) => {
+            if let (Some(db), Some(class)) = (db, get_skill_class(&combat_action.category)) {
+                db.set_class(&combat_action.caster, class);
+            }
             handle_combat_action(combat_action, timeline, before, after)?;
         }
         AetObservation::Proc(combat_action) => {
@@ -49,6 +54,17 @@ pub fn apply_observation(
             } else {
                 timeline.set_flag_for_agent(&timeline.me.clone(), affliction, true)?;
             }
+        }
+        AetObservation::Discovered(affliction) => {
+            let flag_name = affliction.clone();
+            timeline.for_agent_closure(
+                &timeline.me.clone(),
+                Box::new(move |me| {
+                    if let Some(aff_flag) = FType::from_name(&flag_name) {
+                        me.observe_flag(aff_flag, true);
+                    }
+                }),
+            );
         }
         AetObservation::OtherAfflicted(who, affliction) => {
             if before.len() > 0 {
@@ -598,9 +614,46 @@ pub fn apply_or_infer_combo_balance(
     who.set_balance(expected_value.0, expected_value.1);
 }
 
+pub fn apply_or_strike_random_cure(
+    who: &mut AgentState,
+    after: &Vec<AetObservation>,
+    perspective: Perspective,
+    (len, affs): (usize, Vec<FType>),
+) {
+    let mut discerned = 0;
+    for (i, observation) in after.iter().enumerate() {
+        match (i, observation) {
+            (0, AetObservation::CombatAction(_)) => {}
+            (_, AetObservation::CombatAction(_)) => {
+                // We're into the next CombatAction!
+                break;
+            }
+            (_, AetObservation::Cured(aff_name)) => {
+                if let Some(aff) = FType::from_name(&aff_name) {
+                    who.toggle_flag(aff, false);
+                }
+                discerned += 1;
+            }
+            (_, AetObservation::DiscernedCure(_, aff_name)) => {
+                if let Some(aff) = FType::from_name(&aff_name) {
+                    who.toggle_flag(aff, false);
+                }
+                discerned += 1;
+            }
+            _ => {}
+        }
+    }
+    if discerned < len {
+        for aff in affs {
+            who.observe_flag(aff, false);
+        }
+    }
+}
+
 pub fn apply_or_infer_random_afflictions(
     who: &mut AgentState,
     after: &Vec<AetObservation>,
+    perspective: Perspective,
     possible_affs: Option<(usize, Vec<FType>)>,
 ) -> Option<Vec<AgentState>> {
     let mut discerned = false;
@@ -612,16 +665,28 @@ pub fn apply_or_infer_random_afflictions(
                 break;
             }
             (_, AetObservation::Afflicted(aff_name)) => {
-                if let Some(aff) = FType::from_name(&aff_name) {
-                    who.set_flag(aff, true);
+                if perspective == Perspective::Target {
+                    if let Some(aff) = FType::from_name(&aff_name) {
+                        who.toggle_flag(aff, true);
+                    }
+                    discerned = true;
                 }
-                discerned = true;
+            }
+            (_, AetObservation::Stripped(def_name)) => {
+                if perspective == Perspective::Target {
+                    if let Some(def) = FType::from_name(&def_name) {
+                        who.toggle_flag(def, false);
+                    }
+                    discerned = true;
+                }
             }
             (_, AetObservation::DiscernedAfflict(aff_name)) => {
-                if let Some(aff) = FType::from_name(&aff_name) {
-                    who.set_flag(aff, true);
+                if perspective != Perspective::Target {
+                    if let Some(aff) = FType::from_name(&aff_name) {
+                        who.toggle_flag(aff, true);
+                    }
+                    discerned = true;
                 }
-                discerned = true;
             }
             _ => {}
         }
@@ -655,6 +720,7 @@ pub fn apply_or_infer_cures(
     who: &mut AgentState,
     cures: Vec<FType>,
     after: &Vec<AetObservation>,
+    first_person: bool,
 ) -> Result<(), String> {
     let mut found_cures = Vec::new();
     for observation in after.iter() {
@@ -680,7 +746,13 @@ pub fn apply_or_infer_cures(
         }
     }
     if found_cures.len() == 0 {
-        remove_in_order(cures)(who);
+        if first_person {
+            for aff in cures.iter() {
+                who.observe_flag(*aff, false);
+            }
+        } else {
+            remove_in_order(cures)(who);
+        }
     }
     Ok(())
 }
@@ -753,6 +825,46 @@ pub fn apply_or_infer_cure(
         }
     } else if let Some(AetObservation::Stripped(def_name)) = after.get(1) {
         if let Some(def) = FType::from_name(&def_name) {
+            match cure {
+                SimpleCure::Pill(pill_name) => {
+                    who.observe_flag(FType::Anorexia, false);
+                    if let Some(order) = PILL_CURE_ORDERS.get(pill_name) {
+                        for pill_aff in order.iter() {
+                            if *pill_aff == def {
+                                break;
+                            } else {
+                                who.observe_flag(*pill_aff, false);
+                            }
+                        }
+                    }
+                }
+                SimpleCure::Salve(salve_name, salve_loc) => {
+                    who.observe_flag(FType::Slickness, false);
+                    if let Some(order) =
+                        SALVE_CURE_ORDERS.get(&(salve_name.to_string(), salve_loc.to_string()))
+                    {
+                        for salve_aff in order.iter() {
+                            if *salve_aff == def {
+                                break;
+                            } else {
+                                who.observe_flag(*salve_aff, false);
+                            }
+                        }
+                    }
+                }
+                SimpleCure::Smoke(herb_name) => {
+                    who.observe_flag(FType::Asthma, false);
+                    if let Some(order) = SMOKE_CURE_ORDERS.get(herb_name) {
+                        for herb_aff in order.iter() {
+                            if *herb_aff == def {
+                                break;
+                            } else {
+                                who.observe_flag(*herb_aff, false);
+                            }
+                        }
+                    }
+                }
+            }
             who.toggle_flag(def, false);
             found_cures.push(def);
         }

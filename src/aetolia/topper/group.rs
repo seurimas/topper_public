@@ -13,6 +13,14 @@ fn set_target_priority(db: &DatabaseModule, who: &String, target_priority: i32) 
     db.insert_json::<i32>("target_priority", who, target_priority);
 }
 
+fn capitalize(s: String) -> String {
+    format!(
+        "{}{}",
+        (&s[..1].to_string()).to_uppercase(),
+        &s[1..].to_lowercase()
+    )
+}
+
 lazy_static! {
     static ref PLAYER: Regex = Regex::new(r"^\w+$").unwrap();
     static ref SLAIN_BY: Regex = Regex::new(r"^(\w+) has been slain by (.*)\.$").unwrap();
@@ -215,7 +223,7 @@ impl<'s> TopperModule<'s> for GroupModule {
                     } else if let Some(captures) = NO_SUCH_TARGET.captures(&line) {
                         let target = self
                             .aggro
-                            .entry(captures.get(1).unwrap().as_str().to_string())
+                            .entry(capitalize(captures.get(1).unwrap().as_str().to_string()))
                             .or_default();
                         target.in_room = false;
                     } else if let Some(captures) = WHO_LINE.captures(&line) {

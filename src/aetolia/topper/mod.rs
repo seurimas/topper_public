@@ -21,7 +21,7 @@ use crate::aetolia::topper::curing::prioritize_cures;
 pub type AetTimelineModule = TimelineModule<AetObservation, AetPrompt, AgentState>;
 
 impl<'s> TopperModule<'s> for AetTimelineModule {
-    type Siblings = ();
+    type Siblings = (&'s DatabaseModule,);
     fn handle_message(
         &mut self,
         message: &TopperMessage,
@@ -29,7 +29,8 @@ impl<'s> TopperModule<'s> for AetTimelineModule {
     ) -> Result<TopperResponse, String> {
         match message {
             TopperMessage::AetEvent(timeslice) => {
-                self.timeline.push_time_slice(timeslice.clone())?;
+                self.timeline
+                    .push_time_slice(timeslice.clone(), Some(siblings.0))?;
                 Ok(TopperResponse::silent())
             }
             TopperMessage::Request(request) => match request {
@@ -193,7 +194,10 @@ impl TopperHandler for AetTopper {
         Ok(self
             .core_module
             .handle_message(&topper_msg, ())?
-            .then(self.timeline_module.handle_message(&topper_msg, ())?)
+            .then(
+                self.timeline_module
+                    .handle_message(&topper_msg, (&self.database_module,))?,
+            )
             .then(self.telnet_module.handle_message(&topper_msg, ())?)
             .then(self.battlestats_module.handle_message(
                 &topper_msg,

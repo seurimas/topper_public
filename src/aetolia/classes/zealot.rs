@@ -368,6 +368,14 @@ pub fn handle_combat_action(
                 you.limb_damage.dewelt(LType::HeadDamage);
             });
         }
+        "Jawcrack" => {
+            attack_afflictions(
+                agent_states,
+                &combat_action.target,
+                vec![FType::Stuttering, FType::BlurryVision],
+                after,
+            );
+        }
         "Rejection" => {
             for_agent(agent_states, &combat_action.caster, |me| {
                 me.set_flag(FType::Rebounding, true);
@@ -538,9 +546,9 @@ fn value_pendulum(
         if let (Some(timer), Some(limb)) =
             (you.limb_damage.restore_timer, you.limb_damage.restoring)
         {
-            let timer = timer as f32 / BALANCE_SCALE;
-            if me.get_qeb_balance() < timer {
-                if !you.get_limb_state(limb).broken && timer < 2.0 {
+            let timer = timer as f32 / BALANCE_SCALE - me.get_qeb_balance();
+            if timer > 0.0 {
+                if !you.get_limb_state(limb).broken && timer < 1.0 {
                     println!("No pendulum, timer at {}", timer);
                     return 0.0;
                 }
@@ -897,7 +905,7 @@ lazy_static! {
             let target_limbs = you.get_limbs_state();
             (
                 if !you.is(FType::Heatspear)
-                    && you.get_count(FType::Ablaze) > 6
+                    && you.get_count(FType::Ablaze) >= 6
                     && !me.is(FType::Zenith)
                 {
                     ComboType::Full
@@ -905,7 +913,7 @@ lazy_static! {
                     ComboType::ZenithEq
                 },
                 if you.is(FType::Ablaze) && !you.is(FType::Heatspear) {
-                    if target_limbs.torso.damage > 33.3 {
+                    if target_limbs.torso.damage > 33.3 || you.get_count(FType::Ablaze) >= 6 {
                         200.0
                     } else {
                         60.0

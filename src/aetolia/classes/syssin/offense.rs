@@ -213,10 +213,10 @@ lazy_static! {
 lazy_static! {
     static ref AGGRO_STACK: Vec<FType> = vec![
         FType::Paresis,
-        FType::Asthma,
         FType::Clumsiness,
+        FType::Asthma,
         FType::Stupidity,
-        FType::Allergies,
+        FType::Weariness,
         FType::Vomiting,
         FType::Slickness,
         FType::LeftArmBroken,
@@ -652,10 +652,8 @@ pub fn call_venoms(target: &String, v1: &String, v2: &String) -> String {
 pub fn get_flay_action(timeline: &AetTimeline, target: &String, def: String, v1: String) -> String {
     let action = if use_one_rag(timeline) && !v1.eq_ignore_ascii_case("") {
         format!("stand;;hw {};;flay {}", v1, target)
-    } else if def.eq_ignore_ascii_case("rebounding") || def.eq_ignore_ascii_case("shield") {
-        format!("stand;;envenom whip with {};;flay {}", v1, target)
     } else {
-        format!("stand;;flay {} {} {}", target, def, v1)
+        format!("stand;;envenom whip with {};;flay {}", v1, target)
     };
     let action = if should_call_venoms(timeline) && !v1.eq_ignore_ascii_case("") {
         format!("{};;{}", call_venom(target, &v1), action)

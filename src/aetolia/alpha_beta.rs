@@ -66,7 +66,7 @@ impl<'s, D: ActionPlanner> Iterator for SimulationIterator<'s, D> {
             );
             let mut new_timeline = self.timeline.branch();
             if let Some(timeslice) = action_plan.get_time_slice(&new_timeline) {
-                new_timeline.push_time_slice(timeslice);
+                new_timeline.push_time_slice(timeslice, None);
                 Some(new_timeline)
             } else {
                 self.next()

@@ -33,7 +33,7 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Afflicted"
+    "observation_name": "Discovered"
   },
   {
     "regex": "^(You) have gained the (.*) defence.$",

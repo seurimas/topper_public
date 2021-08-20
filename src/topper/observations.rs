@@ -91,7 +91,7 @@ impl ObservationMapping {
 pub struct ObservationParser<O> {
     mappings: Vec<ObservationMapping>,
     regexes: Vec<Regex>,
-    regex_set: RegexSet,
+    // regex_set: RegexSet,
     observation_creator: fn(&String, Vec<String>) -> O,
 }
 
@@ -107,13 +107,13 @@ where
             .iter()
             .map(|mapping| Regex::new(&mapping.regex.clone()).unwrap())
             .collect();
-        let regex_set = RegexSetBuilder::new(mappings.iter().map(|mapping| mapping.regex.clone()))
-            .size_limit(1 << 24)
-            .build()
-            .unwrap();
+        // let regex_set = RegexSetBuilder::new(mappings.iter().map(|mapping| mapping.regex.clone()))
+        //     .size_limit(1 << 24)
+        //     .build()
+        //     .unwrap();
         ObservationParser {
             regexes,
-            regex_set,
+            // regex_set,
             mappings,
             observation_creator,
         }

@@ -276,17 +276,6 @@ pub fn handle_combat_action(
                 }),
             );
             let observations = after.clone();
-            if combat_action.annotation.eq(&"rebounding") || combat_action.annotation.eq(&"shield")
-            {
-                apply_weapon_hits(
-                    agent_states,
-                    &combat_action.caster,
-                    &combat_action.target,
-                    after,
-                    first_person,
-                    &hints,
-                );
-            }
             for_agent_closure(
                 agent_states,
                 &combat_action.target,
@@ -338,6 +327,37 @@ pub fn handle_combat_action(
                     }
                 }),
             );
+            for i in 0..observations.len() {
+                if let Some(AetObservation::Devenoms(venom)) = observations.get(i) {
+                    let annotation = combat_action.annotation.clone();
+                    for_agent_closure(
+                        agent_states,
+                        &combat_action.target,
+                        Box::new(move |you| {
+                            you.observe_flag(FType::Shielded, false);
+                            you.observe_flag(FType::Rebounding, false);
+                            if annotation.contains("failure") && you.hypno_state.is_hypnotized() {
+                                you.hypno_state.desway();
+                            }
+                        }),
+                    );
+                }
+            }
+            let target = agent_states.borrow_agent(&combat_action.target);
+            if !target.is(FType::Rebounding)
+                && !target.is(FType::Shielded)
+                && !(target.hypno_state.is_hypnotized()
+                    && combat_action.annotation.contains("failure"))
+            {
+                apply_weapon_hits(
+                    agent_states,
+                    &combat_action.caster,
+                    &combat_action.target,
+                    after,
+                    first_person,
+                    &hints,
+                );
+            }
         }
         "Hypnotise" => {
             for_agent(agent_states, &combat_action.target, |you| {
@@ -404,6 +424,7 @@ pub fn handle_combat_action(
         }
         "Bedazzle" => {
             let observations = after.clone();
+            let perspective = agent_states.get_perspective(&combat_action);
             for_agent_uncertain_closure(
                 agent_states,
                 &combat_action.target,
@@ -411,6 +432,7 @@ pub fn handle_combat_action(
                     apply_or_infer_random_afflictions(
                         you,
                         &observations,
+                        perspective,
                         Some((
                             2,
                             BEDAZZLE_AFFS

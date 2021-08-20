@@ -61,5 +61,47 @@
       }
     ],
     "observation_name": "SimpleCure"
+  },
+  {
+    "regex": "^(You) are already an insomniac.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Survival"
+      },
+      {
+        "Literal": "Insomnia"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^(You) clench your fists, grit your teeth, and banish all possibility of sleep.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Survival"
+      },
+      {
+        "Literal": "Insomnia"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
   }
 ]

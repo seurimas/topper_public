@@ -206,6 +206,10 @@ impl HypnoState {
             .collect();
     }
 
+    pub fn is_hypnotized(&self) -> bool {
+        self.hypnotized
+    }
+
     pub fn hypnotize(&mut self) {
         self.hypnotized = true;
         self.active = false;

@@ -105,6 +105,27 @@
     "observation_name": "Proc"
   },
   {
+    "regex": "^(You)r swagger recedes as you feel slightly numb.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "paresis"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "DiscernedCure"
+  },
+  {
     "regex": "^With a directing thought, (you)r chains act of their own will.$",
     "args": [
       {

@@ -1,3 +1,4 @@
+use crate::topper::db::DatabaseModule;
 use log::warn;
 use regex::Regex;
 use serde::Deserialize;
@@ -168,7 +169,11 @@ pub struct Timeline<O, P, A> {
 }
 
 pub trait BaseTimeline<O, P> {
-    fn push_time_slice(&mut self, slice: TimeSlice<O, P>) -> Result<(), String>;
+    fn push_time_slice(
+        &mut self,
+        slice: TimeSlice<O, P>,
+        db: Option<&DatabaseModule>,
+    ) -> Result<(), String>;
 }
 
 impl<O, P, A: BaseAgentState + Clone> Timeline<O, P, A> {

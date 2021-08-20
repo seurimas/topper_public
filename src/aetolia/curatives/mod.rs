@@ -13,7 +13,7 @@ pub fn top_aff(who: &AgentState, afflictions: Vec<FType>) -> Option<FType> {
     None
 }
 
-pub fn top_missing_aff(who: &AgentState, afflictions: Vec<FType>) -> Option<FType> {
+pub fn top_missing_aff(who: &AgentState, afflictions: &Vec<FType>) -> Option<FType> {
     for affliction in afflictions.iter() {
         if !who.is(*affliction) {
             return Some(*affliction);

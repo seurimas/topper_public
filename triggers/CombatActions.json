@@ -168,6 +168,69 @@
     "observation_name": "CombatAction"
   },
   {
+    "regex": "^(You) close your eyes, bow your head, and empty your mind of all thought.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Hunting"
+      },
+      {
+        "Literal": "Meditate"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "CombatAction"
+  },
+  {
+    "regex": "^(You)r mental prowess is already swollen to its maximum.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Hunting"
+      },
+      {
+        "Literal": "Meditate"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "CombatAction"
+  },
+  {
+    "regex": "^What direction are (you) trying to cast your icewall?$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Enchantment"
+      },
+      {
+        "Literal": "Icewall"
+      },
+      {
+        "Literal": "failure"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "CombatAction"
+  },
+  {
     "regex": "^(\\w+) becomes flushed as \\w+ (head|torso|left arm|right arm|left leg|right leg) heals with quickened haste.$",
     "args": [
       {

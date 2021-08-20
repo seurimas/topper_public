@@ -1,4 +1,4 @@
-use crate::aetolia::curatives::MENTAL_AFFLICTIONS;
+use crate::aetolia::curatives::{MENTAL_AFFLICTIONS, RANDOM_CURES};
 use crate::aetolia::observables::*;
 use crate::aetolia::timeline::*;
 use crate::aetolia::topper::*;
@@ -149,6 +149,8 @@ pub fn get_skill_class(category: &String) -> Option<Class> {
 
 pub fn has_special_cure(class: &Class, affliction: FType) -> bool {
     match (affliction, class) {
+        (_, Class::Warden) => has_special_cure(&Class::Carnifex, affliction),
+        (_, Class::Revenant) => has_special_cure(&Class::Templar, affliction),
         (FType::Asthma, Class::Monk) => true,
         (FType::Asthma, Class::Syssin) => true,
         (FType::Paresis, Class::Zealot) => true,
@@ -389,6 +391,7 @@ pub fn handle_combat_action(
         "Survival" => match combat_action.skill.as_ref() {
             "Focus" => {
                 let observations = after.clone();
+                let first_person = agent_states.me.eq(&combat_action.caster);
                 for_agent_closure(
                     agent_states,
                     &combat_action.caster,
@@ -400,7 +403,12 @@ pub fn handle_combat_action(
                         if me.is(FType::Laxity) {
                             duration += 2.0;
                         }
-                        apply_or_infer_cures(me, MENTAL_AFFLICTIONS.to_vec(), &observations);
+                        apply_or_infer_cures(
+                            me,
+                            MENTAL_AFFLICTIONS.to_vec(),
+                            &observations,
+                            first_person,
+                        );
                         apply_or_infer_balance(me, (BType::Focus, duration), &observations);
                     }),
                 );
@@ -434,6 +442,7 @@ pub fn handle_combat_action(
             }
             "Tree" => {
                 let observations = after.clone();
+                let perspective = agent_states.get_perspective(&combat_action);
                 for_agent_closure(
                     agent_states,
                     &combat_action.caster,
@@ -448,6 +457,26 @@ pub fn handle_combat_action(
                         me.observe_flag(FType::Paresis, false);
                         me.observe_flag(FType::Paralysis, false);
                         apply_or_infer_balance(me, (BType::Tree, duration), &observations);
+                        apply_or_strike_random_cure(
+                            me,
+                            &observations,
+                            perspective,
+                            (1, RANDOM_CURES.to_vec()),
+                        );
+                    }),
+                );
+                Ok(())
+            }
+            _ => Ok(()),
+        },
+        "Enchantment" => match combat_action.skill.as_ref() {
+            "Icewall" => {
+                let observations = after.clone();
+                for_agent_closure(
+                    agent_states,
+                    &combat_action.caster,
+                    Box::new(move |me| {
+                        me.observe_flag(FType::Superstition, false);
                     }),
                 );
                 Ok(())
@@ -474,6 +503,17 @@ pub fn handle_combat_action(
                     &combat_action.caster,
                     Box::new(move |me| {
                         apply_or_infer_balance(me, (BType::Renew, 20.0), &observations);
+                    }),
+                );
+                Ok(())
+            }
+            "Meditate" => {
+                let observations = after.clone();
+                for_agent_closure(
+                    agent_states,
+                    &combat_action.caster,
+                    Box::new(move |me| {
+                        me.observe_flag(FType::Impatience, false);
                     }),
                 );
                 Ok(())

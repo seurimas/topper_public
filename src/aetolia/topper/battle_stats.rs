@@ -64,7 +64,9 @@ impl PlayerStats {
     pub fn for_player(state: &AgentState, class: Option<Class>) -> Self {
         let mut afflictions = Vec::new();
         for aff in state.flags.aff_iter() {
-            if state.get_count(aff) > 1 {
+            if state.hidden_state.is_guessed(aff) {
+                afflictions.push(format!("{:?}?", aff));
+            } else if state.get_count(aff) > 1 {
                 afflictions.push(format!("{:?}x{}", aff, state.get_count(aff)));
             } else {
                 afflictions.push(format!("{:?}", aff));

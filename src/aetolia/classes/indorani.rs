@@ -34,6 +34,7 @@ pub fn handle_combat_action(
         "Sun" | "Moon" => {
             if !combat_action.annotation.eq("dodge") {
                 let observations = after.clone();
+                let perspective = agent_states.get_perspective(&combat_action);
                 let sun = combat_action.skill.eq("Sun");
                 for_agent_uncertain_closure(
                     agent_states,
@@ -42,6 +43,7 @@ pub fn handle_combat_action(
                         apply_or_infer_random_afflictions(
                             you,
                             &observations,
+                            perspective,
                             Some((
                                 1,
                                 (if sun {

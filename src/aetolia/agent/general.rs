@@ -76,6 +76,7 @@ pub enum SType {
     PartialEq,
     PartialOrd,
     Eq,
+    Ord,
     Hash,
     Clone,
     Copy,
@@ -83,6 +84,7 @@ pub enum SType {
     EnumString,
     Serialize,
     Deserialize,
+    Display,
 )]
 #[repr(u16)]
 pub enum FType {
@@ -202,6 +204,7 @@ pub enum FType {
     Pacifism,
     Peace,
     Soulburn,
+    Soulfire,
     LimpVeins,
     LoversEffect,
     Laxity,
@@ -226,6 +229,7 @@ pub enum FType {
     Idiocy,
 
     // Panacea
+    Stormtouched,
     Patterns,
     Shaderot,
     ShaderotBenign,
@@ -259,7 +263,6 @@ pub enum FType {
     Anorexia,
     Gorged,
     EffusedBlood,
-    Hypothermia,
 
     // Mending Head
     HeadBruisedCritical,
@@ -323,6 +326,8 @@ pub enum FType {
     SoreAnkle, // Legs
 
     // Caloric
+    Hypothermia,
+    IceEncased,
     Frozen,
     Shivering,
 
@@ -408,6 +413,23 @@ impl FType {
             .collect::<String>();
         let result: Option<FType> = pretty.parse().ok();
         result
+    }
+
+    pub fn to_name(&self) -> String {
+        let mut words = vec![];
+        let mut word = String::from("");
+        self.to_string().chars().for_each(|letter| {
+            if word.len() == 0 {
+                word.push_str(&letter.to_lowercase().to_string());
+            } else if letter.is_uppercase() {
+                words.push(word.clone());
+                word = String::from("");
+            } else {
+                word.push_str(&letter.to_string());
+            }
+        });
+        words.push(word.clone());
+        words.join("_")
     }
 
     pub fn try_from_counter_idx(
