@@ -8,7 +8,14 @@ pub fn handle_combat_action(
     after: &Vec<AetObservation>,
 ) -> Result<(), String> {
     match combat_action.skill.as_ref() {
-        "Something" => {}
+        "Grip" => {
+            attack_afflictions(
+                agent_states,
+                &combat_action.target,
+                vec![FType::Fallen, FType::Paresis],
+                after,
+            );
+        }
         _ => {}
     }
     Ok(())

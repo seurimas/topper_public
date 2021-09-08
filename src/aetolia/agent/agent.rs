@@ -445,6 +445,10 @@ impl AgentState {
         }
     }
 
+    pub fn get_curing(&self) -> Option<FType> {
+        self.limb_damage.curing
+    }
+
     pub fn complete_restoration(&mut self, damage: LType) {
         self.limb_damage.complete_restore(Some(damage));
     }

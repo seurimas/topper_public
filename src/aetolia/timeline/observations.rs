@@ -3,6 +3,9 @@ use crate::timeline::types::*;
 use crate::topper::observations::*;
 use regex::Regex;
 use std::error::Error;
+use std::fs::read_dir;
+use std::fs::{DirEntry, File};
+use std::io::BufReader;
 
 #[cfg(test)]
 #[path = "./tests/observations_tests.rs"]
@@ -150,21 +153,38 @@ impl ObservationParser<AetObservation> {
         Ok(ObservationParser::new(mappings, aet_observation_creator))
     }
 
+    fn read_file_mappings(
+        path: String,
+        file: File,
+        mappings: &mut Vec<ObservationMapping>,
+    ) -> Result<(), Box<Error>> {
+        let reader = BufReader::new(file);
+        let mut new_mappings: Vec<ObservationMapping> = serde_json::from_reader(reader)
+            .map_err(move |err| ObservationParserError { base: err, path })?;
+        mappings.append(&mut new_mappings);
+        Ok(())
+    }
+
+    fn read_mappings(
+        entry: DirEntry,
+        mappings: &mut Vec<ObservationMapping>,
+    ) -> Result<(), Box<Error>> {
+        if entry.file_type()?.is_dir() {
+            for path in read_dir(entry.path()).unwrap() {
+                Self::read_mappings(path.unwrap(), mappings)?;
+            }
+        } else {
+            let path_ = entry.path();
+            let file = File::open(path_.clone())?;
+            Self::read_file_mappings(path_.to_str().unwrap().to_string(), file, mappings)?;
+        }
+        Ok(())
+    }
+
     pub fn new_from_directory(dir: String) -> Result<Self, Box<Error>> {
-        use std::fs::read_dir;
-        use std::fs::File;
-        use std::io::BufReader;
         let mut mappings = Vec::new();
         for path in read_dir(dir).unwrap() {
-            let path_ = path.unwrap().path();
-            let file = File::open(path_.clone())?;
-            let reader = BufReader::new(file);
-            let mut new_mappings: Vec<ObservationMapping> = serde_json::from_reader(reader)
-                .map_err(move |err| ObservationParserError {
-                    base: err,
-                    path: path_.to_str().unwrap().to_string(),
-                })?;
-            mappings.append(&mut new_mappings);
+            Self::read_mappings(path.unwrap(), &mut mappings)?;
         }
         Ok(ObservationParser::new(mappings, aet_observation_creator))
     }

@@ -27,7 +27,7 @@ mod timeline_tests {
             time: 0,
             me: "Seurimas".into(),
         };
-        timeline.push_time_slice(coag_slice);
+        timeline.push_time_slice(coag_slice, None);
         let seur_state = timeline.state.borrow_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Pill), true);
         assert_eq!(seur_state.is(FType::ThinBlood), true);
@@ -59,7 +59,7 @@ mod timeline_tests {
             time: 0,
             me: "Seurimas".into(),
         };
-        timeline.push_time_slice(coag_slice);
+        timeline.push_time_slice(coag_slice, None);
         let seur_state = timeline.state.borrow_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Salve), true);
         assert_eq!(seur_state.is(FType::LeftArmBroken), true);

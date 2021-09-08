@@ -608,10 +608,16 @@ fn go_for_thin_blood(_timeline: &AetTimeline, you: &AgentState, _strategy: &Stri
     if you.is(FType::Allergies) {
         buffer_count = buffer_count + 1;
     }
-    (buffer_count >= 2 || (buffer_count >= 1 && !you.is(FType::Fangbarrier)))
+    (buffer_count >= 2
+        || (buffer_count >= 1 && you.get_balance(BType::Pill) > 1.0)
+        || you.lock_duration().map(|dur| dur > 5.0).unwrap_or(false))
         && !you.is(FType::ThinBlood)
-        && (!you.is(FType::Fangbarrier) || you.get_balance(BType::Tree) > 3.0)
-        && (!you.is(FType::Fangbarrier) || you.get_balance(BType::Renew) > 8.0)
+        && (!you.is(FType::Fangbarrier)
+            || !you.can_tree(true)
+            || you.get_balance(BType::Tree) > 3.0)
+        && (you.aff_count() >= 4
+            || !you.is(FType::Fangbarrier)
+            || you.get_balance(BType::Renew) > 8.0)
 }
 
 pub fn should_lock(
@@ -816,9 +822,15 @@ pub fn get_balance_attack<'s>(
             if !priority_buffer {
                 if go_for_thin_blood(timeline, &you, strategy) {
                     if you.is(FType::Fangbarrier) {
+                        let mut buffer = get_venoms(THIN_BUFFER_STACK.to_vec(), 1, &you);
+                        add_buffers(&mut venoms, &buffer);
                         return Box::new(FlayAction::fangbarrier(
                             who_am_i.to_string(),
                             target.to_string(),
+                            venoms
+                                .pop()
+                                .map(|venom| venom.to_string())
+                                .unwrap_or_default(),
                         ));
                     } else {
                         return Box::new(BiteAction::new(who_am_i, &target, &"scytherus"));
@@ -910,6 +922,7 @@ pub fn get_balance_attack<'s>(
                 return Box::new(FlayAction::fangbarrier(
                     who_am_i.to_string(),
                     target.to_string(),
+                    v2.map(|venom| venom.to_string()).unwrap_or_default(),
                 ));
             } else {
                 return Box::new(BiteAction::new(who_am_i, &target, &"camus"));
@@ -921,6 +934,10 @@ pub fn get_balance_attack<'s>(
             return Box::new(FlayAction::fangbarrier(
                 who_am_i.to_string(),
                 target.to_string(),
+                get_venoms_from_plan(&get_simple_plan(AGGRO_STACK.to_vec()), 1, &you)
+                    .get(0)
+                    .map(|venom| venom.to_string())
+                    .unwrap_or_default(),
             ));
         } else {
             return Box::new(BiteAction::new(who_am_i, &target, &"camus"));

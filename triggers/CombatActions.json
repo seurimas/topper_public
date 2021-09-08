@@ -105,7 +105,28 @@
     "observation_name": "CombatAction"
   },
   {
-    "regex": "A look of extreme focus crosses the face of (\\w+).",
+    "regex": "^(\\w+)'s form seems to shimmer before (\\w* ?\\w+) stands taller, looking healthier.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Hunting"
+      },
+      {
+        "Literal": "Renew"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "CombatAction"
+  },
+  {
+    "regex": "^A look of extreme focus crosses the face of (\\w+).$",
     "args": [
       {
         "GroupAsTarget": 1
@@ -271,6 +292,27 @@
       }
     ],
     "observation_name": "Proc"
+  },
+  {
+    "regex": "^(You) touch your tattoo and summon the hammer but (\\w+) isn't protected.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Tattoos"
+      },
+      {
+        "Literal": "Hammer"
+      },
+      {
+        "Literal": "failure"
+      },
+      {
+        "GroupAsTarget": 2
+      }
+    ],
+    "observation_name": "CombatAction"
   },
   {
     "regex": "^(Flames|Hot flames|White-hot flames|Deadly flames) \\w+ around (\\w+)( - you are on fire!|, charring \\w+ flesh.)$",

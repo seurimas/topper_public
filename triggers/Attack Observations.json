@@ -234,7 +234,7 @@
     "observation_name": "Absorbed"
   },
   {
-    "regex": "You miss your strike by mere inches.",
+    "regex": "^You miss your strike by mere inches.$",
     "args": [
       {
         "Literal": "you"

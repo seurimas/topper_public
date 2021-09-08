@@ -29,7 +29,7 @@ mod sentinel_timeline_tests {
             time: 0,
             me: "Rinata".into(),
         };
-        timeline.push_time_slice(breath_flourish_slice);
+        timeline.push_time_slice(breath_flourish_slice, None);
         let me_state = timeline.state.borrow_agent(&"Rinata".to_string());
         assert_eq!(me_state.balanced(BType::Balance), false);
         assert_eq!(me_state.balanced(BType::Equil), false);

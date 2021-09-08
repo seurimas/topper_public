@@ -1,7 +1,7 @@
 use crate::aetolia::classes::{
     get_needed_parry, get_preferred_parry as get_parry, is_affected_by, Class,
 };
-use crate::aetolia::curatives::MENTAL_AFFLICTIONS;
+use crate::aetolia::curatives::{MENTAL_AFFLICTIONS, NORMAL_SALVE_AFFS, SOOTHING_SKIN_ORDER};
 use crate::aetolia::timeline::*;
 use crate::aetolia::topper::*;
 use crate::aetolia::types::*;
@@ -20,6 +20,7 @@ const PUMMEL_DAMAGE: f32 = 9.5;
 const WANEKICK_DAMAGE: f32 = 9.0;
 const CLAWTWIST_DAMAGE: f32 = 8.5;
 const SUNKICK_DAMAGE: f32 = 6.0;
+const RISEKICK_DAMAGE: f32 = 5.0;
 const HEELRUSH_ONE_DAMAGE: f32 = 5.5;
 const HEELRUSH_TWO_DAMAGE: f32 = 8.0;
 const HEELRUSH_THREE_DAMAGE: f32 = 11.0;
@@ -203,6 +204,23 @@ pub fn handle_combat_action(
                 vec![FType::Lightwound, FType::Deepwound],
                 after,
             );
+        }
+        "Risekick" => {
+            apply_combo_balance(
+                agent_states,
+                &combat_action.caster,
+                (BType::Balance, 3.65),
+                after,
+            );
+            attack_limb_damage(
+                agent_states,
+                &combat_action.target,
+                (LType::TorsoDamage, RISEKICK_DAMAGE, true),
+                after,
+            );
+            for_agent(agent_states, &combat_action.caster, |me| {
+                me.toggle_flag(FType::Fallen, false);
+            });
         }
         "Pummel" => {
             apply_combo_balance(
@@ -424,18 +442,24 @@ pub fn handle_combat_action(
             });
         }
         "Infernal" => {
-            let observations = after.clone();
-            for_agent_closure(
-                agent_states,
-                &combat_action.caster,
-                Box::new(move |me| {
-                    apply_or_infer_balance(me, (BType::Equil, 2.0), &observations);
-                }),
-            );
-            let observations = after.clone();
-            for_agent(agent_states, &combat_action.target, |you| {
-                you.set_flag(FType::InfernalSeal, true);
-            });
+            if combat_action.annotation.eq("failure") {
+                for_agent(agent_states, &combat_action.caster, |you| {
+                    you.limb_damage.set_limb_damaged(LType::TorsoDamage, false);
+                });
+            } else {
+                let observations = after.clone();
+                for_agent_closure(
+                    agent_states,
+                    &combat_action.caster,
+                    Box::new(move |me| {
+                        apply_or_infer_balance(me, (BType::Equil, 2.0), &observations);
+                    }),
+                );
+                let observations = after.clone();
+                for_agent(agent_states, &combat_action.target, |you| {
+                    you.set_flag(FType::InfernalSeal, true);
+                });
+            }
         }
         "InfernalShroud" => {
             for_agent(agent_states, &combat_action.caster, |you| {
@@ -459,20 +483,26 @@ pub fn handle_combat_action(
             );
         }
         "Heatspear" => {
-            let observations = after.clone();
-            for_agent_closure(
-                agent_states,
-                &combat_action.caster,
-                Box::new(move |me| {
-                    apply_or_infer_balance(me, (BType::Equil, 3.0), &observations);
-                }),
-            );
-            attack_afflictions(
-                agent_states,
-                &combat_action.target,
-                vec![FType::Ablaze, FType::Heatspear],
-                after,
-            );
+            if combat_action.annotation.eq("failure") {
+                for_agent(agent_states, &combat_action.caster, |you| {
+                    you.observe_flag(FType::Ablaze, false);
+                });
+            } else {
+                let observations = after.clone();
+                for_agent_closure(
+                    agent_states,
+                    &combat_action.caster,
+                    Box::new(move |me| {
+                        apply_or_infer_balance(me, (BType::Equil, 3.0), &observations);
+                    }),
+                );
+                attack_afflictions(
+                    agent_states,
+                    &combat_action.target,
+                    vec![FType::Ablaze, FType::Heatspear],
+                    after,
+                );
+            }
         }
         "Firefist" => {
             for_agent(agent_states, &combat_action.caster, |me| {
@@ -800,6 +830,7 @@ lazy_static! {
                     && !you.is(FType::Indifference)
                     && !you.is(FType::Stuttering)
                     && !you.is(FType::BlurryVision)
+                    && (!you.can_focus(false) || you.is_prone())
                     && me.get_stat(SType::SP) > 200
                     && !me.is(FType::Zenith)
                     && psi_percent(me) < 50.0
@@ -941,7 +972,15 @@ lazy_static! {
         ("enact quicken {}", |me, you, _db, _strategy| {
             let target_limbs = you.get_limbs_state();
             (
-                ComboType::ZenithEq,
+                if you.is(FType::Heatspear)
+                    && you.get_count(FType::Ablaze) >= 6
+                    && !me.is(FType::Zenith)
+                    && you.get_curing() != Some(FType::Heatspear)
+                {
+                    ComboType::Full
+                } else {
+                    ComboType::ZenithEq
+                },
                 if you.is(FType::Ablaze) && you.is(FType::Heatspear) {
                     100.0
                 } else {
@@ -961,7 +1000,7 @@ lazy_static! {
                 } else {
                     ComboType::Full
                 },
-                if target_limbs.torso.damage > 33.3 && !you.is(FType::InfernalSeal) {
+                if target_limbs.torso.damaged && !you.is(FType::InfernalSeal) {
                     1000.0
                 } else {
                     0.0
@@ -980,12 +1019,20 @@ lazy_static! {
         }),
         ("twinpress", |me, you, _db, _strategy| {
             let target_limbs = you.get_limbs_state();
+            let spasms_value = if you.is(FType::MuscleSpasms) {
+                0.0
+            } else {
+                (target_limbs.restores_to_zeroes() as f32 * 7.0) + (you.affs_count(&NORMAL_SALVE_AFFS) as f32 * 3.0)
+            };
+            let stiffness_value = if you.is(FType::Stiffness) {
+                0.0
+            } else {
+                you.affs_count(&SOOTHING_SKIN_ORDER) as f32 * 5.0
+            };
             (
                 ComboType::ComboAny,
-                if !you.is(FType::MuscleSpasms) && !you.is(FType::Stiffness) && can_punch(me) {
-                    (target_limbs.restores_to_zeroes() as f32 * 5.0)
-                } else if !you.is(FType::MuscleSpasms) {
-                    target_limbs.restores_to_zeroes() as f32 * 10.0
+                if can_punch(me) {
+                    spasms_value + stiffness_value
                 } else {
                     0.0
                 },

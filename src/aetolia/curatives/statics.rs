@@ -475,6 +475,21 @@ lazy_static! {
 }
 
 lazy_static! {
+    pub static ref NORMAL_SALVE_AFFS: Vec<FType> = {
+        let mut val = Vec::new();
+        val.extend(EPIDERMAL_SKIN_ORDER.iter());
+        val.extend(SOOTHING_SKIN_ORDER.iter());
+        val.extend(MENDING_HEAD_ORDER.iter());
+        val.extend(MENDING_TORSO_ORDER.iter());
+        val.extend(MENDING_LEFT_ARM_ORDER.iter());
+        val.extend(MENDING_RIGHT_ARM_ORDER.iter());
+        val.extend(MENDING_LEFT_LEG_ORDER.iter());
+        val.extend(MENDING_RIGHT_LEG_ORDER.iter());
+        val
+    };
+}
+
+lazy_static! {
     pub static ref SALVE_CURE_ORDERS: HashMap<(String, String), Vec<FType>> = {
         let mut val = HashMap::new();
         val.insert(

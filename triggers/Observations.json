@@ -36,7 +36,7 @@
     "observation_name": "DiscernedCure"
   },
   {
-    "regex": "A thick, hardened shell of paste has formed around (\\w+).",
+    "regex": "^A thick, hardened shell of paste has formed around (\\w+).$",
     "args": [
       {
         "GroupAsTarget": 1
@@ -54,7 +54,7 @@
     "observation_name": "Gained"
   },
   {
-    "regex": "You suddenly perceive the vague outline of an aura of rebounding around (\\w+).",
+    "regex": "^You suddenly perceive the vague outline of an aura of rebounding around (\\w+).$",
     "args": [
       {
         "GroupAsTarget": 1
@@ -108,7 +108,7 @@
     "observation_name": "LostRebound"
   },
   {
-    "regex": "You have recovered balance on all limbs.",
+    "regex": "^You have recovered balance on all limbs.$",
     "args": [
       {
         "Literal": "Balance"
@@ -126,7 +126,7 @@
     "observation_name": "BalanceBack"
   },
   {
-    "regex": "You have recovered equilibrium.",
+    "regex": "^You have recovered equilibrium.$",
     "args": [
       {
         "Literal": "Equil"

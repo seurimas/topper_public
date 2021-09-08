@@ -189,6 +189,48 @@
     "observation_name": "CombatAction"
   },
   {
+    "regex": "^(\\w+)'s torso is not sufficiently weak.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Purification"
+      },
+      {
+        "Literal": "Infernal"
+      },
+      {
+        "Literal": "failure"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^There are no flames around (\\w+).$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Purification"
+      },
+      {
+        "Literal": "Heatspear"
+      },
+      {
+        "Literal": "failure"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
     "regex": "^The force of the heated air unbalances (\\w+) and \\w+ falls?.$",
     "args": [
       {

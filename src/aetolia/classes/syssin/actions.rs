@@ -62,12 +62,12 @@ impl FlayAction {
         }
     }
 
-    pub fn fangbarrier(caster: String, target: String) -> Self {
+    pub fn fangbarrier(caster: String, target: String, venom: String) -> Self {
         FlayAction {
             caster,
             target,
             annotation: "fangbarrier".to_string(),
-            venom: "".to_string(),
+            venom,
         }
     }
 }
@@ -181,6 +181,7 @@ pub struct BiteAction {
     pub caster: String,
     pub target: String,
     pub venom: String,
+    pub limb: Option<String>,
 }
 
 impl BiteAction {
@@ -189,6 +190,16 @@ impl BiteAction {
             caster: caster.to_string(),
             target: target.to_string(),
             venom: venom.to_string(),
+            limb: None,
+        }
+    }
+
+    pub fn camus(caster: &str, target: &str, limb: &str) -> Self {
+        BiteAction {
+            caster: caster.to_string(),
+            target: target.to_string(),
+            venom: "camus".to_string(),
+            limb: Some(limb.to_string()),
         }
     }
 }
@@ -205,7 +216,14 @@ impl ActiveTransition for BiteAction {
     }
 
     fn act(&self, timeline: &AetTimeline) -> ActivateResult {
-        Ok(format!("bite {} {}", self.target, self.venom))
+        if let Some(limb) = &self.limb {
+            Ok(format!(
+                "target {};;bite {} {};;target nothing",
+                limb, self.target, self.venom
+            ))
+        } else {
+            Ok(format!("bite {} {}", self.target, self.venom))
+        }
     }
 }
 

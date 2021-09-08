@@ -33,7 +33,7 @@ mod zealot_timeline_tests {
         };
         no_break.observations = Some(observer.observe(&no_break));
         println!("{:?}", no_break.observations);
-        timeline.push_time_slice(no_break);
+        timeline.push_time_slice(no_break, None);
         let me_state = timeline.state.borrow_agent(&"Rinata".to_string());
         assert_eq!(me_state.balanced(BType::Balance), false);
         let you_state = timeline.state.borrow_agent(&"Tina".to_string());

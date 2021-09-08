@@ -37,7 +37,7 @@ impl ZenithState {
         *self = ZenithState::Rising((15.0 * BALANCE_SCALE) as CType);
     }
     pub fn activate(&mut self) {
-        *self = ZenithState::Active((10.0 * BALANCE_SCALE) as CType);
+        *self = ZenithState::Active((11.0 * BALANCE_SCALE) as CType);
     }
     pub fn deactivate(&mut self) {
         *self = ZenithState::Inactive;
