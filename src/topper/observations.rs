@@ -1,6 +1,8 @@
 use crate::timeline::TimeSlice;
 use regex::{Captures, Match, Regex, RegexSet, RegexSetBuilder};
 use serde::{Deserialize, Serialize};
+use std::sync::Mutex;
+use std::time::{Duration, Instant};
 
 pub trait EnumFromArgs {
     fn enum_from_args(observation_name: &str, arguments: Vec<String>) -> Self;
@@ -90,9 +92,13 @@ impl ObservationMapping {
 
 pub struct ObservationParser<O> {
     mappings: Vec<ObservationMapping>,
-    regexes: Vec<Regex>,
+    pub regexes: Vec<Regex>,
     // regex_set: RegexSet,
     observation_creator: fn(&String, Vec<String>) -> O,
+}
+
+lazy_static! {
+    pub static ref BENCHMARKS: Mutex<Vec<u128>> = Mutex::new(vec![]);
 }
 
 impl<O> ObservationParser<O>
@@ -103,7 +109,7 @@ where
         mappings: Vec<ObservationMapping>,
         observation_creator: fn(&String, Vec<String>) -> O,
     ) -> Self {
-        let regexes = mappings
+        let regexes: Vec<Regex> = mappings
             .iter()
             .map(|mapping| Regex::new(&mapping.regex.clone()).unwrap())
             .collect();
@@ -132,6 +138,13 @@ where
 
     pub fn observe<P>(&self, slice: &TimeSlice<O, P>) -> Vec<O> {
         let mut observations = Vec::new();
+        {
+            let mut benchmarks = BENCHMARKS.lock().unwrap();
+            if benchmarks.len() != self.regexes.len() {
+                benchmarks.fill(0);
+                benchmarks.resize(self.regexes.len(), 0);
+            }
+        }
         for (line, idx) in slice.lines.iter() {
             let stripped = strip_ansi(line);
             // for match_num in self.regex_set.matches(&stripped) {
@@ -144,6 +157,7 @@ where
             //     ));
             // }
             for (match_num, regex) in self.regexes.iter().enumerate() {
+                let now = Instant::now();
                 let mapping = self.mappings.get(match_num).unwrap();
                 if let Some(arguments) = mapping.try_get_arguments(&slice, &regex, &stripped) {
                     observations.push((self.observation_creator)(
@@ -152,6 +166,8 @@ where
                     ));
                     log::info!("{:?}", observations.get(observations.len() - 1));
                 }
+                *BENCHMARKS.lock().unwrap().get_mut(match_num).unwrap() +=
+                    Instant::now().duration_since(now).as_nanos();
             }
         }
         observations

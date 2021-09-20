@@ -83,25 +83,32 @@ pub fn apply_observation(
                 me.dodge_state.register_dodge();
             });
         }
-        AetObservation::WoundStart(who) => {
-            let observations = after.clone();
-            for_agent_closure(
-                timeline,
-                who,
-                Box::new(move |me| {
-                    for after in observations.iter() {
-                        match after {
-                            AetObservation::Wound(limb, damage) => {
-                                if let Ok(limb) = get_limb_damage(limb) {
-                                    me.set_limb_damage(limb, (damage * 100.0) as CType);
+        AetObservation::ListStart(list_type, who) => match list_type.as_ref() {
+            "Wounds" => {
+                let observations = after.clone();
+                for_agent_closure(
+                    timeline,
+                    who,
+                    Box::new(move |me| {
+                        for after in observations.iter() {
+                            match after {
+                                AetObservation::ListItem(list_type, limb, damage, _) => {
+                                    if list_type.eq("Wounds") {
+                                        if let (Ok(limb), Ok(damage)) =
+                                            (get_limb_damage(limb), damage.parse::<f32>())
+                                        {
+                                            me.set_limb_damage(limb, (damage * 100.0) as CType);
+                                        }
+                                    }
                                 }
+                                _ => {}
                             }
-                            _ => {}
                         }
-                    }
-                }),
-            );
-        }
+                    }),
+                );
+            }
+            _ => {}
+        },
         AetObservation::Stripped(defense) => {
             timeline.set_flag_for_agent(&timeline.me.clone(), defense, false)?;
         }

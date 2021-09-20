@@ -370,12 +370,12 @@ impl<'s> TopperModule<'s> for DatabaseModule {
                         crate::aetolia::timeline::AetObservation::CombatAction(
                             crate::aetolia::timeline::CombatAction { caster, target, .. },
                         ) => {
-                            if !caster.eq("") && !caster.find(" ").is_some() {
-                                self.send_api_request(caster, 3600 * 2);
-                            }
-                            if !target.eq("") && !target.find(" ").is_some() {
-                                self.send_api_request(target, 3600 * 2);
-                            }
+                            // if !caster.eq("") && !caster.find(" ").is_some() {
+                            //     self.send_api_request(caster, 3600 * 2);
+                            // }
+                            // if !target.eq("") && !target.find(" ").is_some() {
+                            //     self.send_api_request(target, 3600 * 2);
+                            // }
                         }
                         _ => {}
                     }

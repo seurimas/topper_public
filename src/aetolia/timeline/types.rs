@@ -192,9 +192,8 @@ pub enum AetObservation {
     FlameShield(String),
     Fangbarrier,
     Shield,
-    WoundStart(String),
-    #[skip_args]
-    Wound(String, f32),
+    ListStart(String, String),
+    ListItem(String, String, String, String),
     // First-Aid simples
     Afflicted(String),
     Discovered(String),

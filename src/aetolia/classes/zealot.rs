@@ -1532,6 +1532,14 @@ lazy_static! {
     ];
 }
 
+fn check_config(timeline: &AetTimeline, value: &String) -> bool {
+    timeline
+        .state
+        .get_my_hint(value)
+        .unwrap_or("false".to_string())
+        .eq(&"true")
+}
+
 pub fn get_balance_attack(
     timeline: &AetTimeline,
     target: &String,
@@ -1551,7 +1559,7 @@ pub fn get_balance_attack(
     }
     let me = timeline.state.borrow_me();
     let mut you = timeline.state.borrow_agent(target);
-    if !me.is(FType::Wrath) {
+    if !me.is(FType::Wrath) && check_config(timeline, &"PREDICT_PARRY".to_string()) {
         if let Ok(new_parry) =
             get_parry(timeline, target, &timeline.who_am_i(), &"".to_string(), db)
         {

@@ -78,15 +78,6 @@ fn aet_observation_creator(observation_name: &String, arguments: Vec<String>) ->
             what: arguments.get(1).unwrap().to_string(),
             hand: arguments.get(2).unwrap().to_string(),
         },
-        "Wound" => AetObservation::Wound(
-            arguments.get(0).unwrap().to_string(),
-            arguments
-                .get(1)
-                .unwrap()
-                .to_string()
-                .parse()
-                .unwrap_or_default(),
-        ),
         "Balance" => AetObservation::Balance(
             arguments.get(0).unwrap().to_string(),
             arguments

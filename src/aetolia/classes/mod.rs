@@ -253,7 +253,7 @@ pub fn get_top_parry(timeline: &AetTimeline, me: &String) -> Option<LType> {
             if !limb_state.is_restoring && limb_state.damage > top_damage {
                 top_non_restoring = Some((limb_state.damage, limb));
             }
-        } else if !limb_state.is_restoring && limb_state.damage > 1.0 {
+        } else if !limb_state.is_restoring && limb_state.damage > 8.0 {
             top_non_restoring = Some((limb_state.damage, limb));
         }
     }
@@ -290,7 +290,7 @@ pub fn get_preferred_parry(
                 let them = timeline.state.borrow_agent(target);
                 match them.channel_state {
                     ChannelState::Heelrush(limb, _) => Ok(limb),
-                    _ => Ok(get_top_parry(timeline, me).unwrap_or(LType::HeadDamage)),
+                    _ => Ok(get_top_parry(timeline, me).unwrap_or(LType::TorsoDamage)),
                 }
             }
             Class::Sentinel => {

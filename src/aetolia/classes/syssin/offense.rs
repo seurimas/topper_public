@@ -292,10 +292,10 @@ lazy_static! {
     static ref CARNIFEX_STACK: Vec<VenomPlan> = vec![
         VenomPlan::OnTree(FType::Paresis),
         VenomPlan::Stick(FType::Clumsiness),
+        VenomPlan::OneOf(FType::Weariness, FType::Stupidity),
         VenomPlan::Stick(FType::Vomiting),
         VenomPlan::Stick(FType::Allergies),
         VenomPlan::OneOf(FType::Sensitivity, FType::Dizziness),
-        VenomPlan::OneOf(FType::Stupidity, FType::Weariness),
         VenomPlan::OneOf(FType::Asthma, FType::Slickness),
         VenomPlan::OneOf(FType::LeftLegBroken, FType::LeftArmBroken),
         VenomPlan::OneOf(FType::RightLegBroken, FType::RightLegBroken),

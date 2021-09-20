@@ -3,7 +3,7 @@ use crate::aetolia::timeline::observations;
 use crate::aetolia::timeline::{AetObservation, AetPrompt, AetTimeSlice, AetTimeline};
 use crate::aetolia::types::AgentState;
 use crate::timeline::BaseTimeline;
-use crate::topper::observations::ObservationParser;
+use crate::topper::observations::{ObservationParser, BENCHMARKS};
 use crate::topper::{
     DatabaseModule, TelnetModule, TimelineModule, Topper, TopperCore, TopperHandler, TopperMessage,
     TopperModule, TopperRequest, TopperResponse, WebModule,

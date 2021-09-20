@@ -3,10 +3,10 @@
     "regex": "^You take a moment to assess how damaged (\\w+)'?s? limbs are:$",
     "args": [
       {
-        "GroupAsTarget": 1
+        "Literal": "Wounds"
       },
       {
-        "Literal": ""
+        "GroupAsTarget": 1
       },
       {
         "Literal": ""
@@ -15,11 +15,14 @@
         "Literal": ""
       }
     ],
-    "observation_name": "WoundStart"
+    "observation_name": "ListStart"
   },
   {
     "regex": "^(Head|Torso|Left arm|Right arm|Left leg|Right leg):\\s*(\\d+\\.\\d+)%\\s*\\((\\w+) bruising\\)",
     "args": [
+      {
+        "Literal": "Wounds"
+      },
       {
         "GroupAsTarget": 1
       },
@@ -33,6 +36,6 @@
         "Literal": ""
       }
     ],
-    "observation_name": "Wound"
+    "observation_name": "ListItem"
   }
 ]

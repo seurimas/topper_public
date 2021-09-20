@@ -68,28 +68,30 @@ pub fn handle_combat_action(
         "Shape" => {
             let observations = after.clone();
             let perspective = agent_states.get_perspective(&combat_action);
-            for_agent_uncertain_closure(
-                agent_states,
-                &combat_action.target,
-                Box::new(move |you| {
-                    let mut possible_affs = Vec::new();
-                    if let Some(circle_aff) = top_missing_aff(you, &CIRCLE_AFFS.to_vec()) {
-                        possible_affs.push(circle_aff);
-                    }
-                    if let Some(square_aff) = top_missing_aff(you, &SQUARE_AFFS.to_vec()) {
-                        possible_affs.push(square_aff);
-                    }
-                    if let Some(triangle_aff) = top_missing_aff(you, &TRIANGLE_AFFS.to_vec()) {
-                        possible_affs.push(triangle_aff);
-                    }
-                    apply_or_infer_random_afflictions(
-                        you,
-                        &observations,
-                        perspective,
-                        Some((1, possible_affs)),
-                    )
-                }),
-            );
+            if perspective != Perspective::Bystander {
+                for_agent_uncertain_closure(
+                    agent_states,
+                    &combat_action.target,
+                    Box::new(move |you| {
+                        let mut possible_affs = Vec::new();
+                        if let Some(circle_aff) = top_missing_aff(you, &CIRCLE_AFFS.to_vec()) {
+                            possible_affs.push(circle_aff);
+                        }
+                        if let Some(square_aff) = top_missing_aff(you, &SQUARE_AFFS.to_vec()) {
+                            possible_affs.push(square_aff);
+                        }
+                        if let Some(triangle_aff) = top_missing_aff(you, &TRIANGLE_AFFS.to_vec()) {
+                            possible_affs.push(triangle_aff);
+                        }
+                        apply_or_infer_random_afflictions(
+                            you,
+                            &observations,
+                            perspective,
+                            Some((1, possible_affs)),
+                        )
+                    }),
+                );
+            }
         }
         _ => {}
     }
