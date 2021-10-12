@@ -292,7 +292,27 @@ lazy_static! {
     static ref CARNIFEX_STACK: Vec<VenomPlan> = vec![
         VenomPlan::OnTree(FType::Paresis),
         VenomPlan::Stick(FType::Clumsiness),
-        VenomPlan::OneOf(FType::Weariness, FType::Stupidity),
+        VenomPlan::IfDo(
+            FType::MentalFatigue,
+            Box::new(VenomPlan::OneOf(FType::Weariness, FType::Stupidity))
+        ),
+        VenomPlan::Stick(FType::Vomiting),
+        VenomPlan::Stick(FType::Allergies),
+        VenomPlan::OneOf(FType::Sensitivity, FType::Dizziness),
+        VenomPlan::OneOf(FType::Asthma, FType::Slickness),
+        VenomPlan::OneOf(FType::LeftLegBroken, FType::LeftArmBroken),
+        VenomPlan::OneOf(FType::RightLegBroken, FType::RightLegBroken),
+        VenomPlan::OneOf(FType::Sensitivity, FType::Dizziness),
+    ];
+}
+
+lazy_static! {
+    static ref SCIOMANCER_STACK: Vec<VenomPlan> = vec![
+        VenomPlan::Stick(FType::Paresis),
+        VenomPlan::IfDo(
+            FType::MentalFatigue,
+            Box::new(VenomPlan::OneOf(FType::Weariness, FType::Stupidity))
+        ),
         VenomPlan::Stick(FType::Vomiting),
         VenomPlan::Stick(FType::Allergies),
         VenomPlan::OneOf(FType::Sensitivity, FType::Dizziness),
@@ -438,6 +458,7 @@ lazy_static! {
         val.insert("Monk".into(), get_simple_plan(MONK_STACK.to_vec()));
         val.insert("Luminary".into(), LUMINARY_STACK.to_vec());
         val.insert("Carnifex".into(), CARNIFEX_STACK.to_vec());
+        val.insert("Sciomancer".into(), SCIOMANCER_STACK.to_vec());
         val.insert("Wayfarer".into(), WAYFARER_STACK.to_vec());
         val.insert("Praenomen".into(), PRAENOMEN_STACK.to_vec());
         val.insert("Syssin".into(), SYSSIN_STACK.to_vec());
@@ -894,10 +915,10 @@ pub fn get_balance_attack<'s>(
                 }
             }
             if !priority_buffer
-                || (you.is(FType::Hypersomnia)
+                && ((you.is(FType::Hypersomnia)
                     && get_cure_depth(&you, FType::Hypersomnia).cures > 1)
-                || (you.is(FType::Hypersomnia)
-                    && (!you.is(FType::Instawake) || !you.is(FType::Insomnia)))
+                    || (you.is(FType::Hypersomnia)
+                        && (!you.is(FType::Instawake) || !you.is(FType::Insomnia))))
             {
                 add_delphs(&timeline, &me, &you, &strategy, &mut venoms);
             }

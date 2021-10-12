@@ -3,6 +3,31 @@ use crate::aetolia::topper::*;
 use crate::aetolia::types::*;
 use crate::topper::Topper;
 
+lazy_static! {
+    pub static ref SPIRITWRACK_AFFS: Vec<FType> = vec![
+        FType::Anorexia,
+        FType::Stupidity,
+        FType::Impatience,
+        FType::Vertigo,
+        FType::Sensitivity,
+        FType::SelfPity,
+        FType::Berserking,
+        FType::Migraine,
+    ];
+    pub static ref CHASTEN_AFFS: Vec<FType> = vec![
+        FType::Anorexia,
+        FType::Dementia,
+        FType::Hypochondria,
+        FType::Lethargy,
+        FType::Loneliness,
+        FType::Masochism,
+        FType::Paranoia,
+        FType::Recklessness,
+        FType::Stupidity,
+        FType::Agony,
+    ];
+}
+
 const CRUSH_DAMAGE: f32 = 12.5;
 const SMASH_DAMAGE: f32 = 25.0;
 pub fn handle_combat_action(
@@ -53,6 +78,58 @@ pub fn handle_combat_action(
                     after,
                 );
             };
+        }
+        "Spiritwrack" => {
+            if combat_action.annotation.eq("fire") {
+                let observations = after.clone();
+                let perspective = agent_states.get_perspective(&combat_action);
+                if perspective != Perspective::Bystander {
+                    for_agent_uncertain_closure(
+                        agent_states,
+                        &combat_action.target,
+                        Box::new(move |you| {
+                            apply_or_infer_random_afflictions(
+                                you,
+                                &observations,
+                                perspective,
+                                Some((
+                                    1,
+                                    SPIRITWRACK_AFFS
+                                        .iter()
+                                        .filter(|aff| !you.is(**aff))
+                                        .map(|aff| *aff)
+                                        .collect(),
+                                )),
+                            )
+                        }),
+                    );
+                }
+            }
+        }
+        "Chasten" => {
+            let observations = after.clone();
+            let perspective = agent_states.get_perspective(&combat_action);
+            if perspective != Perspective::Bystander {
+                for_agent_uncertain_closure(
+                    agent_states,
+                    &combat_action.target,
+                    Box::new(move |you| {
+                        apply_or_infer_random_afflictions(
+                            you,
+                            &observations,
+                            perspective,
+                            Some((
+                                1,
+                                CHASTEN_AFFS
+                                    .iter()
+                                    .filter(|aff| !you.is(**aff))
+                                    .map(|aff| *aff)
+                                    .collect(),
+                            )),
+                        )
+                    }),
+                );
+            }
         }
         _ => {}
     }

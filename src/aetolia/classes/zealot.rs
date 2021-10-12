@@ -1397,13 +1397,16 @@ lazy_static! {
             let target_limbs = you.get_limbs_state();
             (
                 ComboType::ComboFirst,
-                if me.get_balance(BType::Secondary) - me.get_qeb_balance() < 3.0 {
-                    0.0
-                } else if target_limbs.left_leg.welt | target_limbs.right_leg.welt {
-                    50.0
-                } else if !you.is(FType::SoreAnkle) {
+                if target_limbs.left_leg.welt | target_limbs.right_leg.welt {
+                    if me.get_balance(BType::Secondary) - me.get_qeb_balance() < 3.0 {
+                        0.0
+                    } else {
+                        50.0
+                    }
+                } else if you.limb_damage.restore_timer.is_some()
+                        && !you.is(FType::SoreAnkle) {
                     if strategy.eq("bedazzle") {
-                        20.0
+                        50.0
                     } else {
                         0.0
                     }

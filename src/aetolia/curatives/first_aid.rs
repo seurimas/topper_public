@@ -155,8 +155,8 @@ static FIRST_AID_BLOCK: &'static str = "\x1b[48;5;232mYour affliction curing pri
                left_arm_bruised_moderate, torso_bruised_moderate,
                head_bruised_moderate, gloom]
     pill:     [physical_disruption, mental_disruption, confusion, blood_curse,
-               blood_poison, plodding, idiocy, blighted, merciful, soulfire,
-               soulburn]
+               blood_poison, plodding, idiocy, blighted, merciful, accursed,
+               agony]
 
 6)  pipe:     [squelched]
     poultice: [shivering, frozen, gorged, effused_blood, blurry_vision,

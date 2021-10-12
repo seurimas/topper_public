@@ -114,6 +114,19 @@ impl Class {
             _ => "Unknown",
         }
     }
+    pub fn is_mirror(&self) -> bool {
+        match self {
+            Class::Revenant | Class::Warden => true,
+            _ => false,
+        }
+    }
+    pub fn normal(&self) -> Self {
+        match self {
+            Class::Revenant => Class::Templar,
+            Class::Warden => Class::Carnifex,
+            _ => self.clone(),
+        }
+    }
 }
 
 pub fn get_skill_class(category: &String) -> Option<Class> {
@@ -148,6 +161,9 @@ pub fn get_skill_class(category: &String) -> Option<Class> {
 }
 
 pub fn has_special_cure(class: &Class, affliction: FType) -> bool {
+    if class.is_mirror() {
+        return has_special_cure(&class.normal(), affliction);
+    }
     match (affliction, class) {
         (_, Class::Warden) => has_special_cure(&Class::Carnifex, affliction),
         (_, Class::Revenant) => has_special_cure(&Class::Templar, affliction),
@@ -159,9 +175,10 @@ pub fn has_special_cure(class: &Class, affliction: FType) -> bool {
 }
 
 pub fn is_affected_by(class: &Class, affliction: FType) -> bool {
+    if class.is_mirror() {
+        return is_affected_by(&class.normal(), affliction);
+    }
     match (affliction, class) {
-        (_, Class::Warden) => is_affected_by(&Class::Carnifex, affliction),
-        (_, Class::Revenant) => is_affected_by(&Class::Templar, affliction),
         (FType::Clumsiness, Class::Syssin) => true,
         (FType::Clumsiness, Class::Templar) => true,
         (FType::Clumsiness, Class::Carnifex) => true,
@@ -269,7 +286,10 @@ pub fn get_preferred_parry(
 ) -> Result<LType, String> {
     if let Some(parry) = get_restore_parry(timeline, me) {
         Ok(parry)
-    } else if let Some(class) = db.and_then(|db| db.get_class(target)) {
+    } else if let Some(mut class) = db.and_then(|db| db.get_class(target)) {
+        if class.is_mirror() {
+            class = class.normal();
+        }
         match class {
             Class::Shapeshifter => {
                 let myself = timeline.state.borrow_agent(me);
@@ -335,7 +355,7 @@ pub fn handle_combat_action(
 ) -> Result<(), String> {
     match combat_action.category.as_ref() {
         "Riving" | "Manifestation" | "Chirography" | "Warding" | "Ancestry" | "Communion" => {
-            mirrors::handle_combat_action(combat_action, agent_states, before, after)
+            handle_combat_action(&combat_action.normalized(), agent_states, before, after)
         }
         "Geometrics" | "Numerology" | "Bioessence" => {
             archivist::handle_combat_action(combat_action, agent_states, before, after)

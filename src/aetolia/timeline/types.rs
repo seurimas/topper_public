@@ -100,6 +100,9 @@ impl CombatAction {
             annotation: annotation.to_string(),
         })
     }
+    pub fn normalized(&self) -> Self {
+        crate::aetolia::classes::mirrors::normalize_combat_action(self)
+    }
 }
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub enum SimpleCure {

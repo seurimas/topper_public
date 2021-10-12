@@ -21,6 +21,27 @@
     "observation_name": "Proc"
   },
   {
+    "regex": "^(You)r spirit writhes in torment under the glare of the angel.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Spirituality"
+      },
+      {
+        "Literal": "Spiritwrack"
+      },
+      {
+        "Literal": "fire"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
     "regex": "^The remedy evaporates as it comes in contact with your seared skin.$",
     "args": [
       {
