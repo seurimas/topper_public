@@ -1,5 +1,6 @@
 use crate::aetolia::classes::{
-    get_skill_class, handle_combat_action, handle_sent, Class, VENOM_AFFLICTS,
+    get_skill_class, handle_combat_action, handle_sent, Class, DIAGNOSE_FRESHNESS, DIAGNOSE_TIME,
+    VENOM_AFFLICTS,
 };
 use crate::aetolia::curatives::{
     handle_simple_cure_action, remove_in_order, top_aff, CALORIC_TORSO_ORDER, PILL_CURE_ORDERS,
@@ -12,7 +13,11 @@ use crate::topper::db::DatabaseModule;
 use log::warn;
 use regex::Regex;
 use serde::Deserialize;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+
+#[cfg(test)]
+#[path = "./tests/apply_tests.rs"]
+mod apply_tests;
 
 pub fn apply_observation(
     timeline: &mut AetTimelineState,
@@ -103,6 +108,37 @@ pub fn apply_observation(
                                 }
                                 _ => {}
                             }
+                        }
+                    }),
+                );
+            }
+            "Diagnose" => {
+                if !timeline.is_hint_time_fresh(
+                    who,
+                    &DIAGNOSE_TIME.to_string(),
+                    *DIAGNOSE_FRESHNESS,
+                ) {
+                    println!("Found diagnose illusion!");
+                    return Ok(());
+                }
+                let afflictions = after
+                    .iter()
+                    .filter_map(|item| match item {
+                        AetObservation::ListItem(list_type, what, _, _) => {
+                            if list_type.eq("Diagnose") {
+                                FType::from_name(what)
+                            } else {
+                                None
+                            }
+                        }
+                        _ => None,
+                    })
+                    .collect::<HashSet<FType>>();
+                timeline.for_agent_closure(
+                    who,
+                    Box::new(move |me| {
+                        for affliction in FType::afflictions() {
+                            me.observe_flag(affliction, afflictions.contains(&affliction));
                         }
                     }),
                 );

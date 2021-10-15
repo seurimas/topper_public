@@ -646,10 +646,11 @@ pub fn should_lock(
     you: &AgentState,
     strategy: &String,
     lockers: &Vec<&str>,
+    count: usize,
 ) -> bool {
     if let Some(me) = me {
         if !strategy.eq("aggro")
-            && lockers.len() == 2
+            && lockers.len() <= count
             && ((you.dodge_state.can_dodge_at(me.get_qeb_balance())
                 && you.affs_count(&vec![
                     FType::Hypochondria,
@@ -781,6 +782,104 @@ pub fn get_stack<'s>(
         .or(STACKING_STRATEGIES.get(strategy).cloned())
 }
 
+pub fn choose_venoms(
+    timeline: &AetTimeline,
+    who_am_i: &String,
+    target: &String,
+    strategy: &String,
+    venom_plan: &Vec<VenomPlan>,
+    db: Option<&DatabaseModule>,
+    count: usize,
+) -> Vec<&'static str> {
+    let me = timeline.state.borrow_agent(who_am_i);
+    let you = timeline.state.borrow_agent(target);
+    let mut venoms = get_venoms_from_plan(&venom_plan.to_vec(), 2, &you);
+    let lockers = get_venoms(SOFT_STACK.to_vec(), 3, &you);
+    let mut priority_buffer = false;
+    if should_lock(Some(&me), &you, &strategy, &lockers, count) {
+        add_buffers(&mut venoms, &lockers);
+        priority_buffer = true;
+    } else if lockers.len() == 0 {
+        let buffer = get_venoms(LOCK_BUFFER_STACK.to_vec(), 2, &you);
+        add_buffers(&mut venoms, &buffer);
+        priority_buffer = buffer.len() > 0;
+    }
+    if !priority_buffer {
+        if go_for_thin_blood(timeline, &you, strategy) {
+            if you.is(FType::Fangbarrier) {
+                let mut buffer = get_venoms(THIN_BUFFER_STACK.to_vec(), 1, &you);
+                add_buffers(&mut venoms, &buffer);
+                return venoms;
+            } else {
+                return vec!["scytherus"];
+            }
+        }
+        let mut buffer = get_venoms(THIN_BUFFER_STACK.to_vec(), 2, &you);
+        if strategy.eq("thin") {
+            buffer.clear();
+        }
+        if you.lock_duration().map_or(false, |dur| dur > 10.0) && !you.is(FType::Voyria) {
+            buffer.insert(buffer.len(), "voyria");
+        }
+        if you.is(FType::ThinBlood) && buffer.len() > 0 {
+            add_buffers(&mut venoms, &buffer);
+        } else if !you.can_tree(false) {
+            let mut hypno_buffers = vec![];
+            let mut buffer_count = 1;
+            if you.is(FType::Impatience)
+                || you.hypno_state.get_next_hypno_aff() == Some(FType::Impatience)
+            {
+                if you.is(FType::Impatience) {
+                    hypno_buffers.push(FType::Stupidity);
+                    match check_config_int(timeline, &"SYSSIN_IMPATIENCE_DEPTH".to_string()) {
+                        3 => {
+                            hypno_buffers.push(FType::Shyness);
+                            hypno_buffers.push(FType::Dizziness);
+                            buffer_count = 2;
+                        }
+                        2 => {
+                            hypno_buffers.push(FType::Dizziness);
+                            buffer_count = 2;
+                        }
+                        _ => {}
+                    }
+                } else {
+                    hypno_buffers.push(FType::Shyness);
+                }
+            }
+            if you.is(FType::Impatience)
+                && (you.is(FType::Loneliness)
+                    || you.hypno_state.get_next_hypno_aff() == Some(FType::Loneliness))
+            {
+                hypno_buffers.push(FType::Recklessness);
+            } else if you.is(FType::Impatience)
+                && (you.is(FType::Vertigo)
+                    || you.hypno_state.get_next_hypno_aff() == Some(FType::Vertigo))
+            {
+                hypno_buffers.push(FType::Recklessness);
+            }
+            if you.is(FType::Generosity)
+                || you.hypno_state.get_next_hypno_aff() == Some(FType::Generosity)
+            {
+                hypno_buffers.push(FType::Peace);
+                if !you.is(FType::Impatience) {
+                    hypno_buffers.push(FType::Stupidity);
+                }
+            }
+            let hypno_buffers = get_venoms(hypno_buffers, buffer_count, &you);
+            add_buffers(&mut venoms, &hypno_buffers);
+        }
+    }
+    if !priority_buffer
+        && ((you.is(FType::Hypersomnia) && get_cure_depth(&you, FType::Hypersomnia).cures > 1)
+            || (you.is(FType::Hypersomnia)
+                && (!you.is(FType::Instawake) || !you.is(FType::Insomnia))))
+    {
+        add_delphs(&timeline, &me, &you, &strategy, &mut venoms);
+    }
+    venoms
+}
+
 pub fn get_balance_attack<'s>(
     timeline: &AetTimeline,
     who_am_i: &String,
@@ -791,6 +890,10 @@ pub fn get_balance_attack<'s>(
     if let Some(stack) = get_stack(timeline, target, strategy, db) {
         let me = timeline.state.borrow_agent(who_am_i);
         let you = timeline.state.borrow_agent(target);
+        let mut two_venoms = choose_venoms(&timeline, who_am_i, target, strategy, &stack, db, 2);
+        let v2 = two_venoms.get(0);
+        let v1 = two_venoms.get(1);
+        let v_one = choose_venoms(&timeline, who_am_i, target, strategy, &stack, db, 1).pop();
         if needs_shrugging(&timeline, who_am_i) {
             return Box::new(ShruggingAction::shrug_asthma(who_am_i.to_string()));
         } else if needs_restore(&timeline, who_am_i) {
@@ -813,7 +916,7 @@ pub fn get_balance_attack<'s>(
             } else {
                 "rebounding"
             };
-            if let Some(venom) = get_venoms_from_plan(&stack.to_vec(), 1, &you).pop() {
+            if let Some(venom) = v_one {
                 return Box::new(FlayAction::new(
                     who_am_i.to_string(),
                     target.to_string(),
@@ -829,108 +932,19 @@ pub fn get_balance_attack<'s>(
                 ));
             }
         } else {
-            let mut venoms = get_venoms_from_plan(&stack.to_vec(), 2, &you);
-            let lockers = get_venoms(SOFT_STACK.to_vec(), 3, &you);
-            let mut priority_buffer = false;
-            if !strategy.eq("slit") && should_lock(Some(&me), &you, &strategy, &lockers) {
-                add_buffers(&mut venoms, &lockers);
-                priority_buffer = true;
-            } else if !strategy.eq("slit") && lockers.len() == 0 {
-                let buffer = get_venoms(LOCK_BUFFER_STACK.to_vec(), 2, &you);
-                add_buffers(&mut venoms, &buffer);
-                priority_buffer = buffer.len() > 0;
-            }
-            if !priority_buffer {
-                if go_for_thin_blood(timeline, &you, strategy) {
-                    if you.is(FType::Fangbarrier) {
-                        let mut buffer = get_venoms(THIN_BUFFER_STACK.to_vec(), 1, &you);
-                        add_buffers(&mut venoms, &buffer);
-                        return Box::new(FlayAction::fangbarrier(
-                            who_am_i.to_string(),
-                            target.to_string(),
-                            venoms
-                                .pop()
-                                .map(|venom| venom.to_string())
-                                .unwrap_or_default(),
-                        ));
-                    } else {
-                        return Box::new(BiteAction::new(who_am_i, &target, &"scytherus"));
-                    }
-                }
-                let mut buffer = get_venoms(THIN_BUFFER_STACK.to_vec(), 2, &you);
-                if strategy.eq("thin") {
-                    buffer.clear();
-                }
-                if you.lock_duration().map_or(false, |dur| dur > 10.0) && !you.is(FType::Voyria) {
-                    buffer.insert(buffer.len(), "voyria");
-                }
-                if you.is(FType::ThinBlood) && buffer.len() > 0 {
-                    add_buffers(&mut venoms, &buffer);
-                } else if !you.can_tree(false) {
-                    let mut hypno_buffers = vec![];
-                    let mut buffer_count = 1;
-                    if you.is(FType::Impatience)
-                        || you.hypno_state.get_next_hypno_aff() == Some(FType::Impatience)
-                    {
-                        if you.is(FType::Impatience) {
-                            hypno_buffers.push(FType::Stupidity);
-                            match check_config_int(timeline, &"SYSSIN_IMPATIENCE_DEPTH".to_string())
-                            {
-                                3 => {
-                                    hypno_buffers.push(FType::Shyness);
-                                    hypno_buffers.push(FType::Dizziness);
-                                    buffer_count = 2;
-                                }
-                                2 => {
-                                    hypno_buffers.push(FType::Dizziness);
-                                    buffer_count = 2;
-                                }
-                                _ => {}
-                            }
-                        } else {
-                            hypno_buffers.push(FType::Shyness);
-                        }
-                    }
-                    if you.is(FType::Impatience)
-                        && (you.is(FType::Loneliness)
-                            || you.hypno_state.get_next_hypno_aff() == Some(FType::Loneliness))
-                    {
-                        hypno_buffers.push(FType::Recklessness);
-                    } else if you.is(FType::Impatience)
-                        && (you.is(FType::Vertigo)
-                            || you.hypno_state.get_next_hypno_aff() == Some(FType::Vertigo))
-                    {
-                        hypno_buffers.push(FType::Recklessness);
-                    }
-                    if you.is(FType::Generosity)
-                        || you.hypno_state.get_next_hypno_aff() == Some(FType::Generosity)
-                    {
-                        hypno_buffers.push(FType::Peace);
-                        if !you.is(FType::Impatience) {
-                            hypno_buffers.push(FType::Stupidity);
-                        }
-                    }
-                    let hypno_buffers = get_venoms(hypno_buffers, buffer_count, &you);
-                    add_buffers(&mut venoms, &hypno_buffers);
-                }
-            }
-            if !priority_buffer
-                && ((you.is(FType::Hypersomnia)
-                    && get_cure_depth(&you, FType::Hypersomnia).cures > 1)
-                    || (you.is(FType::Hypersomnia)
-                        && (!you.is(FType::Instawake) || !you.is(FType::Insomnia))))
-            {
-                add_delphs(&timeline, &me, &you, &strategy, &mut venoms);
-            }
-            let v2 = venoms.pop();
-            let v1 = venoms.pop();
             if should_bedazzle(&me, &you, &strategy, false) {
                 return Box::new(BedazzleAction::new(who_am_i, &target));
-            } else if should_slit(&me, &you, &strategy) && v1.is_some() {
+            } else if should_slit(&me, &you, &strategy) && v_one.is_some() {
                 return Box::new(SlitAction::new(
                     who_am_i.to_string(),
                     target.to_string(),
-                    v2.or(v1).unwrap().to_string(),
+                    v_one.unwrap().to_string(),
+                ));
+            } else if go_for_thin_blood(timeline, &you, strategy) && you.is(FType::Fangbarrier) {
+                return Box::new(FlayAction::fangbarrier(
+                    who_am_i.to_string(),
+                    target.to_string(),
+                    v2.map(|venom| venom.to_string()).unwrap_or_default(),
                 ));
             } else if let (Some(v1), Some(v2)) = (v1, v2) {
                 return Box::new(DoublestabAction::new(
@@ -945,6 +959,11 @@ pub fn get_balance_attack<'s>(
                     target.to_string(),
                     v2.map(|venom| venom.to_string()).unwrap_or_default(),
                 ));
+            } else if v2
+                .map(|venom| venom.eq_ignore_ascii_case("scytherus"))
+                .unwrap_or(false)
+            {
+                return Box::new(BiteAction::new(who_am_i, &target, &"scytherus"));
             } else {
                 return Box::new(BiteAction::new(who_am_i, &target, &"camus"));
             }

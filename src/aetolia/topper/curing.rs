@@ -15,20 +15,14 @@ fn guess_aff(timeline: &AetTimeline, aff: FType) -> String {
         // FType::Impairment => format!("chameleon {}", timeline.who_am_i()),
         // FType::Paranoia => format!("unenemy {}", timeline.who_am_i()),
         FType::Paresis => {
-            if timeline.state.borrow_me().balanced(BType::Tree) {
-                format!("firstaid predict {}", aff.to_name())
-            } else {
-                format!("touch tree")
-            }
+            format!("touch tree")
         }
         FType::Asthma => {
             let me = timeline.state.borrow_me();
             if me.balanced(BType::Pill) && me.is(FType::Aeon) {
                 format!("eat decongestant;;smoke willow")
-            } else if !me.balanced(BType::Smoke) {
-                format!("smoke reishi")
             } else {
-                format!("firstaid predict {}", aff.to_name())
+                format!("smoke reishi")
             }
         }
         FType::Weariness => {

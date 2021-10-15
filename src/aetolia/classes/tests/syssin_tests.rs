@@ -774,4 +774,51 @@ mod syssin_timeline_tests {
             "qeb parry head;;stand;;envenom whip with curare;;flay Benedicto;;hypnotise Benedicto;;suggest Benedicto Hypochondria%%qs shadow sleight void Benedicto",
         );
     }
+
+    #[test]
+    fn test_flay_for_thin() {
+        let mut timeline = AetTimeline::new();
+        timeline.state.for_agent(&"Benedicto".to_string(), |bene| {
+            bene.set_flag(FType::Rebounding, false);
+            bene.set_flag(FType::Paresis, true);
+            bene.set_flag(FType::Asthma, true);
+            bene.set_flag(FType::Vomiting, true);
+            bene.set_flag(FType::Lethargy, true);
+            bene.set_balance(BType::Tree, 10.0);
+        });
+        let qeb = get_attack(
+            &timeline,
+            &"Benedicto".to_string(),
+            &"aggro".to_string(),
+            None,
+        );
+        assert_eq!(
+            qeb,
+            "qeb parry head;;stand;;envenom whip with darkshade;;flay Benedicto;;hypnotise Benedicto;;suggest Benedicto Hypochondria%%qs shadow sleight void Benedicto",
+        );
+    }
+
+    #[test]
+    fn test_bite_for_thin() {
+        let mut timeline = AetTimeline::new();
+        timeline.state.for_agent(&"Benedicto".to_string(), |bene| {
+            bene.set_flag(FType::Rebounding, false);
+            bene.set_flag(FType::Fangbarrier, false);
+            bene.set_flag(FType::Paresis, true);
+            bene.set_flag(FType::Asthma, true);
+            bene.set_flag(FType::Vomiting, true);
+            bene.set_flag(FType::Lethargy, true);
+            bene.set_balance(BType::Tree, 10.0);
+        });
+        let qeb = get_attack(
+            &timeline,
+            &"Benedicto".to_string(),
+            &"aggro".to_string(),
+            None,
+        );
+        assert_eq!(
+            qeb,
+            "qeb parry head;;bite Benedicto scytherus;;hypnotise Benedicto;;suggest Benedicto Hypochondria%%qs shadow sleight void Benedicto",
+        );
+    }
 }

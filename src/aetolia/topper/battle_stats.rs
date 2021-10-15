@@ -43,6 +43,7 @@ fn get_lock_warning(state: &AgentState) -> Option<String> {
         state,
         &"".to_string(),
         &get_venoms(SOFT_STACK.to_vec(), 3, &state),
+        2,
     ) {
         Some(format!("<pink>Close to a lock!"))
     } else {

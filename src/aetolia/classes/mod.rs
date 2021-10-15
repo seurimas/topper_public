@@ -5,6 +5,7 @@ use crate::aetolia::topper::*;
 use crate::aetolia::types::*;
 use crate::topper::db::DatabaseModule;
 use num_enum::TryFromPrimitive;
+use regex::Regex;
 use std::collections::HashMap;
 pub mod archivist;
 pub mod ascendril;
@@ -200,8 +201,19 @@ pub fn is_affected_by(class: &Class, affliction: FType) -> bool {
     }
 }
 
+lazy_static! {
+    static ref DIAGNOSING: Regex = Regex::new(r"diagnose").unwrap();
+    pub static ref DIAGNOSE_TIME: String = "DIAGNOSE_TIME".to_string();
+    pub static ref DIAGNOSE_FRESHNESS: f32 = 5.0;
+}
+
 pub fn handle_sent(command: &String, agent_states: &mut AetTimelineState) {
     syssin::handle_sent(command, agent_states);
+    if let Some(captures) = DIAGNOSING.captures(command) {
+        let me = agent_states.me.clone();
+        let time = agent_states.time;
+        agent_states.add_player_hint(&me, &DIAGNOSE_TIME.to_string(), time.to_string());
+    }
 }
 
 pub fn get_attack(
@@ -665,16 +677,6 @@ pub fn remove_through(you: &mut AgentState, end: FType, order: &Vec<FType>) {
     }
 }
 
-/*
-pub fn get_venom(affliction: FType) -> Option<&'static str> {
-    if let Some(venom) = AFFLICT_VENOMS.get(&affliction) {
-        Some(*venom)
-    } else {
-        None
-    }
-}
-*/
-
 pub fn is_susceptible(target: &AgentState, affliction: &FType) -> bool {
     !target.is(*affliction) && !(*affliction == FType::Paresis && target.is(FType::Paralysis))
 }
@@ -712,7 +714,7 @@ pub fn add_buffers<'s>(ready: &mut Vec<&'s str>, buffers: &Vec<&'s str>) {
             }
         }
         if !found {
-            ready.push(buffer);
+            ready.insert(0, buffer);
         }
     }
 }
@@ -754,14 +756,14 @@ macro_rules! affliction_plan_stacker {
                 VenomPlan::Stick(aff) => {
                     if is_susceptible(target, aff) {
                         if let Some(venom) = $stack.get(aff) {
-                            venoms.push(*venom);
+                            venoms.insert(0, *venom);
                         }
                     }
                 }
                 VenomPlan::StickThisIfThat(this, that) => {
                     if target.is(*this) && is_susceptible(target, that) {
                         if let Some(venom) = $stack.get(that) {
-                            venoms.push(*venom);
+                            venoms.insert(0, *venom);
                         }
                     }
                 }
@@ -770,7 +772,7 @@ macro_rules! affliction_plan_stacker {
                         && is_susceptible(target, aff)
                     {
                         if let Some(venom) = $stack.get(aff) {
-                            venoms.push(*venom);
+                            venoms.insert(0, *venom);
                         }
                     }
                 }
@@ -779,9 +781,9 @@ macro_rules! affliction_plan_stacker {
                         ($stack.get(priority), $stack.get(secondary))
                     {
                         if target.is(*priority) && !target.is(*secondary) {
-                            venoms.push(*secondary_venom);
+                            venoms.insert(0, *secondary_venom);
                         } else if !target.is(*priority) {
-                            venoms.push(*priority_venom);
+                            venoms.insert(0, *priority_venom);
                         }
                     }
                 }

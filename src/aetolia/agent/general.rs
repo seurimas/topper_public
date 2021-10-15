@@ -2,7 +2,7 @@ use super::*;
 use crate::timeline::BaseAgentState;
 use num_enum::TryFromPrimitive;
 use serde::{Deserialize, Serialize};
-use std::convert::TryFrom;
+use std::convert::{TryFrom, TryInto};
 use std::fmt;
 
 // Balances
@@ -395,6 +395,23 @@ pub enum FType {
     RightArmBroken,
 }
 
+lazy_static! {
+    static ref AFFLICTIONS: Vec<FType> = {
+        let mut afflictions = Vec::new();
+        for aff_idx in (FType::Sadness as u16).. {
+            if let Ok(affliction) = FType::try_from(aff_idx) {
+                if affliction == FType::SIZE || affliction == FType::FULL {
+                    continue;
+                }
+                afflictions.push(affliction);
+            } else {
+                break;
+            }
+        }
+        afflictions
+    };
+}
+
 impl FType {
     pub fn is_affliction(&self) -> bool {
         self >= &FType::Sadness
@@ -440,6 +457,10 @@ impl FType {
 
     pub fn is_counter(&self) -> bool {
         self > &FType::SIZE && self < &FType::FULL
+    }
+
+    pub fn afflictions() -> Vec<Self> {
+        AFFLICTIONS.to_vec()
     }
 }
 

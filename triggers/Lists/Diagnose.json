@@ -1,0 +1,41 @@
+[
+    {
+        "regex": "^(You) are:$",
+        "args": [
+            {
+                "Literal": "Diagnose"
+            },
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": ""
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "ListStart"
+    },
+    {
+        "regex": "^afflicted with (.*)\\.$",
+        "args": [
+            {
+                "Literal": "Diagnose"
+            },
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": ""
+            },
+            {
+                "Literal": ""
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "ListItem"
+    }
+]

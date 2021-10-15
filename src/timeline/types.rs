@@ -1,4 +1,4 @@
-use crate::topper::db::DatabaseModule;
+use crate::{aetolia::agent::BALANCE_SCALE, topper::db::DatabaseModule};
 use log::warn;
 use regex::Regex;
 use serde::Deserialize;
@@ -49,6 +49,14 @@ impl<A: BaseAgentState + Clone> TimelineState<A> {
         self.free_hints
             .get(&format!("{}_{}", name, hint_type))
             .cloned()
+    }
+
+    pub fn is_hint_time_fresh(&self, name: &String, hint_type: &String, freshness: f32) -> bool {
+        self.get_player_hint(name, hint_type)
+            .and_then(|time| time.parse::<i32>().ok())
+            .map(|time| self.time - time)
+            .map(|staleness| (staleness as f32) * BALANCE_SCALE <= freshness)
+            .unwrap_or(false)
     }
 
     pub fn get_agent(&self, name: &String) -> Option<&Vec<A>> {
