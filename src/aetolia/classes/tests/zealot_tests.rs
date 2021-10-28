@@ -27,6 +27,7 @@ mod zealot_timeline_tests {
                 ("You grip what you can and twist viciously.".to_string(), 0),
                 ("Balance Used: 3.37 seconds".to_string(), 0),
             ],
+            gmcp: Vec::new(),
             prompt: AetPrompt::Blackout,
             time: 0,
             me: "Rinata".into(),

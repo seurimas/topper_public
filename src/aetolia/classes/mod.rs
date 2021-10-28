@@ -27,6 +27,8 @@ pub mod wayfarer;
 pub mod zealot;
 use serde::{Deserialize, Serialize};
 
+use self::mirrors::normalize_combat_action;
+
 #[derive(Debug, Serialize, Clone, Display, TryFromPrimitive, PartialEq)]
 #[repr(u8)]
 pub enum Class {
@@ -48,8 +50,10 @@ pub enum Class {
     Wayfarer,
     Lord,
     // Mirrors
-    Revenant, // Templar
-    Warden,   // Warden
+    Revenant,     // Templar
+    Warden,       // Warden
+    Earthcaller,  // Luminary
+    Oneiromancer, // Indorani
 }
 
 impl Class {
@@ -82,6 +86,8 @@ impl Class {
             // Mirrors
             "Revenant" => Some(Class::Revenant),
             "Warden" => Some(Class::Warden),
+            "Earthcaller" => Some(Class::Earthcaller),
+            "Oneiromancer" => Some(Class::Oneiromancer),
             _ => None,
         }
     }
@@ -109,15 +115,17 @@ impl Class {
             Class::Shapeshifter => "Shapeshifter",
             Class::Wayfarer => "Wayfarer",
             Class::Lord => "Lord",
-            //
+            // Mirrors
             Class::Revenant => "Revenant",
             Class::Warden => "Warden",
+            Class::Earthcaller => "Earthcaller",
+            Class::Oneiromancer => "Oneiromancer",
             _ => "Unknown",
         }
     }
     pub fn is_mirror(&self) -> bool {
         match self {
-            Class::Revenant | Class::Warden => true,
+            Class::Revenant | Class::Warden | Class::Earthcaller | Class::Oneiromancer => true,
             _ => false,
         }
     }
@@ -125,6 +133,8 @@ impl Class {
         match self {
             Class::Revenant => Class::Templar,
             Class::Warden => Class::Carnifex,
+            Class::Earthcaller => Class::Luminary,
+            Class::Oneiromancer => Class::Indorani,
             _ => self.clone(),
         }
     }
@@ -157,6 +167,8 @@ pub fn get_skill_class(category: &String) -> Option<Class> {
         // Mirrors
         "Riving" | "Chirography" | "Manifestation" => Some(Class::Revenant),
         "Warding" | "Ancestry" | "Communion" => Some(Class::Warden),
+        "Oneiromancy" | "Hyalincuru" | "Contracts" => Some(Class::Oneiromancer),
+        "Subjugation" | "Apocalyptia" | "Tectonics" => Some(Class::Earthcaller),
         _ => None,
     }
 }
@@ -166,8 +178,6 @@ pub fn has_special_cure(class: &Class, affliction: FType) -> bool {
         return has_special_cure(&class.normal(), affliction);
     }
     match (affliction, class) {
-        (_, Class::Warden) => has_special_cure(&Class::Carnifex, affliction),
-        (_, Class::Revenant) => has_special_cure(&Class::Templar, affliction),
         (FType::Asthma, Class::Monk) => true,
         (FType::Asthma, Class::Syssin) => true,
         (FType::Paresis, Class::Zealot) => true,
@@ -365,10 +375,12 @@ pub fn handle_combat_action(
     before: &Vec<AetObservation>,
     after: &Vec<AetObservation>,
 ) -> Result<(), String> {
-    match combat_action.category.as_ref() {
-        "Riving" | "Manifestation" | "Chirography" | "Warding" | "Ancestry" | "Communion" => {
-            handle_combat_action(&combat_action.normalized(), agent_states, before, after)
+    if let Some(class) = get_skill_class(&combat_action.category) {
+        if class.is_mirror() {
+            return handle_combat_action(&combat_action.normalized(), agent_states, before, after);
         }
+    }
+    match combat_action.category.as_ref() {
         "Geometrics" | "Numerology" | "Bioessence" => {
             archivist::handle_combat_action(combat_action, agent_states, before, after)
         }

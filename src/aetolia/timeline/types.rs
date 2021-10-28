@@ -52,6 +52,7 @@ impl AetTimeSlice {
     pub fn simulation(observations: Vec<AetObservation>, time: CType) -> Self {
         AetTimeSlice {
             observations: Some(observations),
+            gmcp: Vec::new(),
             lines: Vec::new(),
             prompt: AetPrompt::Simulation,
             time,

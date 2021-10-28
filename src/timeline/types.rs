@@ -2,12 +2,14 @@ use crate::{aetolia::agent::BALANCE_SCALE, topper::db::DatabaseModule};
 use log::warn;
 use regex::Regex;
 use serde::Deserialize;
+use serde_json::Value;
 use std::collections::HashMap;
 pub type CType = i32;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct TimeSlice<O, P> {
     pub observations: Option<Vec<O>>,
+    pub gmcp: Vec<(String, Value)>,
     pub lines: Vec<(String, u32)>,
     pub prompt: P,
     pub time: CType,

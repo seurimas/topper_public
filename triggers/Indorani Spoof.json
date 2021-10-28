@@ -19,5 +19,47 @@
       }
     ],
     "observation_name": "DiscernedAfflict"
+  },
+  {
+    "regex": "^The hypercube's stygian hues incite (\\w+).$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "DiscernedAfflict"
+  },
+  {
+    "regex": "^The rainbow sphere curses you with (\\w+).$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "DiscernedAfflict"
   }
 ]

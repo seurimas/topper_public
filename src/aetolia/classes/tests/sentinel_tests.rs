@@ -25,6 +25,7 @@ mod sentinel_timeline_tests {
                 AetObservation::Devenoms("epseth".to_string()),
             ]),
             lines: vec![],
+            gmcp: Vec::new(),
             prompt: AetPrompt::Blackout,
             time: 0,
             me: "Rinata".into(),

@@ -14,6 +14,7 @@ mod apply_tests {
         let mut slice = AetTimeSlice {
             observations: None,
             lines: vec![("Saidenn uses Geometrics Shape on you.".to_string(), 0)],
+            gmcp: Vec::new(),
             prompt: AetPrompt::Promptless,
             time: 0,
             me: "Seurimas".into(),
@@ -25,6 +26,7 @@ mod apply_tests {
                 ("You are:".to_string(), 0),
                 ("afflicted with laxity.".to_string(), 1),
             ],
+            gmcp: Vec::new(),
             prompt: AetPrompt::Promptless,
             time: 0,
             me: "Seurimas".into(),

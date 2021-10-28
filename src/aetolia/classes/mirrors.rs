@@ -22,6 +22,14 @@ lazy_static! {
             ("Ancestry".to_string(), "Shield".to_string()),
             ("Deathlore".to_string(), "Shield".to_string()),
         );
+        mapping.insert(
+            ("Hyalincuru".to_string(), "Sphere".to_string()),
+            ("Tarot".to_string(), "Sun".to_string()),
+        );
+        mapping.insert(
+            ("Hyalincuru".to_string(), "Hypercube".to_string()),
+            ("Tarot".to_string(), "Moon".to_string()),
+        );
         mapping
     };
 }
