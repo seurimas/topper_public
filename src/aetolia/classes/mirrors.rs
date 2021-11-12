@@ -30,6 +30,10 @@ lazy_static! {
             ("Hyalincuru".to_string(), "Hypercube".to_string()),
             ("Tarot".to_string(), "Moon".to_string()),
         );
+        mapping.insert(
+            ("Subjugation".to_string(), "Subdue".to_string()),
+            ("Spirituality".to_string(), "Chasten".to_string()),
+        );
         mapping
     };
 }

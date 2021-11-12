@@ -36,28 +36,30 @@ pub fn handle_combat_action(
                 let observations = after.clone();
                 let perspective = agent_states.get_perspective(&combat_action);
                 let sun = combat_action.skill.eq("Sun");
-                for_agent_uncertain_closure(
-                    agent_states,
-                    &combat_action.target,
-                    Box::new(move |you| {
-                        apply_or_infer_random_afflictions(
-                            you,
-                            &observations,
-                            perspective,
-                            Some((
-                                1,
-                                (if sun {
-                                    SUN_AFFS.iter()
-                                } else {
-                                    MOON_AFFS.iter()
-                                })
-                                .filter(|aff| !you.is(**aff))
-                                .map(|aff| *aff)
-                                .collect(),
-                            )),
-                        )
-                    }),
-                );
+                if perspective != Perspective::Bystander {
+                    for_agent_uncertain_closure(
+                        agent_states,
+                        &combat_action.target,
+                        Box::new(move |you| {
+                            apply_or_infer_random_afflictions(
+                                you,
+                                &observations,
+                                perspective,
+                                Some((
+                                    1,
+                                    (if sun {
+                                        SUN_AFFS.iter()
+                                    } else {
+                                        MOON_AFFS.iter()
+                                    })
+                                    .filter(|aff| !you.is(**aff))
+                                    .map(|aff| *aff)
+                                    .collect(),
+                                )),
+                            )
+                        }),
+                    );
+                }
             }
         }
         _ => {}

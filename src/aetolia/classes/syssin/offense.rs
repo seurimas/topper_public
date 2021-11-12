@@ -764,7 +764,7 @@ pub fn get_stack<'s>(
 ) -> Option<Vec<VenomPlan>> {
     if strategy.eq("class") {
         if let Some(class) = db.and_then(|db| db.get_class(target)) {
-            let class_name = format!("{:?}", class);
+            let class_name = format!("{:?}", class.normal());
             if STACKING_STRATEGIES.contains_key(&class_name) {
                 return STACKING_STRATEGIES.get(&class_name).cloned();
             } else if is_affected_by(&class, FType::Clumsiness) {
