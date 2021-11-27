@@ -542,11 +542,19 @@ pub fn handle_combat_action(
             }
             "Renew" => {
                 let observations = after.clone();
+                let perspective = agent_states.get_perspective(&combat_action);
                 for_agent_closure(
                     agent_states,
                     &combat_action.caster,
                     Box::new(move |me| {
+                        me.observe_flag(FType::Impairment, false);
                         apply_or_infer_balance(me, (BType::Renew, 20.0), &observations);
+                        apply_or_strike_random_cure(
+                            me,
+                            &observations,
+                            perspective,
+                            (1, RANDOM_CURES.to_vec()),
+                        );
                     }),
                 );
                 Ok(())

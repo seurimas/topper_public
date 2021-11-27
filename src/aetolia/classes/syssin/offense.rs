@@ -380,12 +380,13 @@ lazy_static! {
 
 lazy_static! {
     static ref INDORANI_STACK: Vec<VenomPlan> = vec![
+        VenomPlan::Stick(FType::Paresis),
         VenomPlan::Stick(FType::Asthma),
         VenomPlan::IfNotDo(
             FType::Hypochondria,
             Box::new(VenomPlan::Stick(FType::Clumsiness))
         ),
-        VenomPlan::OneOf(FType::Paresis, FType::Disfigurement),
+        VenomPlan::Stick(FType::Disfigurement),
         VenomPlan::OneOf(FType::Allergies, FType::Weariness),
         VenomPlan::OneOf(FType::Slickness, FType::Anorexia),
         VenomPlan::OneOf(FType::LeftLegBroken, FType::LeftArmBroken),
@@ -729,29 +730,36 @@ pub fn add_delphs(
     you: &AgentState,
     strategy: &String,
     venoms: &mut Vec<&'static str>,
+    count: usize,
 ) {
     if you.is(FType::Allergies) || you.is(FType::Vomiting) {
         return;
     }
     if you.is(FType::Hypersomnia) {
-        if you.is(FType::Insomnia) {
-            venoms.push("delphinium");
-        } else if !you.is(FType::Asleep) {
-            venoms.push("delphinium");
-            if you.is(FType::Instawake) {
-                venoms.push("delphinium");
+        match (
+            you.is(FType::Insomnia),
+            you.is(FType::Asleep),
+            you.is(FType::Instawake),
+        ) {
+            (true, false, true) => {
+                venoms.insert(0, "delphinium");
             }
+            (false, false, true) => {
+                if count == 2 {
+                    venoms.insert(0, "delphinium");
+                    venoms.insert(0, "delphinium");
+                }
+            }
+            (true, _, _) | (_, false, _) | (_, _, true) => {
+                venoms.insert(0, "delphinium");
+            }
+            _ => {}
         }
-        if venoms.len() >= 2 && Some(&"darkshade") == venoms.get(venoms.len() - 2) {
-            venoms.remove(venoms.len() - 2);
+        if venoms.len() >= count && Some(&"darkshade") == venoms.get(venoms.len() - count) {
+            venoms.remove(venoms.len() - count);
         }
-        if venoms.len() >= 2 && Some(&"euphorbia") == venoms.get(venoms.len() - 2) {
-            venoms.remove(venoms.len() - 2);
-        }
-    } else if !you.is(FType::Insomnia) {
-        venoms.push("delphinium");
-        if you.is(FType::Instawake) {
-            venoms.push("delphinium");
+        if venoms.len() >= count && Some(&"euphorbia") == venoms.get(venoms.len() - count) {
+            venoms.remove(venoms.len() - count);
         }
     }
 }
@@ -870,12 +878,8 @@ pub fn choose_venoms(
             add_buffers(&mut venoms, &hypno_buffers);
         }
     }
-    if !priority_buffer
-        && ((you.is(FType::Hypersomnia) && get_cure_depth(&you, FType::Hypersomnia).cures > 1)
-            || (you.is(FType::Hypersomnia)
-                && (!you.is(FType::Instawake) || !you.is(FType::Insomnia))))
-    {
-        add_delphs(&timeline, &me, &you, &strategy, &mut venoms);
+    if you.is(FType::Hypersomnia) {
+        add_delphs(&timeline, &me, &you, &strategy, &mut venoms, count);
     }
     venoms
 }
@@ -891,8 +895,8 @@ pub fn get_balance_attack<'s>(
         let me = timeline.state.borrow_agent(who_am_i);
         let you = timeline.state.borrow_agent(target);
         let mut two_venoms = choose_venoms(&timeline, who_am_i, target, strategy, &stack, db, 2);
-        let v2 = two_venoms.get(0);
-        let v1 = two_venoms.get(1);
+        let v2 = two_venoms.get(1);
+        let v1 = two_venoms.get(0);
         let v_one = choose_venoms(&timeline, who_am_i, target, strategy, &stack, db, 1).pop();
         if needs_shrugging(&timeline, who_am_i) {
             return Box::new(ShruggingAction::shrug_asthma(who_am_i.to_string()));
@@ -944,7 +948,7 @@ pub fn get_balance_attack<'s>(
                 return Box::new(FlayAction::fangbarrier(
                     who_am_i.to_string(),
                     target.to_string(),
-                    v2.map(|venom| venom.to_string()).unwrap_or_default(),
+                    v_one.map(|venom| venom.to_string()).unwrap_or_default(),
                 ));
             } else if let (Some(v1), Some(v2)) = (v1, v2) {
                 return Box::new(DoublestabAction::new(
@@ -957,9 +961,9 @@ pub fn get_balance_attack<'s>(
                 return Box::new(FlayAction::fangbarrier(
                     who_am_i.to_string(),
                     target.to_string(),
-                    v2.map(|venom| venom.to_string()).unwrap_or_default(),
+                    v_one.map(|venom| venom.to_string()).unwrap_or_default(),
                 ));
-            } else if v2
+            } else if v_one
                 .map(|venom| venom.eq_ignore_ascii_case("scytherus"))
                 .unwrap_or(false)
             {

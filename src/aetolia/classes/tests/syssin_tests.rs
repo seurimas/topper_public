@@ -804,6 +804,38 @@ mod syssin_timeline_tests {
     }
 
     #[test]
+    fn test_hyper() {
+        let mut timeline = AetTimeline::new();
+        timeline.state.for_agent(&"Benedicto".to_string(), |bene| {
+            bene.set_flag(FType::Hypersomnia, true);
+            bene.set_flag(FType::Rebounding, false);
+        });
+        let qeb = get_attack(
+            &timeline,
+            &"Benedicto".to_string(),
+            &"aggro".to_string(),
+            None,
+        );
+        assert_eq!(
+            qeb,
+            "qeb parry head;;stand;;dstab Benedicto delphinium xentio;;dash d;;hypnotise Benedicto;;suggest Benedicto Hypochondria%%qs shadow sleight void Benedicto",
+        );
+        timeline.state.for_agent(&"Benedicto".to_string(), |bene| {
+            bene.set_flag(FType::Insomnia, false);
+        });
+        let qeb = get_attack(
+            &timeline,
+            &"Benedicto".to_string(),
+            &"aggro".to_string(),
+            None,
+        );
+        assert_eq!(
+            qeb,
+            "qeb parry head;;stand;;dstab Benedicto delphinium delphinium;;dash d;;hypnotise Benedicto;;suggest Benedicto Hypochondria%%qs shadow sleight void Benedicto",
+        );
+    }
+
+    #[test]
     fn test_flay_for_thin() {
         let mut timeline = AetTimeline::new();
         timeline.state.for_agent(&"Benedicto".to_string(), |bene| {
@@ -822,7 +854,7 @@ mod syssin_timeline_tests {
         );
         assert_eq!(
             qeb,
-            "qeb parry head;;stand;;envenom whip with darkshade;;flay Benedicto;;hypnotise Benedicto;;suggest Benedicto Hypochondria%%qs shadow sleight void Benedicto",
+            "qeb parry head;;stand;;envenom whip with xentio;;flay Benedicto;;hypnotise Benedicto;;suggest Benedicto Hypochondria%%qs shadow sleight void Benedicto",
         );
     }
 
