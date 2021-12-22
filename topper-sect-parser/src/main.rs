@@ -2,7 +2,8 @@ use futures::FutureExt;
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{
-    DomException, DomParser, HtmlElement, HtmlIFrameElement, HtmlInputElement, SupportedType,
+    window, CssStyleSheet, DomException, HtmlElement, HtmlIFrameElement, HtmlInputElement,
+    SupportedType,
 };
 use yew::prelude::*;
 mod loading;
@@ -83,62 +84,33 @@ impl Component for SectModel {
                 e.target()
                     .and_then(|target| target.dyn_into::<HtmlIFrameElement>().ok())
                     .map(|frame| {
-                        let log_styles = "BODY 
-                        {
-                          background-color: #000000;
-                          
+                        let outer_style_sheet: JsValue = window()
+                            .unwrap()
+                            .document()
+                            .unwrap()
+                            .style_sheets()
+                            .get(0)
+                            .unwrap()
+                            .into();
+                        let inner_style_sheet: JsValue = frame
+                            .content_document()
+                            .unwrap()
+                            .style_sheets()
+                            .get(0)
+                            .unwrap()
+                            .into();
+                        let outer_style_sheet: CssStyleSheet = outer_style_sheet.into();
+                        let rules = outer_style_sheet.css_rules().unwrap();
+                        let inner_style_sheet: CssStyleSheet = inner_style_sheet.into();
+                        for idx in 0..rules.length() {
+                            let rule = rules.get(idx).unwrap();
+                            inner_style_sheet.insert_rule(rule.css_text().as_ref());
                         }
-                        
-                        span
-                        {
-                          font-weight: normal !important;
-                          white-space: pre-wrap;
-                        }";
-                        let new_styles = frame
-                            .content_document()
-                            .unwrap()
-                            .create_element("style")
-                            .unwrap();
-                        new_styles.set_attribute("type", "text/css");
-                        new_styles.set_inner_html(log_styles);
-                        frame
-                            .content_document()
-                            .unwrap()
-                            .head()
-                            .unwrap()
-                            .append_child(&new_styles)
-                            .map_err(|err| err.dyn_into::<DomException>().unwrap().message())
-                            .unwrap();
                     });
             });
             return html! {
                 <iframe width="100%" height="100%" srcdoc={loaded.to_string()} {onload}></iframe>
             };
-            // if self.loading {
-            //     let loaded = loaded.clone();
-            //     let onload = link.callback(move |e: Event| {
-            //         e.target()
-            //             .and_then(|target| target.dyn_into::<HtmlIFrameElement>().ok())
-            //             .map(|frame| {
-            //                 frame.set_src(
-            //                     &format!(
-            //                         "data:text/html;charest=utf-8,{}",
-            //                         urlencoding::encode(&loaded)
-            //                     )
-            //                     .as_str(),
-            //                 )
-            //             });
-            //         SectMessage::LoadComplete
-            //     });
-            //     return html! {
-            //         <iframe {onload} width="100%" height="100%"></iframe>
-            //     };
-            // } else {
-            //     let onload = link.callback(|_e| {});
-            //     return html! {
-            //         <iframe {onload} width="100%" height="100%"></iframe>
-            //     };
-            // }
         }
         html! {
             <div>

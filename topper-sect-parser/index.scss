@@ -1,0 +1,15 @@
+body.outer {
+    margin: 0;
+}
+iframe {
+    box-sizing: border-box;
+}
+body:not(.outer) {
+    background-color: black;
+
+    span
+    {
+      font-weight: normal !important;
+      white-space: pre-wrap;
+    }
+}
