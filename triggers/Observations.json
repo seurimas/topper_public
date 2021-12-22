@@ -342,6 +342,27 @@
     "observation_name": "TickAff"
   },
   {
+    "regex": "^(\\w+) doubles over, vomiting violently.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Aff"
+      },
+      {
+        "Literal": "vomiting"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
     "regex": "^(You) will now attempt to parry attacks to your (.*)\\.$",
     "args": [
       {

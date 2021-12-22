@@ -1,7 +1,8 @@
+use regex::Regex;
 use reqwest::Response;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
-use serde_json::to_string_pretty;
+use serde_json::{from_str, to_string_pretty};
 use sled::{open, Db, IVec};
 use std::collections::HashMap;
 use std::convert::{TryFrom, TryInto};
@@ -297,6 +298,62 @@ fn update_stack<T: Serialize + Clone>(
     }
 }
 
+lazy_static! {
+    static ref INSPECT: Regex = Regex::new(r"^inspect (\w+) (\w+)$").unwrap();
+    static ref SET_HYPNOSIS: Regex = Regex::new(r"^hypnosis (\w+) (\d+) (.*)$").unwrap();
+    static ref SET_PRIORITY: Regex = Regex::new(r"^priority (\w+) (\d+) (.*)$").unwrap();
+}
+
+fn parse_inspect(message: &String) -> Option<(String, String)> {
+    if let Some(captures) = INSPECT.captures(message) {
+        if let (Some(tree), Some(key)) = (captures.get(1), captures.get(2)) {
+            Some((tree.as_str().to_string(), key.as_str().to_string()))
+        } else {
+            None
+        }
+    } else {
+        None
+    }
+}
+
+fn parse_set_hypnosis(message: &String) -> Option<(String, usize, Option<Hypnosis>)> {
+    if let Some(captures) = SET_HYPNOSIS.captures(message) {
+        if let (Some(stack), Some(index), Some(plan_str)) =
+            (captures.get(1), captures.get(2), captures.get(3))
+        {
+            let plan: Option<Hypnosis> = from_str(plan_str.as_str()).unwrap_or(None);
+            Some((
+                stack.as_str().to_string(),
+                index.as_str().parse::<usize>().unwrap(),
+                plan,
+            ))
+        } else {
+            None
+        }
+    } else {
+        None
+    }
+}
+
+fn parse_set_priority(message: &String) -> Option<(String, usize, Option<VenomPlan>)> {
+    if let Some(captures) = SET_PRIORITY.captures(message) {
+        if let (Some(stack), Some(index), Some(plan_str)) =
+            (captures.get(1), captures.get(2), captures.get(3))
+        {
+            let plan: Option<VenomPlan> = from_str(plan_str.as_str()).unwrap_or(None);
+            Some((
+                stack.as_str().to_string(),
+                index.as_str().parse::<usize>().unwrap(),
+                plan,
+            ))
+        } else {
+            None
+        }
+    } else {
+        None
+    }
+}
+
 impl<'s> TopperModule<'s, AetTimeSlice, BattleStats> for AetMudletDatabaseModule {
     type Siblings = (String);
     fn handle_message(
@@ -310,70 +367,67 @@ impl<'s> TopperModule<'s, AetTimeSlice, BattleStats> for AetMudletDatabaseModule
                 self.send_api_request(who, 300);
                 Ok(TopperResponse::silent())
             }
-            // TopperMessage::Request(TopperRequest::Inspect(tree, key)) => {
-            //     match tree.as_ref() {
-            //         "stacks" => {
-            //             if let Some(plan) = self.get_venom_plan(key) {
-            //                 if let Ok(plan_str) = to_string_pretty(&plan) {
-            //                     println!("{}", plan_str);
-            //                 }
-            //             } else {
-            //                 println!("Strategy {} not found", key);
-            //             }
-            //         }
-            //         "hypnosis" => {
-            //             if let Some(plan) = self.get_hypno_plan(key) {
-            //                 if let Ok(plan_str) = to_string_pretty(&plan) {
-            //                     println!("{}", plan_str);
-            //                 }
-            //             } else {
-            //                 println!("Hypno strategy {} not found", key);
-            //             }
-            //         }
-            //         "character" => {
-            //             if let Some(character) =
-            //                 self.get_json::<CharacterApiResponse>("character", key)
-            //             {
-            //                 if let Ok(character_str) = to_string_pretty(&character) {
-            //                     println!("{}", character_str);
-            //                 }
-            //             } else {
-            //                 println!("Character {} not found", key);
-            //             }
-            //         }
-            //         "character" => {
-            //             if let Some(character) =
-            //                 self.get_json::<CharacterApiResponse>("character", key)
-            //             {
-            //                 if let Ok(character_str) = to_string_pretty(&character) {
-            //                     println!("{}", character_str);
-            //                 }
-            //             } else {
-            //                 println!("Character {} not found", key);
-            //             }
-            //         }
-            //         _ => {}
-            //     }
-            //     Ok(TopperResponse::silent())
-            // }
-            // TopperMessage::Request(TopperRequest::SetHypnosis(stack, index, hypno)) => {
-            //     let mut old_stack = self.get_hypno_plan(stack).unwrap_or_default();
-            //     update_stack(stack, &mut old_stack, *index, hypno, false);
-            //     if let Ok(stack_str) = to_string_pretty(&old_stack) {
-            //         println!("{}", stack_str);
-            //     }
-            //     self.set_hypno_plan(stack, old_stack);
-            //     Ok(TopperResponse::silent())
-            // }
-            // TopperMessage::Request(TopperRequest::SetPriority(stack, index, venom_plan)) => {
-            //     let mut old_stack = self.get_venom_plan(stack).unwrap_or_default();
-            //     update_stack(stack, &mut old_stack, *index, venom_plan, true);
-            //     if let Ok(stack_str) = to_string_pretty(&old_stack) {
-            //         println!("{}", stack_str);
-            //     }
-            //     self.set_venom_plan(stack, old_stack);
-            //     Ok(TopperResponse::silent())
-            // }
+            TopperMessage::Request(TopperRequest::ModuleMsg(module, message)) => {
+                match module.as_ref() {
+                    "db" => {
+                        if let Some((stack, index, hypno)) = parse_set_hypnosis(message) {
+                            let mut old_stack = self.get_hypno_plan(&stack).unwrap_or_default();
+                            update_stack(&stack, &mut old_stack, index, &hypno, false);
+                            if let Ok(stack_str) = to_string_pretty(&old_stack) {
+                                println!("{}", stack_str);
+                            }
+                            self.set_hypno_plan(&stack, old_stack);
+                            Ok(TopperResponse::silent())
+                        } else if let Some((stack, index, venom_plan)) = parse_set_priority(message)
+                        {
+                            let mut old_stack = self.get_venom_plan(&stack).unwrap_or_default();
+                            update_stack(&stack, &mut old_stack, index, &venom_plan, true);
+                            if let Ok(stack_str) = to_string_pretty(&old_stack) {
+                                println!("{}", stack_str);
+                            }
+                            self.set_venom_plan(&stack, old_stack);
+                            Ok(TopperResponse::silent())
+                        } else if let Some((tree, key)) = parse_inspect(message) {
+                            match tree.as_ref() {
+                                "stacks" => {
+                                    if let Some(plan) = self.get_venom_plan(&key) {
+                                        if let Ok(plan_str) = to_string_pretty(&plan) {
+                                            println!("{}", plan_str);
+                                        }
+                                    } else {
+                                        println!("Strategy {} not found", key);
+                                    }
+                                }
+                                "hypnosis" => {
+                                    if let Some(plan) = self.get_hypno_plan(&key) {
+                                        if let Ok(plan_str) = to_string_pretty(&plan) {
+                                            println!("{}", plan_str);
+                                        }
+                                    } else {
+                                        println!("Hypno strategy {} not found", key);
+                                    }
+                                }
+                                "character" => {
+                                    if let Some(character) =
+                                        self.get_json::<CharacterApiResponse>("character", &key)
+                                    {
+                                        if let Ok(character_str) = to_string_pretty(&character) {
+                                            println!("{}", character_str);
+                                        }
+                                    } else {
+                                        println!("Character {} not found", key);
+                                    }
+                                }
+                                _ => {}
+                            }
+                            Ok(TopperResponse::silent())
+                        } else {
+                            Ok(TopperResponse::silent())
+                        }
+                    }
+                    _ => Ok(TopperResponse::silent()),
+                }
+            }
             TopperMessage::TimeSlice(event) => {
                 for observation in event.observations.iter().flatten() {
                     match observation {

@@ -608,6 +608,12 @@ pub fn handle_combat_action(
                 });
                 Ok(())
             }
+            "vomiting" => {
+                for_agent(agent_states, &combat_action.caster, |you| {
+                    you.observe_flag(FType::Vomiting, true);
+                });
+                Ok(())
+            }
             "broken legs" => {
                 for_agent(agent_states, &combat_action.caster, |you| {
                     you.toggle_flag(FType::Fallen, true);

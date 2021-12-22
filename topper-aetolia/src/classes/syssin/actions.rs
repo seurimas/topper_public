@@ -28,6 +28,13 @@ impl DoublestabAction {
             venoms: (v1, v2),
         }
     }
+    pub fn new_asp(caster: String, target: String, v1: String) -> Self {
+        DoublestabAction {
+            caster,
+            target,
+            venoms: (v1, "".to_string()),
+        }
+    }
 }
 
 impl ActiveTransition for DoublestabAction {
@@ -35,12 +42,20 @@ impl ActiveTransition for DoublestabAction {
         Vec::new()
     }
     fn act(&self, timeline: &AetTimeline) -> ActivateResult {
-        Ok(get_dstab_action(
-            &timeline,
-            &self.target,
-            &self.venoms.0,
-            &self.venoms.1,
-        ))
+        if self.venoms.1.eq("") {
+            Ok(get_dstab_asp_action(
+                &timeline,
+                &self.target,
+                &self.venoms.0,
+            ))
+        } else {
+            Ok(get_dstab_action(
+                &timeline,
+                &self.target,
+                &self.venoms.0,
+                &self.venoms.1,
+            ))
+        }
     }
 }
 

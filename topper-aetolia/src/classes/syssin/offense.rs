@@ -620,6 +620,14 @@ fn needs_shrugging(timeline: &AetTimeline, me: &String) -> bool {
         && (!me.balanced(BType::Focus) || me.is(FType::Impatience) || me.is(FType::Stupidity))
 }
 
+fn go_for_asp(_timeline: &AetTimeline, you: &AgentState, strategy: &String) -> bool {
+    if strategy.eq("asp") && you.aff_count() > 3 {
+        true
+    } else {
+        false
+    }
+}
+
 fn go_for_thin_blood(_timeline: &AetTimeline, you: &AgentState, _strategy: &String) -> bool {
     let mut buffer_count = 0;
     if you.is(FType::Lethargy) {
@@ -707,6 +715,19 @@ pub fn get_dstab_action(
     };
     if should_call_venoms(timeline) {
         format!("{};;{}", call_venoms(target, v1, v2), action)
+    } else {
+        action
+    }
+}
+
+pub fn get_dstab_asp_action(timeline: &AetTimeline, target: &String, v1: &String) -> String {
+    let action = if use_one_rag(timeline) {
+        format!("wipe dirk;;hr {};;stand;;dstab {};;dash d", v1, target)
+    } else {
+        format!("wipe dirk;;stand;;dstab {} {};;dash d", target, v1)
+    };
+    if should_call_venoms(timeline) {
+        format!("{};;{}", call_venom(target, v1), action)
     } else {
         action
     }
@@ -951,6 +972,17 @@ pub fn get_balance_attack<'s>(
                     target.to_string(),
                     v_one.map(|venom| venom.to_string()).unwrap_or_default(),
                 ));
+            } else if v_one
+                .map(|venom| venom.eq_ignore_ascii_case("scytherus"))
+                .unwrap_or(false)
+            {
+                return Box::new(BiteAction::new(who_am_i, &target, &"scytherus"));
+            } else if go_for_asp(timeline, &you, strategy) {
+                return Box::new(DoublestabAction::new_asp(
+                    who_am_i.to_string(),
+                    target.to_string(),
+                    v_one.unwrap_or(&"").to_string(),
+                ));
             } else if let (Some(v1), Some(v2)) = (v1, v2) {
                 return Box::new(DoublestabAction::new(
                     who_am_i.to_string(),
@@ -964,11 +996,6 @@ pub fn get_balance_attack<'s>(
                     target.to_string(),
                     v_one.map(|venom| venom.to_string()).unwrap_or_default(),
                 ));
-            } else if v_one
-                .map(|venom| venom.eq_ignore_ascii_case("scytherus"))
-                .unwrap_or(false)
-            {
-                return Box::new(BiteAction::new(who_am_i, &target, &"scytherus"));
             } else {
                 return Box::new(BiteAction::new(who_am_i, &target, &"camus"));
             }
