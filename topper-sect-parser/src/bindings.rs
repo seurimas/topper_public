@@ -8,5 +8,5 @@ extern "C" {
     // Adds a message listener to the window, to receive from the iframe!
     pub fn add_message_listener(f: &Closure<dyn Fn(usize)>);
     // Adds a scroll listener to the iframe.
-    pub fn add_scroll_listener(frame: &HtmlIFrameElement, f: &Closure<dyn Fn(usize)>);
+    pub fn add_scroll_listener(frame: &HtmlIFrameElement, f: &Closure<dyn Fn(i32)>);
 }

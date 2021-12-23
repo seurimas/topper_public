@@ -1,6 +1,6 @@
 use crate::bindings::*;
 use regex::Regex;
-use std::marker::PhantomData;
+use std::{cmp::Ordering, marker::PhantomData};
 use topper_aetolia::timeline::{
     aet_observation_creator, AetObservation, AetPrompt, AetTimeSlice, AetTimeline, AetTimelineTrait,
 };
@@ -18,6 +18,7 @@ lazy_static! {
         Regex::new(r"\[(?P<hour>\d\d):(?P<minute>\d\d):(?P<second>\d\d):(?P<centi>\d\d)\]")
             .unwrap();
     static ref WHO_REGEX: Regex = Regex::new(r"^Who:\s+(?P<who>\w+)$").unwrap();
+    static ref VS_REGEX: Regex = Regex::new(r"^Vs:\s+(?P<vs>\w+)$").unwrap();
 }
 
 lazy_static! {
@@ -49,11 +50,12 @@ lazy_static! {
     };
 }
 
-pub fn parse_time_slices(line_nodes: &Vec<Element>) -> Vec<AetTimeSlice> {
+pub fn parse_time_slices(line_nodes: &Vec<Element>) -> (String, String, Vec<AetTimeSlice>) {
     let mut slices = vec![];
     let mut lines = vec![];
     let mut last_time = 0;
     let mut me = String::new();
+    let mut you = String::new();
     for (line_idx, line_node) in line_nodes.iter().enumerate() {
         let line_text = line_node.text_content().unwrap();
         let line_text = line_text.trim().to_string();
@@ -67,6 +69,10 @@ pub fn parse_time_slices(line_nodes: &Vec<Element>) -> Vec<AetTimeSlice> {
         if let Some(captures) = WHO_REGEX.captures(line_text.as_ref()) {
             if let Some(who) = captures.name("who") {
                 me = who.as_str().to_string();
+            }
+        } else if let Some(captures) = VS_REGEX.captures(line_text.as_ref()) {
+            if let Some(vs) = captures.name("vs") {
+                you = vs.as_str().to_string();
             }
         }
         if let Some(captures) = PROMPT_REGEX.captures(line_text.as_ref()) {
@@ -100,23 +106,52 @@ pub fn parse_time_slices(line_nodes: &Vec<Element>) -> Vec<AetTimeSlice> {
             }
         }
     }
-    slices
+    (me, you, slices)
 }
 
 pub fn update_timeline(
     timeline: &mut AetTimeline,
     time_slices: &Vec<AetTimeSlice>,
     line_idx: usize,
-) {
-    timeline.reset(true);
+) -> bool {
+    if time_slices.len() == 0 {
+        return false;
+    }
+    let mut prior_time = timeline.state.time;
+    let selected_slice = time_slices
+        .binary_search_by(|time_slice| {
+            if time_slice
+                .lines
+                .iter()
+                .any(|(_, time_slice_line_idx)| *time_slice_line_idx as usize == line_idx)
+            {
+                Ordering::Equal
+            } else if time_slice
+                .lines
+                .iter()
+                .any(|(_, time_slice_line_idx)| *time_slice_line_idx as usize >= line_idx)
+            {
+                Ordering::Greater
+            } else {
+                Ordering::Less
+            }
+        })
+        .unwrap_or(if line_idx > 100 {
+            time_slices.len() - 1
+        } else {
+            0
+        });
+    let new_time = time_slices.get(selected_slice).unwrap().time;
+    if new_time < prior_time {
+        prior_time = 0;
+        timeline.reset(true);
+    }
     for time_slice in time_slices.iter() {
-        if time_slice
-            .lines
-            .iter()
-            .any(|(_, time_slice_line_idx)| *time_slice_line_idx as usize <= line_idx)
-        {
-            log("Here");
+        if time_slice.time > prior_time && time_slice.time <= new_time {
             timeline.push_time_slice(time_slice.clone(), None as Option<&DummyDatabaseModule>);
+        } else if time_slice.time > new_time {
+            break;
         }
     }
+    prior_time != timeline.state.time
 }

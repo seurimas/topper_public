@@ -3,6 +3,7 @@ body.outer {
 }
 iframe {
     box-sizing: border-box;
+    width: calc(100% - 480px);
 }
 body:not(.outer) {
     background-color: black;
@@ -17,5 +18,68 @@ body:not(.outer) {
     .line {
         display: block;
         width: 100%;
+    }
+}
+.battle_stats {
+    position: absolute;
+    right: 0;
+    width: 480px;
+    background-color: #214444;
+    border: 1px solid #a48021;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    
+    &--me {
+        top: 0;
+        bottom: 50%;
+    }
+    &--you {
+        top: 50%;
+        bottom: 0;
+    }
+
+    .pill_strip {
+        width: 16px;
+        display: flex;
+        flex-direction: column;
+        border: 2px solid white;
+        border-radius: 4px;
+
+        .aff {
+            width: 16px;
+            height: 16px;
+            line-height: 16px;
+            text-align: center;
+            &--cured {
+                background-color: green;
+            }
+            &--afflicted {
+                background-color: red;
+                color: white;
+                opacity: 1;
+            }
+            &--Sadness,
+            &--SelfPity,
+            &--Baldness,
+            &--CommitmentFear,
+            &--BodyOdor,
+            &--Hubris {
+                opacity: 0.7;
+            }
+            &--Paralysis,
+            &--Stormtouched {
+                margin-top: 16px;
+            }
+            &--Paresis,
+            &--Paralysis,
+            &--Asthma,
+            &--Impatience {
+                font-weight: bold;
+            }
+            &--Insomnia {
+                display: none;
+            }
+        }
     }
 }
