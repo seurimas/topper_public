@@ -2,6 +2,18 @@
 
 <head>
   <link data-trunk rel="scss" href="index.scss" />
+  <script type="text/javascript">
+    function add_message_listener(cb) {
+      window.addEventListener("message", (event) => {
+        cb(event.data);
+      });
+    }
+    function add_scroll_listener(iframe, cb) {
+      iframe.contentDocument.onscroll = function () {
+        cb(iframe.contentDocument.scrollingElement.scrollTop);
+      };
+    }
+  </script>
 </head>
 
 <body class="outer"></body>

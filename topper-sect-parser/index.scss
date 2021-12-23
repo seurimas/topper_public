@@ -7,9 +7,15 @@ iframe {
 body:not(.outer) {
     background-color: black;
 
-    span
-    {
+    span {
       font-weight: normal !important;
       white-space: pre-wrap;
+      font-family: Anadale Mono, monospace;
+      font-size: 14px;
+    }
+
+    .line {
+        display: block;
+        width: 100%;
     }
 }

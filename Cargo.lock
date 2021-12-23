@@ -3175,6 +3175,7 @@ name = "topper-sect-parser"
 version = "0.1.0"
 dependencies = [
  "futures",
+ "js-sys",
  "lazy_static",
  "log",
  "num_enum",

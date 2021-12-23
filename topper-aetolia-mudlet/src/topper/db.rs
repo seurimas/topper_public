@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use std::convert::{TryFrom, TryInto};
 use std::path::Path;
 use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::Arc;
 use std::thread;
 use std::thread::JoinHandle;
 use std::time::{Duration, SystemTime};
@@ -94,22 +95,6 @@ impl AetMudletDatabaseModule {
             }),
         }
     }
-
-    fn insert(&self, tree: &str, key: &String, value: IVec) {
-        self.db
-            .open_tree(tree)
-            .expect(format!("Bad {} tree", tree).as_ref())
-            .insert(key, value)
-            .expect(format!("Bad {} insert", key).as_ref());
-    }
-
-    fn get(&self, tree: &str, key: &String) -> Option<IVec> {
-        self.db
-            .open_tree(tree)
-            .expect(format!("Bad {} tree", tree).as_ref())
-            .get(key)
-            .expect(format!("Bad {} get", key).as_ref())
-    }
 }
 
 impl DatabaseModule for AetMudletDatabaseModule {
@@ -129,16 +114,33 @@ impl DatabaseModule for AetMudletDatabaseModule {
                 serde_json::from_str(str_val).ok()
             })
     }
+
+    fn insert(&self, tree: &str, key: &String, value: &[u8]) {
+        self.db
+            .open_tree(tree)
+            .expect(format!("Bad {} tree", tree).as_ref())
+            .insert(key, value)
+            .expect(format!("Bad {} insert", key).as_ref());
+    }
+
+    fn get(&self, tree: &str, key: &String) -> Option<Arc<[u8]>> {
+        self.db
+            .open_tree(tree)
+            .expect(format!("Bad {} tree", tree).as_ref())
+            .get(key)
+            .expect(format!("Bad {} get", key).as_ref())
+            .map(|ivec| ivec.into())
+    }
 }
 
 impl AetMudletDatabaseModule {
     fn send_api_request(&self, who: &String, priority: u64) -> bool {
-        let last_bytes = self.get("api_last", who).unwrap_or((&[0; 16]).into());
+        let last_bytes = self.get("api_last", who).unwrap_or((Arc::new([0; 16])));
         let last = u128::from_be_bytes(last_bytes.as_ref().try_into().expect("Bad length"));
         let since = time_since_epoch(last);
         if since.as_secs() > priority {
             let epoch = get_epoch_time();
-            self.insert("api_last", who, (&epoch.to_be_bytes()).into());
+            self.insert("api_last", who, (&epoch.to_be_bytes()));
             self.api_sender.send(ApiRequest(who.to_string())).is_ok()
         } else {
             false
@@ -203,40 +205,6 @@ impl AetMudletDatabaseModule {
         } else {
             None
         }
-    }
-}
-impl AetDatabaseModule for AetMudletDatabaseModule {
-    fn get_class(&self, who: &String) -> Option<Class> {
-        let class_id = self.get("classes", who);
-        if let Some(class_id) = class_id {
-            if let [class_id] = class_id.as_ref() {
-                Class::try_from(*class_id).ok()
-            } else {
-                None
-            }
-        } else {
-            None
-        }
-    }
-
-    fn set_class(&self, who: &String, class: Class) {
-        self.insert("classes", who, (&[class as u8]).into());
-    }
-
-    fn get_venom_plan(&self, stack_name: &String) -> Option<Vec<VenomPlan>> {
-        self.get_json::<Vec<VenomPlan>>("stacks", stack_name)
-    }
-
-    fn get_hypno_plan(&self, stack_name: &String) -> Option<Vec<Hypnosis>> {
-        self.get_json::<Vec<Hypnosis>>("hypnosis", stack_name)
-    }
-
-    fn get_first_aid_priorities(
-        &self,
-        who: &String,
-        priorities_name: &String,
-    ) -> Option<FirstAidPriorities> {
-        self.get_json::<FirstAidPriorities>("first_aid", &format!("{}_{}", who, priorities_name))
     }
 }
 

@@ -5,7 +5,6 @@ use std::error::Error;
 use std::fs::{read_dir, DirEntry, File};
 use std::io::BufReader;
 use std::sync::Mutex;
-use std::time::{Duration, Instant};
 
 pub trait EnumFromArgs {
     fn enum_from_args(observation_name: &str, arguments: Vec<String>) -> Self;
@@ -154,6 +153,39 @@ where
         Ok(ObservationParser::new(mappings, observation_creator))
     }
 
+    pub fn new_from_string(
+        psuedo_file: String,
+        observation_creator: fn(&String, Vec<String>) -> O,
+    ) -> Result<Self, Box<Error>> {
+        let mut mappings = Vec::new();
+        Self::parse_mappings(psuedo_file.as_ref(), &mut mappings);
+        Ok(ObservationParser::new(mappings, observation_creator))
+    }
+
+    pub fn new_from_strings(
+        psuedo_files: Vec<String>,
+        observation_creator: fn(&String, Vec<String>) -> O,
+    ) -> Result<Self, Box<Error>> {
+        let mut mappings = Vec::new();
+        for psuedo_file in psuedo_files.iter() {
+            Self::parse_mappings(psuedo_file.as_ref(), &mut mappings);
+        }
+        Ok(ObservationParser::new(mappings, observation_creator))
+    }
+
+    fn parse_mappings(
+        text: &str,
+        mappings: &mut Vec<ObservationMapping>,
+    ) -> Result<(), Box<Error>> {
+        let mut new_mappings: Vec<ObservationMapping> =
+            serde_json::from_str(text).map_err(move |err| ObservationParserError {
+                base: err,
+                path: "N/A".to_string(),
+            })?;
+        mappings.append(&mut new_mappings);
+        Ok(())
+    }
+
     fn read_file_mappings(
         path: String,
         file: File,
@@ -225,7 +257,7 @@ where
             //     ));
             // }
             for (match_num, regex) in self.regexes.iter().enumerate() {
-                let now = Instant::now();
+                // let now = Instant::now();
                 let mapping = self.mappings.get(match_num).unwrap();
                 if let Some(arguments) = mapping.try_get_arguments(&slice, &regex, &stripped) {
                     observations.push((self.observation_creator)(
@@ -234,8 +266,8 @@ where
                     ));
                     log::info!("{:?}", observations.get(observations.len() - 1));
                 }
-                *BENCHMARKS.lock().unwrap().get_mut(match_num).unwrap() +=
-                    Instant::now().duration_since(now).as_nanos();
+                // *BENCHMARKS.lock().unwrap().get_mut(match_num).unwrap() +=
+                //     Instant::now().duration_since(now).as_nanos();
             }
         }
         observations

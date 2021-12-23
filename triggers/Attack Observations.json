@@ -216,6 +216,24 @@
     "observation_name": "Dodges"
   },
   {
+    "regex": "^(You) sidestep the attack, letting the strike go wide.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Dodges"
+  },
+  {
     "regex": "^A reflection of (\\w+) blinks out of existence.$",
     "args": [
       {
