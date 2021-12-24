@@ -109,16 +109,8 @@ pub fn parse_time_slices(line_nodes: &Vec<Element>) -> (String, String, Vec<AetT
     (me, you, slices)
 }
 
-pub fn update_timeline(
-    timeline: &mut AetTimeline,
-    time_slices: &Vec<AetTimeSlice>,
-    line_idx: usize,
-) -> bool {
-    if time_slices.len() == 0 {
-        return false;
-    }
-    let mut prior_time = timeline.state.time;
-    let selected_slice = time_slices
+pub fn get_selected_slice(time_slices: &Vec<AetTimeSlice>, line_idx: usize) -> usize {
+    time_slices
         .binary_search_by(|time_slice| {
             if time_slice
                 .lines
@@ -129,7 +121,7 @@ pub fn update_timeline(
             } else if time_slice
                 .lines
                 .iter()
-                .any(|(_, time_slice_line_idx)| *time_slice_line_idx as usize >= line_idx)
+                .any(|(_, time_slice_line_idx)| *time_slice_line_idx as usize > line_idx)
             {
                 Ordering::Greater
             } else {
@@ -140,7 +132,19 @@ pub fn update_timeline(
             time_slices.len() - 1
         } else {
             0
-        });
+        })
+}
+
+pub fn update_timeline(
+    timeline: &mut AetTimeline,
+    time_slices: &Vec<AetTimeSlice>,
+    line_idx: usize,
+) -> Option<usize> {
+    if time_slices.len() == 0 {
+        return None;
+    }
+    let mut prior_time = timeline.state.time;
+    let selected_slice = get_selected_slice(time_slices, line_idx);
     let new_time = time_slices.get(selected_slice).unwrap().time;
     if new_time < prior_time {
         prior_time = 0;
@@ -153,5 +157,16 @@ pub fn update_timeline(
             break;
         }
     }
-    prior_time != timeline.state.time
+    if prior_time != timeline.state.time {
+        Some(
+            timeline
+                .slices
+                .last()
+                .and_then(|slice| slice.lines.last())
+                .map(|(_, line_idx)| *line_idx)
+                .unwrap_or_default() as usize,
+        )
+    } else {
+        None
+    }
 }

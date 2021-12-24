@@ -28,6 +28,16 @@ pub fn push_styles_into_frame(frame: &HtmlIFrameElement) {
     }
 }
 
+pub fn move_scroll_indicator(frame: &HtmlIFrameElement, scroll_top: i32) {
+    if let Ok(Some(scroll_indicator)) = frame
+        .content_document()
+        .unwrap()
+        .query_selector(".scroll_indicator")
+    {
+        scroll_indicator.set_attribute("style", format!("top: {}px", scroll_top + 16).as_ref());
+    }
+}
+
 pub fn rearrange_lines(frame: &HtmlIFrameElement) -> Vec<Element> {
     let document = frame.content_document().unwrap();
     let body = document.body().unwrap();
@@ -55,6 +65,11 @@ pub fn rearrange_lines(frame: &HtmlIFrameElement) -> Vec<Element> {
         body.append_child(&new_line).unwrap();
         new_lines.push(new_line);
     }
+    let scroll_indicator = document.create_element("div").unwrap();
+    scroll_indicator
+        .set_attribute("class", "scroll_indicator")
+        .unwrap();
+    body.append_child(&scroll_indicator).unwrap();
     new_lines
 }
 
@@ -66,15 +81,8 @@ pub fn get_scroll_points(lines: &Vec<Element>) -> Vec<i32> {
 }
 
 pub fn find_scroll_point(scroll_points: &Vec<i32>, scroll_top: i32) -> usize {
-    let mut search = (scroll_top / 16) as usize;
-    loop {
-        if scroll_points.get(search).unwrap_or(&i32::MAX) > &(scroll_top + 600) {
-            search -= 1;
-        } else if scroll_points.get(search).unwrap_or(&i32::MIN) < &(scroll_top + 300) {
-            search += 1;
-        } else {
-            break;
-        }
+    let point = scroll_points.binary_search(&scroll_top);
+    match point {
+        Ok(line_idx) | Err(line_idx) => line_idx,
     }
-    search
 }

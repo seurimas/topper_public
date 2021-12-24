@@ -4,7 +4,7 @@ use crate::battle_stats::{get_battle_stats, BattleStatsElem};
 use crate::manipulations::{push_styles_into_frame, rearrange_lines};
 use bindings::*;
 use futures::FutureExt;
-use manipulations::{find_scroll_point, get_scroll_points};
+use manipulations::{find_scroll_point, get_scroll_points, move_scroll_indicator};
 use timeline::{parse_time_slices, update_timeline};
 use topper_aetolia::timeline::{AetTimeSlice, AetTimeline};
 use wasm_bindgen::closure::Closure;
@@ -24,7 +24,7 @@ enum SectMessage {
     Error(String),
     InnerMessage(usize),
     Scroll(i32),
-    Initialize(Vec<Element>),
+    Initialize(HtmlIFrameElement, Vec<Element>),
 }
 
 impl From<()> for SectMessage {
@@ -37,6 +37,7 @@ struct SectModel {
     loading: bool,
     loaded: Option<String>,
     error: Option<String>,
+    iframe_element: Option<HtmlIFrameElement>,
     line_nodes: Vec<Element>,
     last_scroll_point: i32,
     scroll_points: Vec<i32>,
@@ -54,6 +55,16 @@ async fn load_sect_log(result: Result<JsValue, JsValue>) -> SectMessage {
                 .as_string()
                 .unwrap_or("Could not parse error!".to_string()),
         ),
+    }
+}
+
+impl SectModel {
+    fn update_scroll_point(&mut self, line_idx: usize) {
+        let scroll_top = *self.scroll_points.get(line_idx).unwrap_or(&0);
+        self.last_scroll_point = scroll_top;
+        if let Some(iframe_element) = &self.iframe_element {
+            move_scroll_indicator(iframe_element, scroll_top);
+        }
     }
 }
 
@@ -76,7 +87,6 @@ impl Component for SectModel {
             .batch_callback(|_| {
                 let window = window().unwrap();
                 let location = window.location();
-                log(format!("{:?}", location.search()).as_ref());
                 if let Ok(mut sect_log_link) = location.search() {
                     if sect_log_link.len() == 0 {
                         return None;
@@ -92,6 +102,7 @@ impl Component for SectModel {
             loading: false,
             loaded: None,
             error: None,
+            iframe_element: None,
             line_nodes: vec![],
             last_scroll_point: 0,
             scroll_points: vec![],
@@ -119,29 +130,36 @@ impl Component for SectModel {
                 true
             }
             SectMessage::InnerMessage(line_idx) => {
-                log(format!("Received {}", line_idx).as_ref());
-                update_timeline(&mut self.timeline, &self.time_slices, line_idx);
-                self.last_scroll_point = *self.scroll_points.get(line_idx).unwrap_or(&0);
+                if let Some(new_line_idx) =
+                    update_timeline(&mut self.timeline, &self.time_slices, line_idx)
+                {
+                    self.update_scroll_point(new_line_idx);
+                }
                 log(format!("{:?}", self.timeline.state.borrow_me()).as_ref());
                 true
             }
             SectMessage::Scroll(scroll_top) => {
-                if scroll_top > self.last_scroll_point {
-                    let line_idx = find_scroll_point(&self.scroll_points, scroll_top);
-                    log(format!("Scrolled {} to {}", scroll_top, line_idx).as_ref());
-                    self.last_scroll_point = scroll_top;
-                    update_timeline(&mut self.timeline, &self.time_slices, line_idx)
+                let scroll_point = scroll_top + 300;
+                if scroll_point > self.last_scroll_point {
+                    let line_idx = find_scroll_point(&self.scroll_points, scroll_point);
+                    if let Some(new_line_idx) =
+                        update_timeline(&mut self.timeline, &self.time_slices, line_idx)
+                    {
+                        self.update_scroll_point(new_line_idx);
+                    }
+                    true
                 } else {
                     false
                 }
             }
-            SectMessage::Initialize(line_nodes) => {
+            SectMessage::Initialize(iframe_element, line_nodes) => {
                 let (me, target, time_slices) = parse_time_slices(&line_nodes);
                 self.me = me;
                 self.target = target;
                 self.time_slices = time_slices;
                 self.scroll_points = get_scroll_points(&line_nodes);
                 log(format!("{} {} {:?}", self.me, self.target, self.time_slices).as_ref());
+                self.iframe_element = Some(iframe_element);
                 self.line_nodes = line_nodes;
                 true
             }
@@ -187,7 +205,7 @@ impl Component for SectModel {
                             format!("window.parent.postMessage({}, \"*\");", log_idx).as_ref(),
                         )));
                     }
-                    SectMessage::Initialize(log_lines)
+                    SectMessage::Initialize(iframe, log_lines)
                 } else {
                     SectMessage::Noop
                 }

@@ -20,6 +20,16 @@ body:not(.outer) {
         width: 100%;
     }
 }
+
+.scroll_indicator {
+    position: absolute;
+    width: 100%;
+    height: 4px;
+    background-color: #214444;
+    opacity: 0.5;
+    transition: ease-in-out top 500ms;
+}
+
 .battle_stats {
     position: absolute;
     right: 0;
