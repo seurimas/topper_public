@@ -90,6 +90,22 @@ impl AgentState {
             FType::RightLegBroken => self.limb_damage.broken(LType::RightLegDamage),
             FType::LeftArmBroken => self.limb_damage.broken(LType::LeftArmDamage),
             FType::RightArmBroken => self.limb_damage.broken(LType::RightArmDamage),
+            FType::HeadDamaged => self.limb_damage.damaged(LType::HeadDamage),
+            FType::TorsoDamaged => self.limb_damage.damaged(LType::TorsoDamage),
+            FType::LeftLegDamaged => self.limb_damage.damaged(LType::LeftLegDamage),
+            FType::RightLegDamaged => self.limb_damage.damaged(LType::RightLegDamage),
+            FType::LeftArmDamaged => self.limb_damage.damaged(LType::LeftArmDamage),
+            FType::RightArmDamaged => self.limb_damage.damaged(LType::RightArmDamage),
+            FType::HeadMangled => self.limb_damage.mangled(LType::HeadDamage),
+            FType::TorsoMangled => self.limb_damage.mangled(LType::TorsoDamage),
+            FType::LeftLegMangled => self.limb_damage.mangled(LType::LeftLegDamage),
+            FType::RightLegMangled => self.limb_damage.mangled(LType::RightLegDamage),
+            FType::LeftArmMangled => self.limb_damage.mangled(LType::LeftArmDamage),
+            FType::RightArmMangled => self.limb_damage.mangled(LType::RightArmDamage),
+            FType::LeftLegAmputated => self.limb_damage.amputated(LType::LeftLegDamage),
+            FType::RightLegAmputated => self.limb_damage.amputated(LType::RightLegDamage),
+            FType::LeftArmAmputated => self.limb_damage.amputated(LType::LeftArmDamage),
+            FType::RightArmAmputated => self.limb_damage.amputated(LType::RightArmDamage),
             _ => self.flags.is_flag_set(flag),
         }
     }
@@ -274,6 +290,7 @@ impl AgentState {
         let damage = limb.damage as f32 / 100.0;
         let damaged = limb.damaged;
         let mangled = limb.mangled;
+        let amputated = limb.amputated;
         let broken = match what.broken() {
             Some(broken_aff) => self.is(broken_aff),
             _ => false,
@@ -293,6 +310,7 @@ impl AgentState {
             broken,
             damaged,
             mangled,
+            amputated,
             is_restoring,
             is_parried,
             is_dislocated,

@@ -100,6 +100,10 @@ pub fn get_damage_barrier(aff: &String) -> Result<(LType, CType), String> {
         "left_leg_damaged" => Ok((LType::LeftLegDamage, 333)),
         "right_leg_mangled" => Ok((LType::RightLegDamage, 666)),
         "right_leg_damaged" => Ok((LType::RightLegDamage, 333)),
+        "left_arm_amputated" => Ok((LType::LeftArmDamage, 1000)),
+        "right_arm_amputated" => Ok((LType::RightArmDamage, 1000)),
+        "left_leg_amputated" => Ok((LType::LeftLegDamage, 1000)),
+        "right_leg_amputated" => Ok((LType::RightLegDamage, 1000)),
         _ => Err(format!("Could not find damage for {}", aff)),
     }
 }
@@ -110,6 +114,7 @@ pub struct Limb {
     pub broken: bool,
     pub damaged: bool,
     pub mangled: bool,
+    pub amputated: bool,
     pub welt: bool,
 }
 
@@ -131,6 +136,7 @@ pub struct LimbState {
     pub broken: bool,
     pub damaged: bool,
     pub mangled: bool,
+    pub amputated: bool,
     pub is_restoring: bool,
     pub is_parried: bool,
     pub is_dislocated: bool,
@@ -340,6 +346,10 @@ impl LimbSet {
 
     pub fn mangled(&self, limb: LType) -> bool {
         self.limbs[limb as usize].mangled
+    }
+
+    pub fn amputated(&self, limb: LType) -> bool {
+        self.limbs[limb as usize].amputated
     }
 
     pub fn wait(&mut self, duration: CType) -> Option<FType> {

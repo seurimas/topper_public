@@ -262,7 +262,9 @@ impl AetTimelineStateTrait for AetTimelineState {
         self.for_agent_closure(
             who,
             Box::new(move |me| {
-                if let Some(aff_flag) = FType::from_name(&flag_name) {
+                if let Ok((_damage_type, _damage_amount)) = get_damage_barrier(&flag_name) {
+                    // Do nothing...
+                } else if let Some(aff_flag) = FType::from_name(&flag_name) {
                     if aff_flag == FType::ThinBlood && !val {
                         me.clear_relapses();
                     }
@@ -270,8 +272,6 @@ impl AetTimelineStateTrait for AetTimelineState {
                     } else {
                         me.set_flag(aff_flag, val);
                     }
-                } else if let Ok((_damage_type, _damage_amount)) = get_damage_barrier(&flag_name) {
-                    // Do nothing...
                 } else {
                     // Err(format!("Failed to find flag {}", flag_name));
                 }

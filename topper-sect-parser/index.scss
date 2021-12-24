@@ -29,6 +29,13 @@ body:not(.outer) {
     display: flex;
     flex-direction: row;
     align-items: flex-start;
+
+    .pills,
+    .smokes,
+    .salves {
+        display: flex;
+        flex-direction: row;
+    }
     
     &--me {
         top: 0;
@@ -45,41 +52,41 @@ body:not(.outer) {
         flex-direction: column;
         border: 2px solid white;
         border-radius: 4px;
+    }
 
-        .aff {
-            width: 16px;
-            height: 16px;
-            line-height: 16px;
-            text-align: center;
-            &--cured {
-                background-color: green;
-            }
-            &--afflicted {
-                background-color: red;
-                color: white;
-                opacity: 1;
-            }
-            &--Sadness,
-            &--SelfPity,
-            &--Baldness,
-            &--CommitmentFear,
-            &--BodyOdor,
-            &--Hubris {
-                opacity: 0.7;
-            }
-            &--Paralysis,
-            &--Stormtouched {
-                margin-top: 16px;
-            }
-            &--Paresis,
-            &--Paralysis,
-            &--Asthma,
-            &--Impatience {
-                font-weight: bold;
-            }
-            &--Insomnia {
-                display: none;
-            }
+    .aff {
+        width: 16px;
+        height: 16px;
+        line-height: 16px;
+        text-align: center;
+        &--cured {
+            background-color: green;
+        }
+        &--afflicted {
+            background-color: red;
+            color: white;
+            opacity: 1;
+        }
+        &--Sadness,
+        &--SelfPity,
+        &--Baldness,
+        &--CommitmentFear,
+        &--BodyOdor,
+        &--Hubris {
+            opacity: 0.7;
+        }
+        &--Paralysis,
+        &--Stormtouched {
+            margin-top: 16px;
+        }
+        &--Paresis,
+        &--Paralysis,
+        &--Asthma,
+        &--Impatience {
+            font-weight: bold;
+        }
+        &--Insomnia {
+            display: none;
         }
     }
 }

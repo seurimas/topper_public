@@ -389,10 +389,26 @@ pub enum FType {
     SappedStrength,
     FULL,
     // Afflictions stored elsewhere
+    HeadMangled,
+    HeadDamaged,
+    TorsoMangled,
+    TorsoDamaged,
     LeftLegBroken,
     RightLegBroken,
     LeftArmBroken,
     RightArmBroken,
+    LeftLegAmputated,
+    RightLegAmputated,
+    LeftArmAmputated,
+    RightArmAmputated,
+    LeftLegMangled,
+    RightLegMangled,
+    LeftArmMangled,
+    RightArmMangled,
+    LeftLegDamaged,
+    RightLegDamaged,
+    LeftArmDamaged,
+    RightArmDamaged,
 }
 
 lazy_static! {

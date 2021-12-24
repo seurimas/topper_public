@@ -13,6 +13,14 @@
         cb(iframe.contentDocument.scrollingElement.scrollTop);
       };
     }
+    function fetch_log(link) {
+      return fetch(`https://justcors.com/l_nfh7g2exq8f/${link}`).then(response => {
+        console.log(response);
+        if (response.ok) {
+          return response.text();
+        }
+      });
+    }
   </script>
 </head>
 

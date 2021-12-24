@@ -1,4 +1,4 @@
-use crate::log;
+use crate::{battle_stats::get_aff_icon, log};
 use strum_macros::Display;
 use topper_aetolia::{
     curatives::*,
@@ -71,10 +71,8 @@ impl Component for PillStrip {
                 } else {
                     "cured"
                 };
-                let mut icon = format!("{}", aff);
-                icon.truncate(1);
                 html! {
-                    <div class={format!("aff aff--{} aff--{}", afflicted_str, aff)} title={aff.to_string()}>{icon}</div>
+                    <div class={format!("aff aff--{} aff--{}", afflicted_str, aff)} title={aff.to_string()}>{get_aff_icon(aff)}</div>
                 }
             })
             .collect::<Html>();

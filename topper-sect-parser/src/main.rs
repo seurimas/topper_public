@@ -10,7 +10,7 @@ use topper_aetolia::timeline::{AetTimeSlice, AetTimeline};
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{Element, HtmlElement, HtmlIFrameElement, HtmlInputElement};
+use web_sys::{window, Element, HtmlElement, HtmlIFrameElement, HtmlInputElement};
 use yew::prelude::*;
 mod battle_stats;
 mod bindings;
@@ -70,6 +70,21 @@ impl Component for SectModel {
         let closure = Closure::wrap(handler);
         add_message_listener(&closure);
         closure.forget();
+        let check_sect_log_link = ctx
+            .link()
+            .clone()
+            .batch_callback(|_| {
+                let window = window().unwrap();
+                let location = window.location();
+                log(format!("{:?}", location.search()).as_ref());
+                if let Ok(mut sect_log_link) = location.search() {
+                    sect_log_link.remove(0);
+                    Some(SectMessage::Load(fetch_log(sect_log_link.as_ref()).into()))
+                } else {
+                    None
+                }
+            })
+            .emit(());
         Self {
             loading: false,
             loaded: None,
@@ -140,6 +155,12 @@ impl Component for SectModel {
                 .and_then(|files| files.get(0))
                 .map(|file| SectMessage::Load(file.text().into()))
         });
+        let on_sect_log_link = link.batch_callback(|e: Event| {
+            e.target()
+                .and_then(|target| target.dyn_into::<HtmlInputElement>().ok())
+                .map(|target| target.value())
+                .map(|link| SectMessage::Load(fetch_log(link.as_ref()).into()))
+        });
         if let Some(loaded) = &self.loaded {
             let cb_link = link.clone();
             let onload = link.callback(move |e: Event| {
@@ -184,6 +205,8 @@ impl Component for SectModel {
                 }
                 <label for="sect_log">{"Select a Sect log file:"}</label>
                 <input type="file" id="sect_log" name="sect_log" onchange={on_sect_log}/>
+                <label for="sect_log_link">{"Or enter a link:"}</label>
+                <input type="text" id="sect_log_link" name="sect_log_link" onchange={on_sect_log_link}/>
             </div>
         }
     }

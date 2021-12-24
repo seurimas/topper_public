@@ -1,3 +1,4 @@
+use js_sys::Promise;
 use wasm_bindgen::prelude::*;
 use web_sys::HtmlIFrameElement;
 
@@ -9,4 +10,6 @@ extern "C" {
     pub fn add_message_listener(f: &Closure<dyn Fn(usize)>);
     // Adds a scroll listener to the iframe.
     pub fn add_scroll_listener(frame: &HtmlIFrameElement, f: &Closure<dyn Fn(i32)>);
+    // Fetches a log from a CORS proxy.
+    pub fn fetch_log(s: &str) -> Promise;
 }

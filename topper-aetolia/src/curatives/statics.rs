@@ -446,6 +446,61 @@ lazy_static! {
 }
 
 lazy_static! {
+    pub static ref RESTORATION_HEAD_ORDER: Vec<FType> = vec![
+        FType::MauledFace,
+        FType::HeadMangled,
+        FType::HeadDamaged,
+        FType::SmashedThroat,
+        FType::Voidgaze,
+    ];
+}
+
+lazy_static! {
+    pub static ref RESTORATION_TORSO_ORDER: Vec<FType> = vec![
+        FType::CollapsedLung,
+        FType::SpinalRip,
+        FType::BurntSkin,
+        FType::TorsoMangled,
+        FType::TorsoDamaged,
+        FType::CrushedChest,
+        FType::Heatspear,
+        FType::Deepwound,
+    ];
+}
+
+lazy_static! {
+    pub static ref RESTORATION_LEFT_ARM_ORDER: Vec<FType> = vec![
+        FType::LeftArmAmputated,
+        FType::LeftArmMangled,
+        FType::LeftArmDamaged,
+    ];
+}
+
+lazy_static! {
+    pub static ref RESTORATION_RIGHT_ARM_ORDER: Vec<FType> = vec![
+        FType::RightArmAmputated,
+        FType::RightArmMangled,
+        FType::RightArmDamaged,
+    ];
+}
+
+lazy_static! {
+    pub static ref RESTORATION_LEFT_LEG_ORDER: Vec<FType> = vec![
+        FType::LeftLegAmputated,
+        FType::LeftLegMangled,
+        FType::LeftLegDamaged,
+    ];
+}
+
+lazy_static! {
+    pub static ref RESTORATION_RIGHT_LEG_ORDER: Vec<FType> = vec![
+        FType::RightLegAmputated,
+        FType::RightLegMangled,
+        FType::RightLegDamaged,
+    ];
+}
+
+lazy_static! {
     pub static ref SOOTHING_HEAD_ORDER: Vec<FType> = vec![FType::Whiplash];
 }
 
