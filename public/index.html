@@ -1,0 +1,29 @@
+<html><head>
+  <link rel="stylesheet" href="/index-c57226223b387fc6.css">
+  <script type="text/javascript">
+    function add_message_listener(cb) {
+      window.addEventListener("message", (event) => {
+        cb(event.data);
+      });
+    }
+    function add_scroll_listener(iframe, cb) {
+      iframe.contentDocument.onscroll = function () {
+        cb(iframe.contentDocument.scrollingElement.scrollTop);
+      };
+    }
+    function fetch_log(link) {
+      return fetch(`https://justcors.com/l_nfh7g2exq8f/${link}`).then(response => {
+        console.log(response);
+        if (response.ok) {
+          return response.text();
+        }
+      });
+    }
+  </script>
+
+<link rel="preload" href="/index-4facda4d69d10eb5_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
+<link rel="modulepreload" href="/index-4facda4d69d10eb5.js"></head>
+
+<body class="outer">
+
+<script type="module">import init from '/index-4facda4d69d10eb5.js';init('/index-4facda4d69d10eb5_bg.wasm');</script></body></html>
