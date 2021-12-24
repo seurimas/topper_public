@@ -78,6 +78,9 @@ impl Component for SectModel {
                 let location = window.location();
                 log(format!("{:?}", location.search()).as_ref());
                 if let Ok(mut sect_log_link) = location.search() {
+                    if sect_log_link.len() == 0 {
+                        return None;
+                    }
                     sect_log_link.remove(0);
                     Some(SectMessage::Load(fetch_log(sect_log_link.as_ref()).into()))
                 } else {
