@@ -1,3 +1,4 @@
+use crate::bindings::log;
 use wasm_bindgen::{JsCast, JsValue};
 use web_sys::{
     window, CssStyleSheet, Element, HtmlElement, HtmlIFrameElement, HtmlPreElement, Node,
@@ -38,10 +39,25 @@ pub fn move_scroll_indicator(frame: &HtmlIFrameElement, scroll_top: i32) {
     }
 }
 
+fn get_pre_block(body: &HtmlElement) -> Option<HtmlPreElement> {
+    let node_list = body.child_nodes();
+    for idx in 0..node_list.length() {
+        if node_list
+            .get(idx)
+            .unwrap()
+            .node_name()
+            .eq_ignore_ascii_case("pre")
+        {
+            return Some(node_list.get(idx).unwrap().unchecked_into());
+        }
+    }
+    None
+}
+
 pub fn rearrange_lines(frame: &HtmlIFrameElement) -> Vec<Element> {
     let document = frame.content_document().unwrap();
     let body = document.body().unwrap();
-    let pre_block: HtmlPreElement = body.child_nodes().get(1).unwrap().dyn_into().unwrap();
+    let pre_block: HtmlPreElement = get_pre_block(&body).unwrap();
     let mut lines: Vec<Vec<Node>> = vec![];
     let mut line: Vec<Node> = vec![];
     for node_idx in 0..pre_block.child_element_count() {
@@ -70,13 +86,14 @@ pub fn rearrange_lines(frame: &HtmlIFrameElement) -> Vec<Element> {
         .set_attribute("class", "scroll_indicator")
         .unwrap();
     body.append_child(&scroll_indicator).unwrap();
+    body.remove_child(&pre_block);
     new_lines
 }
 
 pub fn get_scroll_points(lines: &Vec<Element>) -> Vec<i32> {
     lines
         .iter()
-        .map(|line| line.clone().dyn_into::<HtmlElement>().unwrap().offset_top())
+        .map(|line| line.clone().unchecked_into::<HtmlElement>().offset_top())
         .collect()
 }
 
