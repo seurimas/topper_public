@@ -331,7 +331,14 @@ pub fn get_preferred_parry(
                 let them = timeline.state.borrow_agent(target);
                 match them.channel_state {
                     ChannelState::Heelrush(limb, _) => Ok(limb),
-                    _ => Ok(get_top_parry(timeline, me).unwrap_or(LType::TorsoDamage)),
+                    _ => {
+                        let myself = timeline.state.borrow_agent(me);
+                        if myself.is(FType::Heatspear) {
+                            Ok(LType::TorsoDamage)
+                        } else {
+                            Ok(get_top_parry(timeline, me).unwrap_or(LType::TorsoDamage))
+                        }
+                    }
                 }
             }
             Class::Sentinel => {
@@ -608,6 +615,17 @@ pub fn handle_combat_action(
                 });
                 Ok(())
             }
+            "narcolepsy" => {
+                for_agent(agent_states, &combat_action.caster, |you| {
+                    you.observe_flag(FType::Narcolepsy, true);
+                    if you.is(FType::Insomnia) {
+                        you.toggle_flag(FType::Insomnia, false);
+                    } else if !you.is(FType::Asleep) {
+                        you.toggle_flag(FType::Asleep, true);
+                    }
+                });
+                Ok(())
+            }
             "vomiting" => {
                 for_agent(agent_states, &combat_action.caster, |you| {
                     you.observe_flag(FType::Vomiting, true);
@@ -749,6 +767,7 @@ pub enum VenomPlan {
     Stick(FType),
     StickThisIfThat(FType, FType),
     OnTree(FType),
+    OffTree(FType),
     OneOf(FType, FType),
     IfDo(FType, Box<VenomPlan>),
     IfNotDo(FType, Box<VenomPlan>),
@@ -760,6 +779,7 @@ impl VenomPlan {
             VenomPlan::Stick(aff)
             | VenomPlan::StickThisIfThat(aff, _)
             | VenomPlan::OnTree(aff)
+            | VenomPlan::OffTree(aff)
             | VenomPlan::OneOf(aff, _) => *aff,
             VenomPlan::IfDo(_pred, plan) | VenomPlan::IfNotDo(_pred, plan) => plan.affliction(),
         }
@@ -794,6 +814,15 @@ macro_rules! affliction_plan_stacker {
                 }
                 VenomPlan::OnTree(aff) => {
                     if (target.balanced(BType::Tree) || target.get_balance(BType::Tree) < 1.5)
+                        && is_susceptible(target, aff)
+                    {
+                        if let Some(venom) = $stack.get(aff) {
+                            venoms.insert(0, *venom);
+                        }
+                    }
+                }
+                VenomPlan::OffTree(aff) => {
+                    if !(target.balanced(BType::Tree) || target.get_balance(BType::Tree) < 1.5)
                         && is_susceptible(target, aff)
                     {
                         if let Some(venom) = $stack.get(aff) {

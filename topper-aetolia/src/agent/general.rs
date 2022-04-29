@@ -164,6 +164,10 @@ pub enum FType {
     Infested,
     // Insomnia,
 
+    // Eucrasia
+    Worrywart,
+    Narcolepsy,
+
     // Decongestant
     Baldness,
     Clumsiness,

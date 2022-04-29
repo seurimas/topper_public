@@ -3,8 +3,11 @@ mod observer_tests {
 
     lazy_static! {
         static ref observer: ObservationParser<AetObservation> =
-            ObservationParser::<AetObservation>::new_from_directory("triggers".to_string())
-                .unwrap();
+            ObservationParser::<AetObservation>::new_from_directory(
+                "../triggers".to_string(),
+                aet_observation_creator
+            )
+            .unwrap();
     }
 
     #[test]

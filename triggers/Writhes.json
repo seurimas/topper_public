@@ -1,0 +1,23 @@
+[
+    {
+        "regex": "^(\\w+) (has|have) writhed free of (.*) entanglement by tied ropes.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "WritheBind"
+            },
+            {
+                "Literal": ""
+            },
+            {
+                "Literal": ""
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "DiscernedCure"
+    }
+]

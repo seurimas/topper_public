@@ -144,6 +144,24 @@
     "observation_name": "BalanceBack"
   },
   {
+    "regex": "^(\\w+) appears relieved of .* mental fatigue.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "mental_fatigue"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "DiscernedCure"
+  },
+  {
     "regex": "^The shadowy void around (\\w+) disappears.$",
     "args": [
       {

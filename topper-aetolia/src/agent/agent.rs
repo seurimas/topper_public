@@ -1,4 +1,5 @@
 use super::*;
+use crate::curatives::statics::RESTORE_CURE_ORDERS;
 use num_enum::TryFromPrimitive;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
@@ -30,8 +31,35 @@ impl BaseAgentState for AgentState {
         self.resin_state.wait(duration);
         self.class_state.wait(duration);
         self.dodge_state.wait(duration);
-        if let Some(cured_aff) = self.limb_damage.wait(duration) {
-            self.set_flag(cured_aff, false);
+        if let Some((cured_limb, regenerating, first_person)) = self.limb_damage.wait(duration) {
+            if !first_person {
+                match self.get_restore_cure(cured_limb) {
+                    Some(FType::LeftArmDamaged)
+                    | Some(FType::LeftArmMangled)
+                    | Some(FType::LeftArmAmputated)
+                    | Some(FType::LeftLegDamaged)
+                    | Some(FType::LeftLegMangled)
+                    | Some(FType::LeftLegAmputated)
+                    | Some(FType::RightArmDamaged)
+                    | Some(FType::RightArmMangled)
+                    | Some(FType::RightArmAmputated)
+                    | Some(FType::RightLegDamaged)
+                    | Some(FType::RightLegMangled)
+                    | Some(FType::RightLegAmputated)
+                    | Some(FType::TorsoDamaged)
+                    | Some(FType::TorsoMangled)
+                    | Some(FType::HeadDamaged)
+                    | Some(FType::HeadMangled) => {
+                        self.limb_damage.restore(cured_limb, regenerating);
+                    }
+                    Some(aff) => {
+                        self.set_flag(aff, false);
+                    }
+                    _ => {
+                        self.limb_damage.restore(cured_limb, regenerating);
+                    }
+                }
+            }
         }
         let rebound_pending = !self.balanced(BType::Rebounding) && !self.is(FType::Rebounding);
         for i in 0..self.balances.len() {
@@ -175,6 +203,22 @@ impl AgentState {
             FType::RightArmBroken => self
                 .limb_damage
                 .set_limb_broken(LType::RightArmDamage, value),
+            FType::LeftLegDamaged
+            | FType::LeftArmDamaged
+            | FType::RightLegDamaged
+            | FType::RightArmDamaged
+            | FType::TorsoDamaged
+            | FType::HeadDamaged => {}
+            FType::LeftLegMangled
+            | FType::LeftArmMangled
+            | FType::RightLegMangled
+            | FType::RightArmMangled
+            | FType::TorsoMangled
+            | FType::HeadMangled => {}
+            FType::LeftLegAmputated
+            | FType::LeftArmAmputated
+            | FType::RightLegAmputated
+            | FType::RightArmAmputated => {}
             _ => self.flags.set_flag(flag, value),
         }
         if flag == FType::Rebounding && value == true {
@@ -427,22 +471,6 @@ impl AgentState {
         self.relapses = RelapseState::Inactive;
     }
 
-    pub fn set_restoring(&mut self, damage: LType) {
-        if damage == LType::TorsoDamage
-            && !self.limb_damage.limbs[LType::TorsoDamage as usize].damaged
-            && self.is(FType::Heatspear)
-        {
-            self.limb_damage.start_restore_cure(FType::Heatspear);
-        } else if damage == LType::TorsoDamage
-            && !self.limb_damage.limbs[LType::TorsoDamage as usize].damaged
-            && self.is(FType::Deepwound)
-        {
-            self.limb_damage.start_restore_cure(FType::Deepwound);
-        } else {
-            self.limb_damage.start_restore(damage);
-        }
-    }
-
     pub fn get_restore_time_left(&self) -> f32 {
         if let Some(timer) = self.limb_damage.restore_timer {
             timer as f32 / BALANCE_SCALE
@@ -463,8 +491,48 @@ impl AgentState {
         }
     }
 
+    pub fn get_restore_cure(&self, limb: LType) -> Option<FType> {
+        let cure_order = RESTORE_CURE_ORDERS.get(&limb).unwrap();
+        for cure in cure_order {
+            match cure {
+                FType::LeftLegAmputated
+                | FType::RightLegAmputated
+                | FType::LeftArmAmputated
+                | FType::RightArmAmputated => {
+                    if self.limb_damage.amputated(limb) {
+                        return Some(*cure);
+                    }
+                }
+                FType::LeftLegMangled
+                | FType::RightLegMangled
+                | FType::LeftArmMangled
+                | FType::RightArmMangled => {
+                    if self.limb_damage.mangled(limb) {
+                        return Some(*cure);
+                    }
+                }
+                FType::LeftLegDamaged
+                | FType::RightLegDamaged
+                | FType::LeftArmDamaged
+                | FType::RightArmDamaged => {
+                    if self.limb_damage.damaged(limb) {
+                        return Some(*cure);
+                    }
+                }
+                aff => {
+                    if self.is(*aff) {
+                        return Some(*aff);
+                    }
+                }
+            }
+        }
+        None
+    }
+
     pub fn get_curing(&self) -> Option<FType> {
-        self.limb_damage.curing
+        self.limb_damage
+            .get_restoring_limb()
+            .and_then(|limb| self.get_restore_cure(limb))
     }
 
     pub fn complete_restoration(&mut self, damage: LType) {

@@ -23,6 +23,15 @@ lazy_static! {
     ];
 }
 
+const MADNESS_CD: f32 = 7.5;
+const CONJOIN_CD: f32 = 20.0;
+const CONJOIN_DUR: f32 = 13.0;
+const AFTERIMAGE_DELAY: f32 = 5.125;
+const LEMNISCATE_GRACE: f32 = 9.0;
+const LEMNISCATE_COUNT: usize = 15;
+const SEALING_DUR: f32 = 31.0;
+const HEX_DELAY: f32 = 6.25;
+
 pub fn handle_combat_action(
     combat_action: &CombatAction,
     agent_states: &mut AetTimelineState,

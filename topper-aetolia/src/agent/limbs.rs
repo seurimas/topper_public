@@ -122,9 +122,9 @@ pub struct Limb {
 pub struct LimbSet {
     pub limbs: [Limb; LType::SIZE as usize],
     pub restoring: Option<LType>,
-    pub curing: Option<FType>,
     pub restore_timer: Option<CType>,
     pub regenerating: bool,
+    pub first_person_restore: bool,
 }
 
 pub const DAMAGED_VALUE: CType = 3332;
@@ -352,18 +352,10 @@ impl LimbSet {
         self.limbs[limb as usize].amputated
     }
 
-    pub fn wait(&mut self, duration: CType) -> Option<FType> {
+    pub fn wait(&mut self, duration: CType) -> Option<(LType, bool, bool)> {
         if let (Some(remaining), Some(restored)) = (self.restore_timer, self.restoring) {
             if remaining < duration {
                 self.complete_restore(None)
-            } else {
-                self.restore_timer = Some(remaining - duration);
-            }
-            None
-        } else if let (Some(remaining), Some(cured)) = (self.restore_timer, self.curing) {
-            if remaining < duration {
-                self.complete_restore(None);
-                Some(cured)
             } else {
                 self.restore_timer = Some(remaining - duration);
                 None
@@ -396,21 +388,35 @@ impl LimbSet {
         }
     }
 
-    pub fn complete_restore(&mut self, broken: Option<LType>) {
+    pub fn complete_restore(&mut self, broken: Option<LType>) -> Option<(LType, bool, bool)> {
         if broken == self.restoring || broken == None {
-            let expected_heal = if self.regenerating { 4500 } else { 3000 };
             if let Some(broken) = self.restoring {
-                let new_damage = self.limbs[broken as usize].damage
-                    - i32::min(self.limbs[broken as usize].damage, expected_heal);
-                self.set_limb_damage(broken, new_damage);
+                let regenerating = self.regenerating;
+                let first_person_restore = self.first_person_restore;
+                self.regenerating = false;
+                self.restoring = None;
+                self.restore_timer = None;
+                return Some((broken, regenerating, first_person_restore));
             }
             self.regenerating = false;
             self.restoring = None;
             self.restore_timer = None;
         }
+        None
     }
 
-    pub fn start_restore(&mut self, broken: LType) {
+    pub fn get_restoring_limb(&self) -> Option<LType> {
+        self.restoring
+    }
+
+    pub fn restore(&mut self, limb: LType, regenerating: bool) {
+        let expected_heal = if regenerating { 4500 } else { 3000 };
+        let new_damage = self.limbs[limb as usize].damage
+            - i32::min(self.limbs[limb as usize].damage, expected_heal);
+        self.set_limb_damage(limb, new_damage);
+    }
+
+    pub fn start_restore(&mut self, broken: LType, first_person: bool) {
         if let Some(timer) = self.restore_timer {
             if timer < 10 {
                 self.complete_restore(None);
@@ -418,16 +424,7 @@ impl LimbSet {
         }
         self.restoring = Some(broken);
         self.restore_timer = Some(400);
-    }
-
-    pub fn start_restore_cure(&mut self, aff: FType) {
-        if let Some(timer) = self.restore_timer {
-            if timer < 10 {
-                self.complete_restore(None);
-            }
-        }
-        self.curing = Some(aff);
-        self.restore_timer = Some(400);
+        self.first_person_restore = first_person;
     }
 
     pub fn get_limbs_damage(&self, limbs: Vec<LType>) -> f32 {

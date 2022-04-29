@@ -139,7 +139,8 @@ lazy_static! {
         FType::SelfPity,
         FType::CommitmentFear,
         FType::Sadness,
-//        FType::Worrywart,
+        FType::Worrywart,
+        FType::Narcolepsy,
     ];
 }
 
@@ -176,6 +177,10 @@ lazy_static! {
         FType::Infested,
         FType::Insomnia,
     ];
+}
+
+lazy_static! {
+    pub static ref EUCRASIA_ORDER: Vec<FType> = vec![FType::Worrywart, FType::Narcolepsy,];
 }
 
 lazy_static! {
@@ -271,6 +276,7 @@ lazy_static! {
         let mut val = HashMap::new();
         val.insert("antipsychotic".into(), ANTIPSYCHOTIC_ORDER.to_vec());
         val.insert("euphoriant".into(), EUPHORIANT_ORDER.to_vec());
+        val.insert("eucrasia".into(), EUCRASIA_ORDER.to_vec());
         val.insert("decongestant".into(), DECONGESTANT_ORDER.to_vec());
         val.insert("depressant".into(), DEPRESSANT_ORDER.to_vec());
         val.insert("coagulation".into(), COAGULATION_ORDER.to_vec());
@@ -303,6 +309,9 @@ lazy_static! {
         }
         for aff in EUPHORIANT_ORDER.to_vec() {
             val.insert(aff, "euphoriant".into());
+        }
+        for aff in EUCRASIA_ORDER.to_vec() {
+            val.insert(aff, "eucrasia".into());
         }
         for aff in DECONGESTANT_ORDER.to_vec() {
             val.insert(aff, "decongestant".into());
@@ -545,6 +554,16 @@ lazy_static! {
 }
 
 lazy_static! {
+    pub static ref RESTORE_CURE_ORDERS: HashMap<LType, Vec<FType>> = {
+        let mut val = HashMap::new();
+        val.insert(LType::HeadDamage, RESTORATION_HEAD_ORDER.to_vec());
+        val.insert(LType::TorsoDamage, RESTORATION_TORSO_ORDER.to_vec());
+        val.insert(LType::LeftArmDamage, RESTORATION_LEFT_ARM_ORDER.to_vec());
+        val.insert(LType::RightArmDamage, RESTORATION_RIGHT_ARM_ORDER.to_vec());
+        val.insert(LType::LeftLegDamage, RESTORATION_LEFT_LEG_ORDER.to_vec());
+        val.insert(LType::RightLegDamage, RESTORATION_RIGHT_LEG_ORDER.to_vec());
+        val
+    };
     pub static ref SALVE_CURE_ORDERS: HashMap<(String, String), Vec<FType>> = {
         let mut val = HashMap::new();
         val.insert(

@@ -34,6 +34,10 @@ lazy_static! {
             ("Subjugation".to_string(), "Subdue".to_string()),
             ("Spirituality".to_string(), "Chasten".to_string()),
         );
+        mapping.insert(
+            ("Subjugation".to_string(), "Ribcage".to_string()),
+            ("Spirituality".to_string(), "Aura".to_string()),
+        );
         mapping
     };
 }

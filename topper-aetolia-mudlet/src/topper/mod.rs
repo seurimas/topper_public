@@ -1,6 +1,6 @@
 use battle_stats::BattleStatsModule;
-use curing::CureModule;
 use group::GroupModule;
+use prediction::PredictionModule;
 use serde_json::from_str;
 use std::sync::mpsc::Sender;
 use topper_aetolia::classes::get_attack;
@@ -14,11 +14,12 @@ use topper_core_mudlet::topper::{
     TopperRequest, TopperResponse,
 };
 pub mod battle_stats;
-pub mod curing;
 pub mod db;
+pub mod first_aid;
 pub mod group;
+pub mod prediction;
 pub mod web_ui;
-use crate::topper::curing::prioritize_cures;
+use crate::topper::prediction::prioritize_cures;
 
 use self::battle_stats::BattleStats;
 use self::db::AetMudletDatabaseModule;
@@ -68,7 +69,7 @@ impl<'s> TopperModule<'s, AetTimeSlice, BattleStats> for AetTimelineModule {
 }
 
 #[derive(Default)]
-pub struct BattleModule(CureModule);
+pub struct BattleModule;
 
 impl<'s> TopperModule<'s, AetTimeSlice, BattleStats> for BattleModule {
     type Siblings = (
@@ -99,7 +100,7 @@ impl<'s> TopperModule<'s, AetTimeSlice, BattleStats> for BattleModule {
                 }
                 _ => Ok(TopperResponse::silent()),
             },
-            _ => Ok(prioritize_cures(self, &timeline, me, &target, db)),
+            _ => Ok(TopperResponse::silent()),
         }
     }
 }
@@ -111,6 +112,7 @@ pub struct AetTopper {
     pub core_module: TopperCore,
     pub telnet_module: TelnetModule,
     pub battle_module: BattleModule,
+    pub prediction_module: PredictionModule,
     pub group_module: GroupModule,
     pub battlestats_module: BattleStatsModule,
     pub database_module: AetMudletDatabaseModule,
@@ -118,9 +120,7 @@ pub struct AetTopper {
     pub observation_parser: ObservationParser<AetObservation>,
 }
 
-impl Topper<AetObservation, AetPrompt, AgentState, BattleModule, AetMudletDatabaseModule>
-    for AetTopper
-{
+impl Topper<AetObservation, AetPrompt, AgentState, AetMudletDatabaseModule> for AetTopper {
     fn get_timeline_module(&self) -> &AetTimelineModule {
         &self.timeline_module
     }
@@ -146,6 +146,7 @@ impl AetTopper {
             core_module: TopperCore::new(),
             telnet_module: TelnetModule::new(send_lines),
             battle_module: BattleModule::default(),
+            prediction_module: PredictionModule::default(),
             group_module: GroupModule::new(&database_module),
             battlestats_module: BattleStatsModule::new(),
             database_module,
@@ -231,6 +232,15 @@ impl TopperHandler<BattleStats> for AetTopper {
             )?)
             .then(self.web_module.handle_message(&topper_msg, ())?)
             .then(self.battle_module.handle_message(
+                &topper_msg,
+                (
+                    &self.me(),
+                    &self.core_module.target,
+                    &self.timeline_module.timeline,
+                    &self.database_module,
+                ),
+            )?)
+            .then(self.prediction_module.handle_message(
                 &topper_msg,
                 (
                     &self.me(),

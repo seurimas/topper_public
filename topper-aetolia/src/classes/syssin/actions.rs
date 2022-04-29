@@ -150,6 +150,33 @@ impl ActiveTransition for SlitAction {
     }
 }
 
+pub struct BindAction {
+    pub caster: String,
+    pub target: String,
+}
+
+impl BindAction {
+    pub fn new(caster: String, target: String) -> Self {
+        BindAction { caster, target }
+    }
+}
+
+impl ActiveTransition for BindAction {
+    fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
+        let mut observations = vec![CombatAction::observation(
+            &self.caster,
+            &"Assassination",
+            &"Bind",
+            &"",
+            &self.target,
+        )];
+        ProbableEvent::certain(observations)
+    }
+    fn act(&self, timeline: &AetTimeline) -> ActivateResult {
+        Ok(get_bind_action(&timeline, &self.target))
+    }
+}
+
 pub struct ShruggingAction {
     pub caster: String,
     pub shrugged: String,

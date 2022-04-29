@@ -196,35 +196,59 @@ lazy_static! {
 }
 
 lazy_static! {
-    static ref BEDAZZLE_STACK: Vec<FType> = vec![
-        FType::Allergies,
-        FType::Clumsiness,
-        FType::Asthma,
-        FType::Paresis,
-        FType::Slickness,
-        FType::LeftArmBroken,
-        FType::RightArmBroken,
-        FType::Vomiting,
-        FType::Stupidity,
-        FType::LeftLegBroken,
-        FType::RightLegBroken,
+    static ref BEDAZZLE_STACK: Vec<VenomPlan> = vec![
+        VenomPlan::IfDo(
+            FType::Vomiting,
+            Box::new(VenomPlan::Stick(FType::Allergies)),
+        ),
+        VenomPlan::IfDo(
+            FType::Weariness,
+            Box::new(VenomPlan::Stick(FType::Clumsiness)),
+        ),
+        VenomPlan::IfDo(FType::Laxity, Box::new(VenomPlan::Stick(FType::Stupidity)),),
+        VenomPlan::IfDo(FType::Weariness, Box::new(VenomPlan::Stick(FType::Asthma)),),
+        VenomPlan::Stick(FType::Paresis),
+        VenomPlan::IfNotDo(
+            FType::Weariness,
+            Box::new(VenomPlan::Stick(FType::Clumsiness)),
+        ),
+        VenomPlan::Stick(FType::Slickness),
+        VenomPlan::Stick(FType::LeftArmBroken),
+        VenomPlan::Stick(FType::RightArmBroken),
+        VenomPlan::Stick(FType::Vomiting),
+        VenomPlan::Stick(FType::LeftLegBroken),
+        VenomPlan::Stick(FType::RightLegBroken),
     ];
 }
 
 lazy_static! {
-    static ref AGGRO_STACK: Vec<FType> = vec![
-        FType::Paresis,
-        FType::Clumsiness,
-        FType::Asthma,
-        FType::Stupidity,
-        FType::Weariness,
-        FType::Vomiting,
-        FType::Slickness,
-        FType::LeftArmBroken,
-        FType::RightArmBroken,
-        FType::Dizziness,
-        FType::LeftLegBroken,
-        FType::RightLegBroken,
+    static ref AGGRO_STACK: Vec<VenomPlan> = vec![
+        VenomPlan::OnTree(FType::Paresis),
+        VenomPlan::Stick(FType::Asthma),
+        VenomPlan::IfDo(
+            FType::Weariness,
+            Box::new(VenomPlan::Stick(FType::Stupidity)),
+        ),
+        VenomPlan::IfNotDo(
+            FType::Weariness,
+            Box::new(VenomPlan::Stick(FType::Clumsiness)),
+        ),
+        VenomPlan::Stick(FType::Slickness),
+        VenomPlan::IfDo(
+            FType::Weariness,
+            Box::new(VenomPlan::Stick(FType::Clumsiness)),
+        ),
+        VenomPlan::IfDo(
+            FType::Impatience,
+            Box::new(VenomPlan::Stick(FType::Dizziness)),
+        ),
+        VenomPlan::OffTree(FType::Paresis),
+        VenomPlan::Stick(FType::Allergies),
+        VenomPlan::Stick(FType::Vomiting),
+        VenomPlan::Stick(FType::LeftLegBroken),
+        VenomPlan::Stick(FType::RightLegBroken),
+        VenomPlan::Stick(FType::LeftArmBroken),
+        VenomPlan::Stick(FType::RightArmBroken),
     ];
 }
 
@@ -299,7 +323,6 @@ lazy_static! {
         ),
         VenomPlan::Stick(FType::Vomiting),
         VenomPlan::Stick(FType::Allergies),
-        VenomPlan::OneOf(FType::Sensitivity, FType::Dizziness),
         VenomPlan::OneOf(FType::Asthma, FType::Slickness),
         VenomPlan::OneOf(FType::LeftLegBroken, FType::LeftArmBroken),
         VenomPlan::OneOf(FType::RightLegBroken, FType::RightLegBroken),
@@ -329,9 +352,9 @@ lazy_static! {
         VenomPlan::OnTree(FType::Paresis),
         VenomPlan::Stick(FType::Clumsiness),
         VenomPlan::Stick(FType::Asthma),
-        VenomPlan::OneOf(FType::Allergies, FType::Vomiting),
         VenomPlan::OneOf(FType::Weariness, FType::Stupidity),
         VenomPlan::OneOf(FType::Slickness, FType::Anorexia),
+        VenomPlan::OneOf(FType::Allergies, FType::Vomiting),
         VenomPlan::OneOf(FType::LeftLegBroken, FType::LeftArmBroken),
         VenomPlan::OneOf(FType::RightLegBroken, FType::RightLegBroken),
         VenomPlan::OneOf(FType::Sensitivity, FType::Dizziness),
@@ -453,7 +476,7 @@ lazy_static! {
         val.insert("gank".into(), get_simple_plan(GANK_STACK.to_vec()));
         val.insert("fire".into(), get_simple_plan(FIRE_STACK.to_vec()));
         val.insert("kill".into(), get_simple_plan(KILL_STACK.to_vec()));
-        val.insert("aggro".into(), get_simple_plan(AGGRO_STACK.to_vec()));
+        val.insert("aggro".into(), AGGRO_STACK.to_vec());
         val.insert("salve".into(), get_simple_plan(SALVE_STACK.to_vec()));
         val.insert("peace".into(), get_simple_plan(PEACE_STACK.to_vec()));
         val.insert("slit".into(), SLIT_STACK.to_vec());
@@ -469,7 +492,7 @@ lazy_static! {
         val.insert("Indorani".into(), INDORANI_STACK.to_vec());
         val.insert("Zealot".into(), ZEALOT_STACK.to_vec());
         val.insert("yedan".into(), get_simple_plan(YEDAN_STACK.to_vec()));
-        val.insert("bedazzle".into(), get_simple_plan(BEDAZZLE_STACK.to_vec()));
+        val.insert("bedazzle".into(), BEDAZZLE_STACK.to_vec());
         val.insert("thin".into(), THIN_STACK.to_vec());
         val
     };
@@ -542,13 +565,31 @@ pub fn get_top_hypno<'s>(
     }
 }
 
+fn should_bind(me: &AgentState, target: &AgentState, strategy: &String) -> bool {
+    if !target.is(FType::Asleep) || target.is(FType::WritheBind) {
+        false
+    } else {
+        true
+    }
+}
+
+lazy_static! {
+    static ref SLIT_BOOST_AFFS: Vec<FType> = vec![
+        FType::Asleep,
+        FType::Hypersomnia,
+        FType::Narcolepsy,
+        FType::WritheBind
+    ];
+}
+
 fn should_slit(me: &AgentState, target: &AgentState, strategy: &String) -> bool {
     if !target.is_prone() {
         false
-    } else if target.is(FType::Asleep) {
+    } else if target.is(FType::Asleep) && target.affs_count(&SLIT_BOOST_AFFS) > 3 {
         target.is(FType::Rebounding) || target.aff_count() > 3
     } else if target.is(FType::Haemophilia)
         && target.affs_count(&vec![FType::Lethargy, FType::Allergies, FType::Vomiting]) >= 1
+        && target.affs_count(&SLIT_BOOST_AFFS) > 1
     {
         true
     } else {
@@ -667,7 +708,7 @@ pub fn should_lock(
                     FType::Clumsiness,
                     FType::Weariness,
                 ]) < 1)
-                || you.is(FType::Hypersomnia))
+                || (you.is(FType::Hypersomnia) && !you.is(FType::Asleep)))
         {
             return false;
         }
@@ -744,6 +785,10 @@ pub fn get_slit_action(timeline: &AetTimeline, target: &String, v1: &String) -> 
     } else {
         action
     }
+}
+
+pub fn get_bind_action(timeline: &AetTimeline, target: &String) -> String {
+    format!("stand;;outc rope;;bind {};;inc rope", target)
 }
 
 pub fn add_delphs(
@@ -960,12 +1005,17 @@ pub fn get_balance_attack<'s>(
         } else {
             if should_bedazzle(&me, &you, &strategy, false) {
                 return Box::new(BedazzleAction::new(who_am_i, &target));
-            } else if should_slit(&me, &you, &strategy) && v_one.is_some() {
+            } else if should_slit(&me, &you, &strategy)
+                && v_one.is_some()
+                && v_one != Some("scytherus")
+            {
                 return Box::new(SlitAction::new(
                     who_am_i.to_string(),
                     target.to_string(),
                     v_one.unwrap().to_string(),
                 ));
+            } else if should_bind(&me, &you, &strategy) {
+                return Box::new(BindAction::new(who_am_i.to_string(), target.to_string()));
             } else if go_for_thin_blood(timeline, &you, strategy) && you.is(FType::Fangbarrier) {
                 return Box::new(FlayAction::fangbarrier(
                     who_am_i.to_string(),
@@ -1006,7 +1056,7 @@ pub fn get_balance_attack<'s>(
             return Box::new(FlayAction::fangbarrier(
                 who_am_i.to_string(),
                 target.to_string(),
-                get_venoms_from_plan(&get_simple_plan(AGGRO_STACK.to_vec()), 1, &you)
+                get_venoms_from_plan(&AGGRO_STACK.to_vec(), 1, &you)
                     .get(0)
                     .map(|venom| venom.to_string())
                     .unwrap_or_default(),

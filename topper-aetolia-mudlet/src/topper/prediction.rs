@@ -1,15 +1,30 @@
 use super::battle_stats::BattleStats;
 use super::db::AetMudletDatabaseModule;
 use super::BattleModule;
-use topper_aetolia::classes::*;
 use topper_aetolia::db::AetDatabaseModule;
 use topper_aetolia::timeline::AetTimeline;
 use topper_aetolia::types::*;
-use topper_core_mudlet::topper::TopperResponse;
+use topper_aetolia::{classes::*, timeline::AetTimeSlice};
+use topper_core_mudlet::topper::{TopperMessage, TopperModule, TopperResponse};
 
 #[derive(Debug, Default)]
-pub struct CureModule {
+pub struct PredictionModule {
     prediction: String,
+}
+impl<'s> TopperModule<'s, AetTimeSlice, BattleStats> for PredictionModule {
+    type Siblings = (
+        &'s String,
+        &'s Option<String>,
+        &'s AetTimeline,
+        &'s AetMudletDatabaseModule,
+    );
+    fn handle_message(
+        &mut self,
+        message: &TopperMessage<AetTimeSlice>,
+        (me, target, timeline, db): Self::Siblings,
+    ) -> Result<TopperResponse<BattleStats>, String> {
+        Ok(prioritize_cures(self, &timeline, me, &target, db))
+    }
 }
 
 fn guess_aff(timeline: &AetTimeline, aff: FType) -> String {
@@ -81,7 +96,7 @@ pub fn get_best_guess(me: &AgentState, opponent_class: &Option<Class>) -> Option
 }
 
 pub fn get_guesses(
-    battle_module: &mut BattleModule,
+    prediction_module: &mut PredictionModule,
     timeline: &AetTimeline,
     me: &String,
     foe: &Option<String>,
@@ -113,15 +128,15 @@ pub fn get_guesses(
 }
 
 pub fn prioritize_cures(
-    battle_module: &mut BattleModule,
+    prediction_module: &mut PredictionModule,
     timeline: &AetTimeline,
     me: &String,
     foe: &Option<String>,
     db: &AetMudletDatabaseModule,
 ) -> TopperResponse<BattleStats> {
-    if let Some(guesses) = get_guesses(battle_module, timeline, me, foe, db) {
-        if !guesses.eq(&battle_module.0.prediction) {
-            battle_module.0.prediction = guesses.clone();
+    if let Some(guesses) = get_guesses(prediction_module, timeline, me, foe, db) {
+        if !guesses.eq(&prediction_module.prediction) {
+            prediction_module.prediction = guesses.clone();
             if guesses.len() > 0 {
                 return TopperResponse::passive("predict".to_string(), guesses);
             }

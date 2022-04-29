@@ -262,6 +262,7 @@ pub fn parse_priority_set(lines: &Vec<(String, u32)>) -> Option<(String, FirstAi
     priority_name.map(|name| (name, parse_priorities(&priority_lines)))
 }
 
+#[derive(Debug, Default)]
 pub struct FirstAid {
     simple_priorities: HashMap<FType, u32>,
     use_tree: bool,

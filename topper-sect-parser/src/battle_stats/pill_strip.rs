@@ -10,6 +10,7 @@ use yew::prelude::*;
 pub enum Pill {
     Antipsychotic,
     Euphoriant,
+    Eucrasia,
     Decongestant,
     Depressant,
     Coagulation,
@@ -23,6 +24,7 @@ impl Pill {
         match self {
             Pill::Antipsychotic => ANTIPSYCHOTIC_ORDER.to_vec(),
             Pill::Euphoriant => EUPHORIANT_ORDER.to_vec(),
+            Pill::Eucrasia => EUCRASIA_ORDER.to_vec(),
             Pill::Decongestant => DECONGESTANT_ORDER.to_vec(),
             Pill::Depressant => DEPRESSANT_ORDER.to_vec(),
             Pill::Coagulation => COAGULATION_ORDER.to_vec(),

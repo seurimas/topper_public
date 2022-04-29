@@ -262,6 +262,22 @@ pub fn handle_combat_action(
                 }),
             );
         }
+        "Bind" => {
+            let observations = after.clone();
+            for_agent_closure(
+                agent_states,
+                &combat_action.caster,
+                Box::new(move |me| {
+                    apply_or_infer_balance(me, (BType::Balance, 3.5), &observations);
+                }),
+            );
+            attack_afflictions(
+                agent_states,
+                &combat_action.target,
+                vec![FType::WritheBind],
+                &after.clone(),
+            );
+        }
         "Flay" => {
             let targetless = infer_flay_target(&combat_action.target, agent_states).is_none();
             let observations = after.clone();

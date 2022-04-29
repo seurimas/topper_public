@@ -3,12 +3,13 @@ mod zealot_timeline_tests {
     use crate::timeline::*;
     use crate::types::*;
     use topper_core::observations::*;
+    use topper_core::timeline::db::DummyDatabaseModule;
     use topper_core::timeline::BaseTimeline;
 
     lazy_static! {
         static ref observer: ObservationParser<AetObservation> =
             ObservationParser::<AetObservation>::new_from_directory(
-                "triggers".to_string(),
+                "../triggers".to_string(),
                 aet_observation_creator
             )
             .unwrap();
@@ -38,7 +39,7 @@ mod zealot_timeline_tests {
         };
         no_break.observations = Some(observer.observe(&no_break));
         println!("{:?}", no_break.observations);
-        timeline.push_time_slice(no_break, None);
+        timeline.push_time_slice(no_break, None as Option<&DummyDatabaseModule>);
         let me_state = timeline.state.borrow_agent(&"Rinata".to_string());
         assert_eq!(me_state.balanced(BType::Balance), false);
         let you_state = timeline.state.borrow_agent(&"Tina".to_string());

@@ -174,8 +174,15 @@ impl<A: BaseAgentState + Clone> TimelineState<A> {
     }
 }
 
+#[derive(Clone, Debug, Display, PartialEq, Deserialize)]
+pub enum BattleEvent {
+    Plain(String),
+    Linked(String, u32),
+}
+
 pub struct Timeline<O, P, A> {
     pub slices: Vec<TimeSlice<O, P>>,
+    pub digest: Vec<BattleEvent>,
     pub state: TimelineState<A>,
 }
 
@@ -187,6 +194,7 @@ impl<O, P, A: BaseAgentState + Clone> Timeline<O, P, A> {
     pub fn new() -> Self {
         Timeline {
             slices: Vec::new(),
+            digest: Vec::new(),
             state: TimelineState::<A>::new(),
         }
     }
@@ -194,6 +202,7 @@ impl<O, P, A: BaseAgentState + Clone> Timeline<O, P, A> {
     pub fn branch(&self) -> Self {
         Timeline {
             slices: Vec::new(),
+            digest: self.digest.clone(),
             state: self.state.clone(),
         }
     }

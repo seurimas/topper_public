@@ -1,12 +1,17 @@
 mod apply_tests {
-    use crate::{timeline::BaseTimeline, topper::observations::ObservationParser};
+    use topper_core::observations::ObservationParser;
+    use topper_core::timeline::db::DummyDatabaseModule;
+    use topper_core::timeline::BaseTimeline;
 
     use super::super::*;
 
     lazy_static! {
         static ref observer: ObservationParser<AetObservation> =
-            ObservationParser::<AetObservation>::new_from_directory("triggers".to_string())
-                .unwrap();
+            ObservationParser::<AetObservation>::new_from_directory(
+                "../triggers".to_string(),
+                aet_observation_creator
+            )
+            .unwrap();
     }
     #[test]
     fn test_eliminate_aff_uncertainty() {
@@ -37,13 +42,13 @@ mod apply_tests {
             .get_or_insert(Vec::new())
             .append(&mut observations);
         println!("{:?}", diagnose_slice);
-        timeline.push_time_slice(slice, None);
+        timeline.push_time_slice(slice, None as Option<&DummyDatabaseModule>);
         {
             let pre_diagnose: &Vec<AgentState> =
                 timeline.state.get_agent(&"Seurimas".to_string()).unwrap();
             assert_eq!(pre_diagnose.len(), 3);
         }
-        timeline.push_time_slice(diagnose_slice, None);
+        timeline.push_time_slice(diagnose_slice, None as Option<&DummyDatabaseModule>);
         {
             let post_diagnose: &Vec<AgentState> =
                 timeline.state.get_agent(&"Seurimas".to_string()).unwrap();

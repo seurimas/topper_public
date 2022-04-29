@@ -25,7 +25,7 @@ const HEELRUSH_THREE_DAMAGE: f32 = 11.0;
 const HEELRUSH_DAMAGE: f32 = HEELRUSH_ONE_DAMAGE + HEELRUSH_TWO_DAMAGE + HEELRUSH_THREE_DAMAGE;
 const DIREBLOW_WEAK_DAMAGE: f32 = 10.0;
 const DIREBLOW_STRONG_DAMAGE: f32 = 20.0;
-const SWAGGER_LIMIT: u8 = 3;
+const SWAGGER_LIMIT: u8 = 4;
 
 pub fn handle_combat_action(
     combat_action: &CombatAction,
@@ -856,7 +856,7 @@ impl ZealotAction {
         match self {
             ZealotAction::Risekick => "risekick",
             ZealotAction::Twinpress => "twinpress",
-            ZealotAction::Palmforce => "palmforce",
+            ZealotAction::Palmforce => "palmforce strike",
             ZealotAction::Clawtwist | ZealotAction::ClawtwistAgain => "clawtwist",
             ZealotAction::Sunkick => "sunkick",
             ZealotAction::DislocateLeftArm => "dislocate left arm",
@@ -952,7 +952,7 @@ fn main_stack(
                 && (!you.can_focus(false) || you.is_prone())
                 && me.get_stat(SType::SP) > 200
                 && !me.is(FType::Zenith)
-                && psi_percent(me) < 50.0
+                && psi_percent(me) < 100.0
             {
                 40.0
             } else {
@@ -1000,7 +1000,7 @@ fn main_stack(
         ZealotAction::PsiRecover => (
             ComboType::Full,
             if me.balanced(BType::ClassCure1) {
-                me.affs_count(&MENTAL_AFFLICTIONS.to_vec()) as f32 * 60.0
+                me.affs_count(&MENTAL_AFFLICTIONS.to_vec()) as f32 * 60.0 - 30.0
             } else {
                 0.0
             },
@@ -1104,7 +1104,10 @@ fn main_stack(
                 } else {
                     ComboType::Full
                 },
-                if target_limbs.torso.damaged && !you.is(FType::InfernalSeal) {
+                if target_limbs.torso.damaged
+                    && !you.is(FType::InfernalSeal)
+                    && !you.is(FType::Shielded)
+                {
                     1000.0
                 } else {
                     0.0
@@ -1144,7 +1147,7 @@ fn main_stack(
         ZealotAction::Palmforce => {
             let target_limbs = you.get_limbs_state();
             (
-                ComboType::ComboAny,
+                ComboType::ComboSecond,
                 if !you.is(FType::Fallen)
                     && (target_limbs.left_leg.broken || target_limbs.right_leg.broken)
                     && target_limbs.restores_to_zeroes() >= 1
@@ -1772,19 +1775,19 @@ pub fn get_balance_attack(
     }
     let combo_action = match combo {
         (Some(first), None, Some(last)) => format!(
-            "flow {} {} {};;dash d",
+            "flow {} {} {}",
             target,
             first.combo_action(),
             last.combo_action()
         ),
         (Some(first), Some(last), None) => format!(
-            "flow {} {} {};;dash d",
+            "flow {} {} {}",
             target,
             first.combo_action(),
             last.combo_action()
         ),
         (None, Some(first), Some(last)) => format!(
-            "flow {} {} {};;dash d",
+            "flow {} {} {}",
             target,
             first.combo_action(),
             last.combo_action()

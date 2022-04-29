@@ -71,8 +71,7 @@ impl Component for SalveStrip {
         let salve_affs = ctx
             .props()
             .salve
-            .get_salve_affs(ctx
-                .props().limb)
+            .get_salve_affs(ctx.props().limb)
             .iter()
             .enumerate()
             .map(|(aff_idx, aff)| {

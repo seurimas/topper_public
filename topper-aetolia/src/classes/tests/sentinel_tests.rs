@@ -1,6 +1,7 @@
 mod sentinel_timeline_tests {
     use crate::timeline::*;
     use crate::types::*;
+    use topper_core::timeline::db::DummyDatabaseModule;
     use topper_core::timeline::BaseTimeline;
 
     #[test]
@@ -30,7 +31,7 @@ mod sentinel_timeline_tests {
             time: 0,
             me: "Rinata".into(),
         };
-        timeline.push_time_slice(breath_flourish_slice, None);
+        timeline.push_time_slice(breath_flourish_slice, None as Option<&DummyDatabaseModule>);
         let me_state = timeline.state.borrow_agent(&"Rinata".to_string());
         assert_eq!(me_state.balanced(BType::Balance), false);
         assert_eq!(me_state.balanced(BType::Equil), false);

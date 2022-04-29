@@ -399,6 +399,27 @@
     "observation_name": "Proc"
   },
   {
+    "regex": "^(\\w+)'s head droops as (.*) struggles? to remain awake.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Aff"
+      },
+      {
+        "Literal": "narcolepsy"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
     "regex": "^(\\w+) wobbles uncertainly before falling to the ground, \\w+ leg pulled awkwardly behind \\w+ own head.$",
     "args": [
       {

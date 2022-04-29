@@ -1,7 +1,10 @@
-use crate::timeline::*;
-use crate::types::*;
 pub mod first_aid;
 pub mod statics;
+
+use crate::timeline::*;
+use crate::types::*;
+
+pub use first_aid::*;
 pub use statics::*;
 
 pub fn top_aff(who: &AgentState, afflictions: Vec<FType>) -> Option<FType> {

@@ -951,7 +951,7 @@ pub fn apply_or_infer_cure(
                     who.set_flag(FType::Density, true);
                 } else if salve_name == "restoration" {
                     let limb = get_limb_damage(salve_loc)?;
-                    who.set_restoring(limb);
+                    who.limb_damage.start_restore(limb, first_person);
                 } else if let Some(order) =
                     SALVE_CURE_ORDERS.get(&(salve_name.to_string(), salve_loc.to_string()))
                 {
