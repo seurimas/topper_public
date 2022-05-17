@@ -2,6 +2,7 @@
 
 members = [
     "topper-core",
+    "topper-bt",
     "topper-derive",
     "topper-aetolia",
     "topper-aetolia-mudlet",

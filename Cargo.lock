@@ -3092,6 +3092,7 @@ dependencies = [
  "simplelog",
  "strum 0.16.0",
  "strum_macros 0.16.0",
+ "topper-bt",
  "topper-core",
  "topper-derive",
 ]
@@ -3121,6 +3122,10 @@ dependencies = [
  "topper-derive",
  "web-view",
 ]
+
+[[package]]
+name = "topper-bt"
+version = "0.1.0"
 
 [[package]]
 name = "topper-core"
