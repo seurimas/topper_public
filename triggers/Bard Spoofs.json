@@ -1,0 +1,338 @@
+[
+    {
+        "regex": "^(\\w+) appears flushed and somewhat unsteady on .* feet.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Performance"
+            },
+            {
+                "Literal": "Needled"
+            },
+            {
+                "Literal": ""
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^A dark dagger plunges down from the skies and into (\\w+), sinking up to the hilt.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Weaving"
+            },
+            {
+                "Literal": "Bladestormed"
+            },
+            {
+                "Literal": ""
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^The final dagger plunges down from the skies and into (\\w+), sinking into flesh.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Weaving"
+            },
+            {
+                "Literal": "Bladestormed"
+            },
+            {
+                "Literal": "final"
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^The searing globe rattles (\\w+)'s thoughts as it spins out of existence.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Weaving"
+            },
+            {
+                "Literal": "Globed"
+            },
+            {
+                "Literal": ""
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^The final globe burns itself into (\\w+)'s thoughts before fading into obscurity.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Weaving"
+            },
+            {
+                "Literal": "Globed"
+            },
+            {
+                "Literal": "final"
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^(\\w+) gazes at \\w+ in awe, lost in a windfall of emotional awakening.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Songcalling"
+            },
+            {
+                "Literal": "Awakening"
+            },
+            {
+                "Literal": "end"
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^You sense that your charitable song has affected (\\w+).$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Songcalling"
+            },
+            {
+                "Literal": "Charity"
+            },
+            {
+                "Literal": "end"
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^Like an auditory snare, your song captivates (\\w+)'s? attention, arresting .* with its allurement.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Songcalling"
+            },
+            {
+                "Literal": "Fascination"
+            },
+            {
+                "Literal": "end"
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^You sense that your decadent song has affected (\\w+).$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Songcalling"
+            },
+            {
+                "Literal": "Decadence"
+            },
+            {
+                "Literal": "end"
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^Your forceful, demanding song reaches (\\w+), but disappointment pricks your soul as it ultimately falls upon deaf ears.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Songcalling"
+            },
+            {
+                "Literal": "Unheard"
+            },
+            {
+                "Literal": "fail"
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^The morbid cadence of your sombre ballad incites a deep and profound sorrow in (\\w+).$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Songcalling"
+            },
+            {
+                "Literal": "Sorrow"
+            },
+            {
+                "Literal": "end"
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^(You)r? quiet song ends with a sombre tone as your mind swirls with past memories.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Songcalling"
+            },
+            {
+                "Literal": "Remembrance"
+            },
+            {
+                "Literal": "end"
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^The music engulfs (\\w+) with (\\w+).$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Songcalling"
+            },
+            {
+                "Literal": "Discordance"
+            },
+            {
+                "GroupAsTarget": 2
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^(You) ease your grip upon your (rapier|falchion).$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Performance"
+            },
+            {
+                "Literal": "TempoEnd"
+            },
+            {
+                "Literal": ""
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^The shifting runes within the band around (\\w+) capture .* attention.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Weaving"
+            },
+            {
+                "Literal": "Runebanded"
+            },
+            {
+                "Literal": ""
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^The illusionary globes spinning around (\\w+) flare in size, then crash into .* body.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Weaving"
+            },
+            {
+                "Literal": "Globed"
+            },
+            {
+                "Literal": "all"
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    }
+]

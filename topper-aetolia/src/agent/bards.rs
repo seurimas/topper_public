@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use super::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -40,9 +42,41 @@ impl Default for HalfbeatState {
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct BardClassState {
     pub dithering: usize,
+    pub tempo: Option<(usize, CType)>,
     pub voice_song: Option<Song>,
     pub instrument_song: Option<Song>,
     pub half_beat: HalfbeatState,
+}
+
+impl BardClassState {
+    pub fn on_tempo(&mut self) {
+        let tempo_count = if let Some((count, _timer)) = self.tempo {
+            count + 1
+        } else {
+            1
+        };
+        if tempo_count > 3 {
+            self.tempo = None;
+        } else {
+            self.tempo = Some((tempo_count, 0));
+        }
+    }
+
+    pub fn off_tempo(&mut self) {
+        self.tempo = None;
+    }
+
+    pub fn half_beat_pickup(&mut self) {
+        self.half_beat = HalfbeatState::HalfBeat(0);
+    }
+
+    pub fn half_beat_slowdown(&mut self) {
+        self.half_beat = HalfbeatState::WholeBeat(0);
+    }
+
+    pub fn half_beat_end(&mut self) {
+        self.half_beat = HalfbeatState::Inactive;
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -58,6 +92,30 @@ impl Default for RunebandState {
     }
 }
 
+impl RunebandState {
+    pub fn initial() -> Self {
+        Self::Normal(0)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum GlobesState {
+    None,
+    Floating(usize),
+}
+
+impl Default for GlobesState {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+impl GlobesState {
+    pub fn initial() -> Self {
+        Self::Floating(3)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Emotion {
     Sadness,
@@ -67,4 +125,70 @@ pub enum Emotion {
     Stress,
     Fear,
     Disgust,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
+pub struct EmotionState {
+    awakened: bool,
+    primary: Option<Emotion>,
+    levels: Vec<(Emotion, CType)>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
+pub struct BardBoard {
+    pub emotion_state: EmotionState,
+    pub runeband_state: RunebandState,
+    pub globes_state: GlobesState,
+    pub blades_count: usize,
+    pub needle_venom: Option<String>,
+}
+
+impl BardBoard {
+    pub fn needle_with(&mut self, venom: &String) {
+        self.needle_venom = Some(venom.clone());
+    }
+
+    pub fn needled(&mut self) -> Option<String> {
+        let needled = self.needle_venom.clone();
+        self.needle_venom = None;
+        needled
+    }
+
+    pub fn globed(&mut self, affs: &[FType]) -> Option<FType> {
+        match self.globes_state {
+            GlobesState::Floating(count) => {
+                if count > 1 {
+                    self.globes_state = GlobesState::Floating(count - 1);
+                } else {
+                    self.globes_state = GlobesState::None;
+                }
+                Some(affs[affs.len() - count])
+            }
+            _ => None,
+        }
+    }
+
+    pub fn runebanded(&mut self, affs: &[FType]) -> Option<FType> {
+        match self.runeband_state {
+            RunebandState::Normal(aff_idx) => {
+                let new_idx = if aff_idx >= affs.len() - 1 {
+                    0
+                } else {
+                    aff_idx + 1
+                };
+                self.runeband_state = RunebandState::Normal(new_idx);
+                Some(affs[aff_idx])
+            }
+            RunebandState::Reverse(aff_idx) => {
+                let new_idx = if aff_idx == 0 {
+                    affs.len() - 1
+                } else {
+                    aff_idx - 1
+                };
+                self.runeband_state = RunebandState::Reverse(new_idx);
+                Some(affs[aff_idx])
+            }
+            _ => None,
+        }
+    }
 }

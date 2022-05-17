@@ -51,6 +51,8 @@ pub fn handle_simple_cure_action(
         agent_states,
         &simple_cure.caster,
         Box::new(move |me| {
+            me.set_flag(FType::Asleep, false);
+            me.set_flag(FType::Stun, false);
             let mut seared = false;
             if let Some(AetObservation::Proc(proc)) = observations.get(1) {
                 if proc.skill.eq("Sear") {

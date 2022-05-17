@@ -1,0 +1,62 @@
+[
+    {
+        "regex": "^You perform a cold read of (\\w+):$",
+        "args": [
+            {
+                "Literal": "ColdRead"
+            },
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": ""
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "ListStart"
+    },
+    {
+        "regex": "^.* emotional state is predominantly (\\w+).$",
+        "args": [
+            {
+                "Literal": "ColdRead"
+            },
+            {
+                "Literal": "Primary"
+            },
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": ""
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "ListItem"
+    },
+    {
+        "regex": "^The strength of .* (sadness|happiness|surprise|anger|stress|fear|disgust) is at (\\d+)%.$",
+        "args": [
+            {
+                "Literal": "ColdRead"
+            },
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "GroupAsTarget": 2
+            },
+            {
+                "Literal": ""
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "ListItem"
+    }
+]

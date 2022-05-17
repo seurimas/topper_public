@@ -376,6 +376,9 @@ pub enum FType {
     Shadowbrand,
     Shadowsphere,
 
+    // Bard uncurable
+    Manabarbs,
+
     // Special
     Disrupted,
     Fear,

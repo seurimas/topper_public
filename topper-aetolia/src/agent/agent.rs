@@ -24,6 +24,7 @@ pub struct AgentState {
     pub branch_state: BranchState,
     pub resin_state: ResinState,
     pub pipe_state: PipesState,
+    pub bard_board: BardBoard,
 }
 
 impl BaseAgentState for AgentState {
@@ -232,16 +233,30 @@ impl AgentState {
         if value && flag == FType::Paresis {
             self.set_balance(BType::ParesisParalysis, 4.0);
         }
-        if flag == FType::Zenith {
-            if value {
-                self.assume_zealot(|zealot| {
-                    zealot.zenith.activate();
-                });
-            } else {
-                self.assume_zealot(|zealot| {
-                    zealot.zenith.deactivate();
-                });
+        match flag {
+            FType::Zenith => {
+                if value {
+                    self.assume_zealot(|zealot| {
+                        zealot.zenith.activate();
+                    });
+                } else {
+                    self.assume_zealot(|zealot| {
+                        zealot.zenith.deactivate();
+                    });
+                }
             }
+            FType::Halfbeat => {
+                if value {
+                    self.assume_bard(|bard| {
+                        bard.half_beat_slowdown();
+                    });
+                } else {
+                    self.assume_bard(|bard| {
+                        bard.half_beat_end();
+                    })
+                }
+            }
+            _ => {}
         }
     }
 

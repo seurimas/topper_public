@@ -312,6 +312,9 @@ pub fn handle_combat_action(
         "Tenacity" | "Wayfaring" | "Fury" => {
             wayfarer::handle_combat_action(combat_action, agent_states, before, after)
         }
+        "Weaving" | "Performance" | "Songcalling" => {
+            bard::handle_combat_action(combat_action, agent_states, before, after)
+        }
         "Purification" | "Zeal" | "Psionics" => {
             zealot::handle_combat_action(combat_action, agent_states, before, after)
         }
