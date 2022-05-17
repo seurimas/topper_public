@@ -8,6 +8,7 @@ use regex::Regex;
 use std::collections::HashMap;
 pub mod archivist;
 pub mod ascendril;
+pub mod bard;
 pub mod carnifex;
 pub mod indorani;
 pub mod lords;
@@ -47,6 +48,7 @@ pub enum Class {
     Syssin,
     Shapeshifter,
     Wayfarer,
+    Bard,
     Lord,
     // Mirrors
     Revenant,     // Templar
@@ -79,6 +81,7 @@ impl Class {
             // Unaffiliated
             "Shapeshifter" => Some(Class::Shapeshifter),
             "Wayfarer" => Some(Class::Wayfarer),
+            "Bard" => Some(Class::Bard),
             "Titan Lord" => Some(Class::Lord),
             "Chaos Lord" => Some(Class::Lord),
             "Lord" => Some(Class::Lord),
@@ -113,6 +116,7 @@ impl Class {
             // Bloodloch
             Class::Shapeshifter => "Shapeshifter",
             Class::Wayfarer => "Wayfarer",
+            Class::Bard => "Bard",
             Class::Lord => "Lord",
             // Mirrors
             Class::Revenant => "Revenant",
@@ -162,6 +166,7 @@ pub fn get_skill_class(category: &String) -> Option<Class> {
         // Unaffiliated
         "Ferality" | "Shapeshifting" | "Vocalizing" => Some(Class::Shapeshifter),
         "Tenacity" | "Wayfaring" | "Fury" => Some(Class::Wayfarer),
+        "Weaving" | "Performance" | "Songcalling" => Some(Class::Bard),
         "Titan" | "Chaos" => Some(Class::Lord),
         // Mirrors
         "Riving" | "Chirography" | "Manifestation" => Some(Class::Revenant),
@@ -190,6 +195,7 @@ pub fn is_affected_by(class: &Class, affliction: FType) -> bool {
     }
     match (affliction, class) {
         (FType::Clumsiness, Class::Syssin) => true,
+        (FType::Clumsiness, Class::Bard) => true,
         (FType::Clumsiness, Class::Templar) => true,
         (FType::Clumsiness, Class::Carnifex) => true,
         (FType::Clumsiness, Class::Sentinel) => true,
@@ -202,6 +208,7 @@ pub fn is_affected_by(class: &Class, affliction: FType) -> bool {
         (FType::Disfigurement, Class::Luminary) => true,
         (FType::Disfigurement, Class::Indorani) => true,
         (FType::Disfigurement, Class::Teradrim) => true,
+        (FType::Lethargy, Class::Bard) => true,
         (FType::Lethargy, Class::Syssin) => true,
         (FType::Lethargy, Class::Sentinel) => true,
         (FType::Lethargy, Class::Carnifex) => true,
@@ -236,142 +243,12 @@ pub fn get_attack(
         match class {
             Class::Sentinel => sentinel::get_attack(timeline, target, strategy, db),
             Class::Syssin => syssin::get_attack(timeline, target, strategy, db),
+            Class::Bard => bard::get_attack(timeline, target, strategy, db),
             Class::Zealot => zealot::get_attack(timeline, target, strategy, db),
             _ => syssin::get_attack(timeline, target, strategy, db),
         }
     } else {
         syssin::get_attack(timeline, target, strategy, db)
-    }
-}
-
-pub fn get_needed_parry(
-    timeline: &AetTimeline,
-    me: &String,
-    target: &String,
-    strategy: &String,
-    db: Option<&impl AetDatabaseModule>,
-) -> Option<LType> {
-    if let Ok(parry) = get_preferred_parry(timeline, me, target, strategy, db) {
-        let me = timeline.state.borrow_agent(me);
-        if let Some(current) = me.parrying {
-            if current == parry {
-                None
-            } else {
-                Some(parry)
-            }
-        } else {
-            Some(parry)
-        }
-    } else {
-        None
-    }
-}
-
-pub fn get_restore_parry(timeline: &AetTimeline, me: &String) -> Option<LType> {
-    let me = timeline.state.borrow_agent(me);
-    if let Some((restoring, _duration, _regenerating)) = me.get_restoring() {
-        if restoring == LType::LeftLegDamage {
-            Some(LType::RightLegDamage)
-        } else if restoring == LType::RightLegDamage {
-            Some(LType::LeftLegDamage)
-        } else {
-            None
-        }
-    } else {
-        None
-    }
-}
-
-pub fn get_top_parry(timeline: &AetTimeline, me: &String) -> Option<LType> {
-    let me = timeline.state.borrow_agent(me);
-    let mut top_non_restoring = None;
-    for limb in LIMBS.to_vec() {
-        let limb_state = me.get_limb_state(limb);
-        if let Some((top_damage, _top_limb)) = top_non_restoring {
-            if !limb_state.is_restoring && limb_state.damage > top_damage {
-                top_non_restoring = Some((limb_state.damage, limb));
-            }
-        } else if !limb_state.is_restoring && limb_state.damage > 8.0 {
-            top_non_restoring = Some((limb_state.damage, limb));
-        }
-    }
-    top_non_restoring.map(|top| top.1)
-}
-
-pub fn get_preferred_parry(
-    timeline: &AetTimeline,
-    me: &String,
-    target: &String,
-    strategy: &String,
-    db: Option<&impl AetDatabaseModule>,
-) -> Result<LType, String> {
-    if let Some(parry) = get_restore_parry(timeline, me) {
-        Ok(parry)
-    } else if let Some(mut class) = db.and_then(|db| db.get_class(target)) {
-        if class.is_mirror() {
-            class = class.normal();
-        }
-        match class {
-            Class::Shapeshifter => {
-                let myself = timeline.state.borrow_agent(me);
-                let limbs_state = myself.get_limbs_state();
-                if limbs_state.left_leg.broken && !limbs_state.left_leg.damaged {
-                    Ok(LType::LeftLegDamage)
-                } else if limbs_state.right_leg.broken && !limbs_state.right_leg.damaged {
-                    Ok(LType::RightLegDamage)
-                } else if limbs_state.left_arm.broken && !limbs_state.left_arm.damaged {
-                    Ok(LType::LeftArmDamage)
-                } else if limbs_state.right_arm.broken && !limbs_state.right_arm.damaged {
-                    Ok(LType::RightArmDamage)
-                } else {
-                    Ok(get_top_parry(timeline, me).unwrap_or(LType::HeadDamage))
-                }
-            }
-            Class::Zealot => {
-                let them = timeline.state.borrow_agent(target);
-                match them.channel_state {
-                    ChannelState::Heelrush(limb, _) => Ok(limb),
-                    _ => {
-                        let myself = timeline.state.borrow_agent(me);
-                        if myself.is(FType::Heatspear) {
-                            Ok(LType::TorsoDamage)
-                        } else {
-                            Ok(get_top_parry(timeline, me).unwrap_or(LType::TorsoDamage))
-                        }
-                    }
-                }
-            }
-            Class::Sentinel => {
-                let myself = timeline.state.borrow_agent(me);
-                if myself.is(FType::Heartflutter) {
-                    Ok(LType::TorsoDamage)
-                } else if !myself.is(FType::Impatience) {
-                    Ok(LType::HeadDamage)
-                } else {
-                    Ok(get_top_parry(timeline, me).unwrap_or(LType::HeadDamage))
-                }
-            }
-            Class::Wayfarer => {
-                let myself = timeline.state.borrow_agent(me);
-                let limbs_state = myself.get_limbs_state();
-                if limbs_state.left_leg.damaged
-                    || limbs_state.right_leg.damaged
-                    || limbs_state.left_arm.damaged
-                    || limbs_state.right_arm.damaged
-                {
-                    if limbs_state.head.damage > 20.0 {
-                        Ok(LType::HeadDamage)
-                    } else {
-                        Ok(get_top_parry(timeline, me).unwrap_or(LType::HeadDamage))
-                    }
-                } else {
-                    Ok(get_top_parry(timeline, me).unwrap_or(LType::HeadDamage))
-                }
-            }
-            _ => Ok(get_top_parry(timeline, me).unwrap_or(LType::HeadDamage)),
-        }
-    } else {
-        Ok(get_top_parry(timeline, me).unwrap_or(LType::HeadDamage))
     }
 }
 

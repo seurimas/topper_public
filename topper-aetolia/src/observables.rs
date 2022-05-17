@@ -57,6 +57,17 @@ impl ActionPlan {
         }
     }
 
+    pub fn add_to_front_of_qeb(&mut self, action: Box<dyn ActiveTransition>) {
+        if self.qeb.is_some() {
+            self.qeb = self
+                .qeb
+                .take()
+                .map(|old_qeb| ActionPlan::join(action, old_qeb));
+        } else {
+            self.qeb = Some(action);
+        }
+    }
+
     pub fn queue_for(&mut self, bal: BType, action: Box<dyn ActiveTransition>) {
         self.other.insert(bal, action);
     }

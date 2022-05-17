@@ -469,5 +469,41 @@
       }
     ],
     "observation_name": "Fall"
+  },
+  {
+    "regex": "^(You)r pipe is now empty.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "PipeEmpty"
+  },
+  {
+    "regex": "^You fill your pipe with (.*)$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "GroupAsTarget": 2
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "FillPipe"
   }
 ]

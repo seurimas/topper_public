@@ -4,6 +4,7 @@ use crate::alpha_beta::ActionPlanner;
 use crate::classes::*;
 use crate::curatives::get_cure_depth;
 use crate::db::AetDatabaseModule;
+use crate::defense::*;
 use crate::observables::*;
 use crate::timeline::*;
 use crate::types::*;
@@ -632,25 +633,6 @@ fn should_bedazzle(
     }
 }
 
-fn should_regenerate(timeline: &AetTimeline, me: &String) -> bool {
-    let me = timeline.state.borrow_agent(me);
-    if me.balanced(BType::Regenerate) {
-        false
-    } else if let Some((_limb, damage, regenerating)) = me.get_restoring() {
-        !regenerating && damage > 4000
-    } else {
-        false
-    }
-}
-
-fn needs_restore(timeline: &AetTimeline, me: &String) -> bool {
-    let me = timeline.state.borrow_agent(me);
-    me.restore_count() > 0
-        && me.restore_count() < 3
-        && me.is(FType::Fallen)
-        && me.get_balance(BType::Salve) > 2.5
-}
-
 fn needs_shrugging(timeline: &AetTimeline, me: &String) -> bool {
     let me = timeline.state.borrow_agent(me);
     me.balanced(BType::ClassCure1)
@@ -809,7 +791,9 @@ pub fn add_delphs(
             you.is(FType::Instawake),
         ) {
             (true, false, true) => {
-                venoms.insert(0, "delphinium");
+                if get_cure_depth(you, FType::Hypersomnia).cures > 1 {
+                    venoms.insert(0, "delphinium");
+                }
             }
             (false, false, true) => {
                 if count == 2 {
@@ -1235,6 +1219,10 @@ pub fn get_action_plan(
         } else {
             action_plan.add_to_qeb(shadow);
         }
+    }
+    let me = timeline.state.borrow_agent(me);
+    for pipe_refill in get_needed_refills(&me) {
+        action_plan.add_to_front_of_qeb(Box::new(pipe_refill));
     }
     action_plan
 }

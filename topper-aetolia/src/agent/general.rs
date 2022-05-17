@@ -140,6 +140,14 @@ pub enum FType {
     Swagger,
     Wrath,
 
+    // Bard defences
+    Destiny,
+    Sheath,
+    Aurora,
+    Equipoise,
+    Stretching,
+    Halfbeat,
+
     // Antipsychotic
     Sadness, // MUST BE FIRST AFFLICTION
     Confusion,
@@ -166,7 +174,11 @@ pub enum FType {
 
     // Eucrasia
     Worrywart,
+    Misery,
+    Hollow,
     Narcolepsy,
+    Perplexed,
+    SelfLoathing,
 
     // Decongestant
     Baldness,
@@ -784,6 +796,7 @@ impl DodgeState {
 pub enum ClassState {
     Zealot(ZealotClassState),
     Sentinel(SentinelClassState),
+    Bard(BardClassState),
     Shifter(HowlingState),
     Unknown,
 }

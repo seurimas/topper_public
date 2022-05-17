@@ -65,8 +65,17 @@ pub fn handle_simple_cure_action(
                 SimpleCure::Salve(_salve_name, _salve_loc) => {
                     apply_or_infer_balance(me, (BType::Salve, 2.0), &observations);
                 }
-                SimpleCure::Smoke(_) => {
+                SimpleCure::Smoke(herb) => {
                     apply_or_infer_balance(me, (BType::Smoke, 2.0), &observations);
+                    if observations
+                        .iter()
+                        .find(|observation| **observation == AetObservation::PipeEmpty)
+                        .is_some()
+                    {
+                        me.pipe_state.puff_all(&herb);
+                    } else {
+                        me.pipe_state.puff(&herb);
+                    }
                 }
             };
         }),

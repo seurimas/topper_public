@@ -1,18 +1,10 @@
-use crate::classes::{get_needed_parry, get_preferred_parry as get_parry, is_affected_by, Class};
+use crate::classes::{is_affected_by, Class};
 use crate::curatives::{MENTAL_AFFLICTIONS, NORMAL_SALVE_AFFS, SOOTHING_SKIN_ORDER};
 use crate::db::AetDatabaseModule;
+use crate::defense::*;
 use crate::strum::IntoEnumIterator;
 use crate::timeline::*;
 use crate::types::*;
-
-pub fn get_preferred_parry(
-    timeline: &AetTimeline,
-    me: &String,
-    target: &String,
-    strategy: &String,
-) -> Result<LType, String> {
-    Ok(LType::TorsoDamage)
-}
 
 const PUMMEL_DAMAGE: f32 = 9.5;
 const WANEKICK_DAMAGE: f32 = 9.0;
@@ -1668,7 +1660,7 @@ pub fn get_balance_attack(
     let mut you = timeline.state.borrow_agent(target);
     if !me.is(FType::Wrath) && check_config(timeline, &"PREDICT_PARRY".to_string()) {
         if let Ok(new_parry) =
-            get_parry(timeline, target, &timeline.who_am_i(), &"".to_string(), db)
+            get_preferred_parry(timeline, target, &timeline.who_am_i(), &"".to_string(), db)
         {
             you.set_parrying(new_parry);
         }

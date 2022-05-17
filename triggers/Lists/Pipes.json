@@ -1,0 +1,38 @@
+[
+    {
+        "regex": "^Pipe\\s+Herb\\s+Puffs\\s+Decay\\s+Lit\\s*",
+        "args": [
+            {
+                "Literal": "Pipes"
+            },
+            {
+                "Literal": ""
+            },
+            {
+                "Literal": ""
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "ListStart"
+    },
+    {
+        "regex": "^(\\d+)\\s+.*\\s+((?:empty\\s+|some willow bar|a yarrow root  |a reishi mushro) \\d+)\\s+(artifact|\\d+)\\s+(yes|no)$",
+        "args": [
+            {
+                "Literal": "Pipes"
+            },
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "GroupAsTarget": 2
+            },
+            {
+                "GroupAsTarget": 3
+            }
+        ],
+        "observation_name": "ListItem"
+    }
+]

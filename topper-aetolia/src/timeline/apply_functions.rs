@@ -145,6 +145,75 @@ pub fn apply_observation(
                     }),
                 );
             }
+            "Pipes" => {
+                let pipes = after
+                    .iter()
+                    .filter_map(|item| match item {
+                        AetObservation::ListItem(list_type, id, herb_amount, artifact) => {
+                            let id = id.parse().ok();
+                            let herb = herb_from_string(herb_amount);
+                            let puffs = herb_amount
+                                .rfind(" ")
+                                .map(|idx| {
+                                    let number_start = idx + 1;
+                                    &herb_amount[number_start..]
+                                })
+                                .and_then(|number| number.parse().ok());
+                            return Some((
+                                herb.to_string(),
+                                Pipe {
+                                    id: id.unwrap_or_default(),
+                                    artifact: artifact.eq("artifact"),
+                                    lit: 0,
+                                    puffs: puffs.unwrap_or_default(),
+                                },
+                            ));
+                        }
+                        _ => None,
+                    })
+                    .collect::<Vec<(String, Pipe)>>();
+                timeline.for_agent_closure(
+                    &timeline.me.clone(),
+                    Box::new(move |me| {
+                        let mut found_yarrow = None;
+                        let mut found_willow = None;
+                        let mut found_reishi = None;
+                        for (herb, pipe) in &pipes {
+                            if herb.eq("yarrow") {
+                                found_yarrow = Some(pipe);
+                            } else if herb.eq("willow") {
+                                found_willow = Some(pipe);
+                            } else if herb.eq("reishi") {
+                                found_reishi = Some(pipe);
+                            }
+                        }
+                        for (herb, pipe) in &pipes {
+                            if herb.eq("empty") {
+                                if found_yarrow.is_none() {
+                                    found_yarrow = Some(pipe);
+                                } else if found_willow.is_none() {
+                                    found_willow = Some(pipe);
+                                } else if found_reishi.is_none() {
+                                    found_reishi = Some(pipe);
+                                }
+                            }
+                        }
+                        if let Some(pipe) = found_yarrow {
+                            me.pipe_state.initialize("yarrow", pipe.clone());
+                        }
+                        if let Some(pipe) = found_willow {
+                            me.pipe_state.initialize("willow", pipe.clone());
+                        }
+                        if let Some(pipe) = found_reishi {
+                            me.pipe_state.initialize("reishi", pipe.clone());
+                        }
+                        println!(
+                            "Pipes: {:?} {:?} {:?}",
+                            found_yarrow, found_willow, found_reishi
+                        );
+                    }),
+                );
+            }
             _ => {}
         },
         AetObservation::Stripped(defense) => {
@@ -297,6 +366,16 @@ pub fn apply_observation(
                 timeline,
                 &who,
                 Box::new(move |you| apply_or_infer_relapse(you, &after)),
+            );
+        }
+        AetObservation::FillPipe(herb_str) => {
+            let herb = herb_from_string(herb_str).to_string();
+            for_agent_closure(
+                timeline,
+                &timeline.me.clone(),
+                Box::new(move |me| {
+                    me.pipe_state.refill(&herb);
+                }),
             );
         }
         _ => {}

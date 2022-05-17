@@ -3,7 +3,6 @@ use crate::agent::FType;
 use crate::agent::Hypnosis;
 use crate::alpha_beta::ActionPlanner;
 use crate::classes::*;
-use crate::curatives::get_cure_depth;
 use crate::observables::*;
 use crate::timeline::*;
 use crate::timeline::*;

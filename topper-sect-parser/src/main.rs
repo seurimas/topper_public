@@ -50,11 +50,7 @@ struct SectModel {
 async fn load_sect_log(result: Result<JsValue, JsValue>) -> SectMessage {
     match result {
         Ok(loaded) => SectMessage::Loaded(loaded.as_string().unwrap_or("Not a string".to_string())),
-        Err(error) => SectMessage::Error(
-            error
-                .as_string()
-                .unwrap_or("Could not parse error!".to_string()),
-        ),
+        Err(error) => SectMessage::Error(format!("Could not parse: {:?}", error)),
     }
 }
 

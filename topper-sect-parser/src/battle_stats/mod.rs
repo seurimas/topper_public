@@ -40,6 +40,7 @@ impl Component for BattleStatsElem {
                     <PillStrip pill={Pill::Decongestant} aff_states={Pill::Decongestant.get_aff_states(&ctx.props().battle_stats)} />
                     <PillStrip pill={Pill::Depressant} aff_states={Pill::Depressant.get_aff_states(&ctx.props().battle_stats)} />
                     <PillStrip pill={Pill::Coagulation} aff_states={Pill::Coagulation.get_aff_states(&ctx.props().battle_stats)} />
+                    <PillStrip pill={Pill::Eucrasia} aff_states={Pill::Eucrasia.get_aff_states(&ctx.props().battle_stats)} />
                     <PillStrip pill={Pill::Opiate} aff_states={Pill::Opiate.get_aff_states(&ctx.props().battle_stats)} />
                     <PillStrip pill={Pill::Steroid} aff_states={Pill::Steroid.get_aff_states(&ctx.props().battle_stats)} />
                     <PillStrip pill={Pill::Panacea} aff_states={Pill::Panacea.get_aff_states(&ctx.props().battle_stats)} />

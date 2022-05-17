@@ -16,6 +16,7 @@ pub mod alpha_beta;
 pub mod classes;
 pub mod curatives;
 pub mod db;
+pub mod defense;
 pub mod observables;
 pub mod timeline;
 pub mod types;

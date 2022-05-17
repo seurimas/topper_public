@@ -23,6 +23,7 @@ pub struct AgentState {
     pub hidden_state: HiddenState,
     pub branch_state: BranchState,
     pub resin_state: ResinState,
+    pub pipe_state: PipesState,
 }
 
 impl BaseAgentState for AgentState {
@@ -31,6 +32,7 @@ impl BaseAgentState for AgentState {
         self.resin_state.wait(duration);
         self.class_state.wait(duration);
         self.dodge_state.wait(duration);
+        self.pipe_state.wait(duration);
         if let Some((cured_limb, regenerating, first_person)) = self.limb_damage.wait(duration) {
             if !first_person {
                 match self.get_restore_cure(cured_limb) {
@@ -638,6 +640,15 @@ impl AgentState {
         } else {
             self.class_state = ClassState::Zealot(ZealotClassState::default());
             self.assume_zealot(action);
+        }
+    }
+
+    pub fn assume_bard(&mut self, action: fn(&mut BardClassState)) {
+        if let ClassState::Bard(bard) = &mut self.class_state {
+            action(bard);
+        } else {
+            self.class_state = ClassState::Bard(BardClassState::default());
+            self.assume_bard(action);
         }
     }
 }

@@ -2,6 +2,7 @@ use crate::alpha_beta::ActionPlanner;
 #[macro_use(affliction_stacker, affliction_plan_stacker)]
 use crate::{affliction_stacker, affliction_plan_stacker};
 use crate::classes::*;
+use crate::defense::*;
 use crate::observables::*;
 use crate::timeline::*;
 use crate::types::*;

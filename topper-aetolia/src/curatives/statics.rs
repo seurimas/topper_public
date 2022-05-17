@@ -180,7 +180,14 @@ lazy_static! {
 }
 
 lazy_static! {
-    pub static ref EUCRASIA_ORDER: Vec<FType> = vec![FType::Worrywart, FType::Narcolepsy,];
+    pub static ref EUCRASIA_ORDER: Vec<FType> = vec![
+        FType::Worrywart,
+        FType::Misery,
+        FType::Hollow,
+        FType::Narcolepsy,
+        FType::Perplexed,
+        FType::SelfLoathing
+    ];
 }
 
 lazy_static! {
