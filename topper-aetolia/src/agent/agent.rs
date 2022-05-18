@@ -658,12 +658,20 @@ impl AgentState {
         }
     }
 
-    pub fn assume_bard(&mut self, action: fn(&mut BardClassState)) {
+    pub fn assume_bard<R>(&mut self, action: fn(&mut BardClassState) -> R) -> R {
         if let ClassState::Bard(bard) = &mut self.class_state {
-            action(bard);
+            action(bard)
         } else {
             self.class_state = ClassState::Bard(BardClassState::default());
-            self.assume_bard(action);
+            self.assume_bard(action)
+        }
+    }
+
+    pub fn check_if_bard<R>(&self, action: fn(&BardClassState) -> R) -> Option<R> {
+        if let ClassState::Bard(bard) = &self.class_state {
+            Some(action(bard))
+        } else {
+            None
         }
     }
 }

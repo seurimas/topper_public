@@ -9,12 +9,31 @@ pub enum UnpoweredTreeDef<U: UserNodeDefinition> {
 }
 
 pub trait UserNodeDefinition {
-    type World: 'static;
-    fn create_node(&self) -> Box<dyn UnpoweredFunction<World = Self::World>>;
+    type Model: 'static;
+    type Controller: 'static;
+    fn create_node(
+        &self,
+    ) -> Box<dyn UnpoweredFunction<Model = Self::Model, Controller = Self::Controller>>;
+}
+
+impl<M: 'static, C: 'static, D: 'static> UserNodeDefinition for D
+where
+    D: UnpoweredFunction<Model = M, Controller = C> + Clone,
+{
+    type Model = M;
+    type Controller = C;
+
+    fn create_node(
+        &self,
+    ) -> Box<dyn UnpoweredFunction<Model = Self::Model, Controller = Self::Controller>> {
+        Box::new(self.clone())
+    }
 }
 
 impl<U: UserNodeDefinition> UnpoweredTreeDef<U> {
-    pub fn create_tree(&self) -> Box<dyn UnpoweredFunction<World = U::World>> {
+    pub fn create_tree(
+        &self,
+    ) -> Box<dyn UnpoweredFunction<Model = U::Model, Controller = U::Controller>> {
         match self {
             UnpoweredTreeDef::Sequence(node_defs) => {
                 let nodes = node_defs

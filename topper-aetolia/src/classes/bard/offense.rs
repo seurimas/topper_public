@@ -1,4 +1,19 @@
-use crate::{db::*, defense::*, observables::*, timeline::*, types::*};
+use topper_bt::unpowered::*;
+
+use super::*;
+
+use crate::{bt::*, db::*, defense::*, observables::*, timeline::*, types::*};
+
+lazy_static! {
+    pub static ref DEFAULT_BEHAVIOR_TREE: AetBehaviorTreeDef = {
+        let mut tree_def = UnpoweredTreeDef::Sequence(vec![UnpoweredTreeDef::User(
+            AetBehaviorTreeNode::Action(AetBehavior::BardBehavior(
+                BardBehavior::PerformanceAttack(PerformanceAttack::Crackshot),
+            )),
+        )]);
+        tree_def
+    };
+}
 
 pub fn get_action_plan(
     timeline: &AetTimeline,
@@ -7,22 +22,13 @@ pub fn get_action_plan(
     strategy: &String,
     db: Option<&impl AetDatabaseModule>,
 ) -> ActionPlan {
-    let mut action_plan = ActionPlan::new(me);
-    if should_regenerate(&timeline, me) {
-        // balance = Box::new(RegenerateAction::new(me.to_string()));
-    }
-    if let Some(parry) = get_needed_parry(timeline, me, target, strategy, db) {
-        // balance = Box::new(SeparatorAction::pair(
-        //     Box::new(ParryAction::new(me.to_string(), parry)),
-        //     balance,
-        // ));
-    }
-
-    let me = timeline.state.borrow_agent(me);
-    for pipe_refill in get_needed_refills(&me) {
-        action_plan.add_to_front_of_qeb(Box::new(pipe_refill));
-    }
-    action_plan
+    let mut controller = BehaviorController {
+        plan: ActionPlan::new(me),
+        target: Some(target.clone()),
+    };
+    let mut tree = DEFAULT_BEHAVIOR_TREE.create_tree();
+    tree.resume_with(&timeline, &mut controller);
+    controller.plan
 }
 
 pub fn get_attack(

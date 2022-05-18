@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 
+use serde::*;
+
 use super::*;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Deserialize, Serialize, Display, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Song {
     Origin,
     Charity,
@@ -36,6 +38,21 @@ pub enum HalfbeatState {
 impl Default for HalfbeatState {
     fn default() -> Self {
         Self::Inactive
+    }
+}
+
+impl HalfbeatState {
+    pub fn active(&self) -> bool {
+        match self {
+            HalfbeatState::HalfBeat(_) => true,
+            _ => false,
+        }
+    }
+    pub fn resting(&self) -> bool {
+        match self {
+            HalfbeatState::WholeBeat(_) => true,
+            _ => false,
+        }
     }
 }
 
@@ -116,7 +133,7 @@ impl GlobesState {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 pub enum Emotion {
     Sadness,
     Happiness,

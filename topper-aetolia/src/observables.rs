@@ -140,6 +140,23 @@ impl ActiveTransition for Inactivity {
     }
 }
 
+pub struct PlainAction(String);
+
+impl PlainAction {
+    pub fn new(action: String) -> Self {
+        PlainAction(action)
+    }
+}
+
+impl ActiveTransition for PlainAction {
+    fn act(&self, timline: &AetTimeline) -> ActivateResult {
+        Ok(self.0.clone())
+    }
+    fn simulate(&self, timline: &AetTimeline) -> Vec<ProbableEvent> {
+        vec![]
+    }
+}
+
 pub struct Trace(String);
 
 impl Trace {

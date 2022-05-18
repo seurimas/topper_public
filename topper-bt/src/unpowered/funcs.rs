@@ -10,45 +10,62 @@ pub enum UnpoweredFunctionState {
 }
 
 pub trait UnpoweredFunction {
-    type World: 'static;
-    fn resume_with(self: &mut Self, parameter: &mut Self::World) -> UnpoweredFunctionState;
-    fn reset(self: &mut Self, parameter: &mut Self::World);
+    type Model: 'static;
+    type Controller: 'static;
+    fn resume_with(
+        self: &mut Self,
+        model: &Self::Model,
+        controller: &mut Self::Controller,
+    ) -> UnpoweredFunctionState;
+    fn reset(self: &mut Self, model: &Self::Model);
 }
 
-pub struct Succeeder<R>(pub PhantomData<R>);
+pub struct Succeeder<M, C>(pub PhantomData<M>, pub PhantomData<C>);
 
-impl<R> Succeeder<R> {
+impl<M, C> Succeeder<M, C> {
     pub fn new() -> Self {
-        Succeeder(PhantomData)
+        Succeeder(PhantomData, PhantomData)
     }
 }
 
-impl<R: 'static> UnpoweredFunction for Succeeder<R> {
-    type World = R;
-    fn resume_with(self: &mut Self, _param: &mut Self::World) -> UnpoweredFunctionState {
+impl<M: 'static, C: 'static> UnpoweredFunction for Succeeder<M, C> {
+    type Model = M;
+    type Controller = C;
+
+    fn resume_with(
+        self: &mut Self,
+        model: &Self::Model,
+        controller: &mut Self::Controller,
+    ) -> UnpoweredFunctionState {
         UnpoweredFunctionState::Complete
     }
 
-    fn reset(self: &mut Self, _parameter: &mut Self::World) {
+    fn reset(self: &mut Self, model: &Self::Model) {
         // No state.
     }
 }
 
-pub struct Failer<R>(pub PhantomData<R>);
+pub struct Failer<M, C>(pub PhantomData<M>, pub PhantomData<C>);
 
-impl<R> Failer<R> {
+impl<M, C> Failer<M, C> {
     pub fn new() -> Self {
-        Failer(PhantomData)
+        Failer(PhantomData, PhantomData)
     }
 }
 
-impl<R: 'static> UnpoweredFunction for Failer<R> {
-    type World = R;
-    fn resume_with(self: &mut Self, _param: &mut Self::World) -> UnpoweredFunctionState {
+impl<M: 'static, C: 'static> UnpoweredFunction for Failer<M, C> {
+    type Model = M;
+    type Controller = C;
+
+    fn resume_with(
+        self: &mut Self,
+        model: &Self::Model,
+        controller: &mut Self::Controller,
+    ) -> UnpoweredFunctionState {
         UnpoweredFunctionState::Failed
     }
 
-    fn reset(self: &mut Self, _parameter: &mut Self::World) {
+    fn reset(self: &mut Self, model: &Self::Model) {
         // No state.
     }
 }

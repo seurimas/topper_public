@@ -1,23 +1,28 @@
 use crate::unpowered::*;
 
-pub struct Sequence<R> {
-    nodes: Vec<Box<dyn UnpoweredFunction<World = R>>>,
+pub struct Sequence<M, C> {
+    nodes: Vec<Box<dyn UnpoweredFunction<Model = M, Controller = C>>>,
     index: Option<usize>,
 }
 
-impl<R> Sequence<R> {
-    pub fn new(nodes: Vec<Box<dyn UnpoweredFunction<World = R>>>) -> Self {
+impl<M, C> Sequence<M, C> {
+    pub fn new(nodes: Vec<Box<dyn UnpoweredFunction<Model = M, Controller = C>>>) -> Self {
         Sequence { nodes, index: None }
     }
 }
 
-impl<R: 'static> UnpoweredFunction for Sequence<R> {
-    type World = R;
-    fn resume_with(self: &mut Self, parameter: &mut Self::World) -> UnpoweredFunctionState {
+impl<M: 'static, C: 'static> UnpoweredFunction for Sequence<M, C> {
+    type Model = M;
+    type Controller = C;
+    fn resume_with(
+        self: &mut Self,
+        model: &Self::Model,
+        controller: &mut Self::Controller,
+    ) -> UnpoweredFunctionState {
         let mut running_index = self.index.unwrap_or(0);
         loop {
             if let Some(node) = self.nodes.get_mut(running_index) {
-                let result = node.resume_with(parameter);
+                let result = node.resume_with(model, controller);
                 match result {
                     UnpoweredFunctionState::Complete => {
                         // Move on to the next node.
@@ -40,7 +45,7 @@ impl<R: 'static> UnpoweredFunction for Sequence<R> {
         }
     }
 
-    fn reset(self: &mut Self, _parameter: &mut Self::World) {
+    fn reset(self: &mut Self, model: &Self::Model) {
         self.index = None;
     }
 }

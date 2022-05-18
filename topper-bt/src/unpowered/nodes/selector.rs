@@ -1,23 +1,28 @@
 use crate::unpowered::*;
 
-pub struct Selector<R> {
-    nodes: Vec<Box<dyn UnpoweredFunction<World = R>>>,
+pub struct Selector<M, C> {
+    nodes: Vec<Box<dyn UnpoweredFunction<Model = M, Controller = C>>>,
     index: Option<usize>,
 }
 
-impl<R> Selector<R> {
-    pub fn new(nodes: Vec<Box<dyn UnpoweredFunction<World = R>>>) -> Self {
+impl<M, C> Selector<M, C> {
+    pub fn new(nodes: Vec<Box<dyn UnpoweredFunction<Model = M, Controller = C>>>) -> Self {
         Selector { nodes, index: None }
     }
 }
 
-impl<R: 'static> UnpoweredFunction for Selector<R> {
-    type World = R;
-    fn resume_with(self: &mut Self, parameter: &mut Self::World) -> UnpoweredFunctionState {
+impl<M: 'static, C: 'static> UnpoweredFunction for Selector<M, C> {
+    type Model = M;
+    type Controller = C;
+    fn resume_with(
+        self: &mut Self,
+        model: &Self::Model,
+        controller: &mut Self::Controller,
+    ) -> UnpoweredFunctionState {
         let mut running_index = self.index.unwrap_or(0);
         loop {
             if let Some(node) = self.nodes.get_mut(running_index) {
-                let result = node.resume_with(parameter);
+                let result = node.resume_with(model, controller);
                 match result {
                     UnpoweredFunctionState::Failed => {
                         // Move on to the next node.
@@ -40,7 +45,7 @@ impl<R: 'static> UnpoweredFunction for Selector<R> {
         }
     }
 
-    fn reset(self: &mut Self, _parameter: &mut Self::World) {
+    fn reset(self: &mut Self, _parameter: &Self::Model) {
         self.index = None;
     }
 }

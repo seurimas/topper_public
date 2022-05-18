@@ -229,7 +229,7 @@ pub fn handle_combat_action(
                 agent_states,
                 &combat_action.caster,
                 Box::new(move |me| {
-                    apply_or_infer_balance(me, (BType::Balance, 2.65), &observations);
+                    apply_or_infer_balance(me, (BType::Balance, 1.0), &observations);
                 }),
             );
             let venom = combat_action.annotation.clone();

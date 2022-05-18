@@ -1,13 +1,13 @@
 use crate::unpowered::*;
 
-pub struct Repeat<R> {
-    node: Box<dyn UnpoweredFunction<World = R>>,
+pub struct Repeat<M, C> {
+    node: Box<dyn UnpoweredFunction<Model = M, Controller = C>>,
     runs: usize,
     runs_left: usize,
 }
 
-impl<R> Repeat<R> {
-    pub fn new(node: Box<dyn UnpoweredFunction<World = R>>, runs: usize) -> Self {
+impl<M, C> Repeat<M, C> {
+    pub fn new(node: Box<dyn UnpoweredFunction<Model = M, Controller = C>>, runs: usize) -> Self {
         Repeat {
             node,
             runs,
@@ -16,11 +16,16 @@ impl<R> Repeat<R> {
     }
 }
 
-impl<R: 'static> UnpoweredFunction for Repeat<R> {
-    type World = R;
-    fn resume_with(self: &mut Self, parameter: &mut Self::World) -> UnpoweredFunctionState {
+impl<M: 'static, C: 'static> UnpoweredFunction for Repeat<M, C> {
+    type Model = M;
+    type Controller = C;
+    fn resume_with(
+        self: &mut Self,
+        model: &Self::Model,
+        controller: &mut Self::Controller,
+    ) -> UnpoweredFunctionState {
         while self.runs_left > 0 {
-            let result = self.node.resume_with(parameter);
+            let result = self.node.resume_with(model, controller);
             match result {
                 UnpoweredFunctionState::Failed => {
                     self.runs_left = self.runs;
@@ -39,25 +44,30 @@ impl<R: 'static> UnpoweredFunction for Repeat<R> {
         return UnpoweredFunctionState::Complete;
     }
 
-    fn reset(self: &mut Self, _parameter: &mut Self::World) {
+    fn reset(self: &mut Self, model: &Self::Model) {
         self.runs_left = self.runs;
     }
 }
-pub struct RepeatUntilFail<R> {
-    node: Box<dyn UnpoweredFunction<World = R>>,
+pub struct RepeatUntilFail<M, C> {
+    node: Box<dyn UnpoweredFunction<Model = M, Controller = C>>,
 }
 
-impl<R> RepeatUntilFail<R> {
-    pub fn new(node: Box<dyn UnpoweredFunction<World = R>>) -> Self {
+impl<M, C> RepeatUntilFail<M, C> {
+    pub fn new(node: Box<dyn UnpoweredFunction<Model = M, Controller = C>>) -> Self {
         RepeatUntilFail { node }
     }
 }
 
-impl<R: 'static> UnpoweredFunction for RepeatUntilFail<R> {
-    type World = R;
-    fn resume_with(self: &mut Self, parameter: &mut Self::World) -> UnpoweredFunctionState {
+impl<M: 'static, C: 'static> UnpoweredFunction for RepeatUntilFail<M, C> {
+    type Model = M;
+    type Controller = C;
+    fn resume_with(
+        self: &mut Self,
+        model: &Self::Model,
+        controller: &mut Self::Controller,
+    ) -> UnpoweredFunctionState {
         loop {
-            let result = self.node.resume_with(parameter);
+            let result = self.node.resume_with(model, controller);
             match result {
                 UnpoweredFunctionState::Failed => {
                     return UnpoweredFunctionState::Complete;
@@ -74,7 +84,7 @@ impl<R: 'static> UnpoweredFunction for RepeatUntilFail<R> {
         }
     }
 
-    fn reset(self: &mut Self, _parameter: &mut Self::World) {
+    fn reset(self: &mut Self, model: &Self::Model) {
         // Nothing to do.
     }
 }
