@@ -259,27 +259,12 @@ impl ActiveTransition for WeavingAttackAction {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub enum PerformanceAttack {
-    TempoOne {
-        venom: String,
-    },
-    TempoTwo {
-        venom_one: String,
-        venom_two: String,
-    },
-    TempoThree {
-        venom_one: String,
-        venom_two: String,
-        venom_three: String,
-    },
-    Needle {
-        venom: String,
-    },
-    Harry {
-        venom: String,
-    },
-    Bravado {
-        venom: String,
-    },
+    TempoOne(String),
+    TempoTwo(String, String),
+    TempoThree(String, String, String),
+    Needle(String),
+    Harry(String),
+    Bravado(String),
     Pierce,
     Seduce,
     Guilt,
@@ -309,38 +294,35 @@ impl PerformanceAttackAction {
         PerformanceAttackAction {
             caster,
             target,
-            attack: PerformanceAttack::Needle { venom },
+            attack: PerformanceAttack::Needle(venom),
         }
     }
     pub fn harry(caster: String, target: String, venom: String) -> Self {
         PerformanceAttackAction {
             caster,
             target,
-            attack: PerformanceAttack::Harry { venom },
+            attack: PerformanceAttack::Harry(venom),
         }
     }
     pub fn bravado(caster: String, target: String, venom: String) -> Self {
         PerformanceAttackAction {
             caster,
             target,
-            attack: PerformanceAttack::Bravado { venom },
+            attack: PerformanceAttack::Bravado(venom),
         }
     }
     pub fn tempo_one(caster: String, target: String, venom: String) -> Self {
         PerformanceAttackAction {
             caster,
             target,
-            attack: PerformanceAttack::TempoOne { venom },
+            attack: PerformanceAttack::TempoOne(venom),
         }
     }
     pub fn tempo_two(caster: String, target: String, venom_one: String, venom_two: String) -> Self {
         PerformanceAttackAction {
             caster,
             target,
-            attack: PerformanceAttack::TempoTwo {
-                venom_one,
-                venom_two,
-            },
+            attack: PerformanceAttack::TempoTwo(venom_one, venom_two),
         }
     }
     pub fn tempo_three(
@@ -353,11 +335,7 @@ impl PerformanceAttackAction {
         PerformanceAttackAction {
             caster,
             target,
-            attack: PerformanceAttack::TempoThree {
-                venom_one,
-                venom_two,
-                venom_three,
-            },
+            attack: PerformanceAttack::TempoThree(venom_one, venom_two, venom_three),
         }
     }
     pub fn cadence(caster: String, target: String) -> Self {
@@ -431,25 +409,18 @@ impl ActiveTransition for PerformanceAttackAction {
     }
     fn act(&self, timeline: &AetTimeline) -> ActivateResult {
         Ok(match &self.attack {
-            PerformanceAttack::TempoOne { venom } => format!("tempo {} {}", self.target, venom),
-            PerformanceAttack::TempoTwo {
-                venom_one,
-                venom_two,
-            } => format!(
+            PerformanceAttack::TempoOne(venom) => format!("tempo {} {}", self.target, venom),
+            PerformanceAttack::TempoTwo(venom_one, venom_two) => format!(
                 "tempo {} {};;envenom rapier with {}",
                 self.target, venom_one, venom_two
             ),
-            PerformanceAttack::TempoThree {
-                venom_one,
-                venom_two,
-                venom_three,
-            } => format!(
+            PerformanceAttack::TempoThree(venom_one, venom_two, venom_three) => format!(
                 "tempo {} {};;envenom rapier with {};;envenom rapier with {}",
                 self.target, venom_one, venom_three, venom_two
             ),
-            PerformanceAttack::Needle { venom } => format!("needle {} {}", self.target, venom),
-            PerformanceAttack::Harry { venom } => format!("harry {} {}", self.target, venom),
-            PerformanceAttack::Bravado { venom } => format!("bravado {} {}", self.target, venom),
+            PerformanceAttack::Needle(venom) => format!("needle {} {}", self.target, venom),
+            PerformanceAttack::Harry(venom) => format!("harry {} {}", self.target, venom),
+            PerformanceAttack::Bravado(venom) => format!("bravado {} {}", self.target, venom),
             PerformanceAttack::Pierce => format!("pierce {}", self.target),
             PerformanceAttack::Seduce => format!("seduce {}", self.target),
             PerformanceAttack::Guilt => format!("guilt {}", self.target),

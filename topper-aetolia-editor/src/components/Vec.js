@@ -33,7 +33,6 @@ export const VecList = ({
         ...vecPaths.map(vecPath => <VecItem path={vecPath}>{renderValueOfType(vecPath, itemType)}</VecItem>),
         <VecAddButton path={path} />,
     ];
-    console.log(itemType);
     return (
         <Stack direction="row" spacing={2}>{items}</Stack>
     );

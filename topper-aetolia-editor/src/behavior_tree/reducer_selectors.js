@@ -13,7 +13,6 @@ const getDefaultValue = (field) => {
     if (typeof field === 'string') {
         return getDefaultValue(TYPE_DESCS[field]);
     } else if (field.name === 'Vec') {
-        console.log(field);
         return getEmptyVec(field.itemType);
     } else if (field.defaultValue) {
         return field.defaultValue;
@@ -60,7 +59,7 @@ const updateTree = (path, behaviorTree, update) => {
 const updateEnumVariant = (path, behaviorTree, variant) => {
     return updateTree(path, behaviorTree, (subState) => {
         subState.variant = variant;
-        subState.fields = variant.fields.map(getDefaultValue);
+        subState.fields = variant.fields && variant.fields.map(getDefaultValue);
         return subState;
     });
 };
@@ -75,9 +74,7 @@ const updateValue = (path, behaviorTree, value) => {
 };
 
 const increaseVecSize = (path, behaviorTree) => {
-    console.log(path, behaviorTree);
     return updateTree(path, behaviorTree, (subState) => {
-        console.log(subState);
         subState.fields = [...subState.fields, getDefaultValue(subState.itemType)];
     });
 };
@@ -89,7 +86,7 @@ const deleteVecItem = (path, behaviorTree, index) => {
 };
 
 const getElement = (path, behaviorTree) => path.reduce((tree, idx) => {
-    return tree.fields && tree.fields[idx] || getEmptyVec();
+    return tree.fields && tree.fields[idx];
 }, behaviorTree);
 
 export const getEnumVariant = (path) => ({ behaviorTree }) => {
@@ -100,9 +97,38 @@ export const getEnumVariant = (path) => ({ behaviorTree }) => {
 };
 
 export const getEnumField = (path) => ({ behaviorTree }) => {
-    const parent = getElement(parentPath(path), behaviorTree);
-    return parent.fields[leafPath(path)] || '';
+    return getElement(path, behaviorTree);
 };
 
 export const getVecPaths = (path) => ({ behaviorTree }) =>
     getElement(path, behaviorTree).fields.map((_, idx) => [...path, idx]);
+
+export const concentrate = (tree) => {
+    if (tree.variant) {
+        // Enum value.
+        if (!tree.fields || tree.fields.length === 0) {
+            // Unit.
+            return tree.variant.name;
+        } else if (tree.fields.length === 1) {
+            // Tuple N = 1.
+            return {
+                [tree.variant.name]: concentrate(tree.fields[0]),
+            };
+        } else {
+            // Tuple N = 2+
+            return {
+                [tree.variant.name]: tree.fields.map(concentrate),
+            };
+        }
+        // TODO Tuple with field names.
+    } else if (tree.fields) {
+        // Vec
+        return tree.fields.map(concentrate);
+    } else {
+        return tree;
+    }
+};
+
+export const getJsonOutput = ({ behaviorTree }) => {
+    return JSON.stringify(concentrate(behaviorTree));
+};

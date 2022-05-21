@@ -7,7 +7,7 @@ import { setValue } from '../behavior_tree/actions';
 const StringField = ({ path }) => {
     const dispatch = useDispatch();
     const value = useSelector(getEnumField(path));
-    const onChange = (event) => console.log(event) || dispatch(setValue(path, event.target.value));
+    const onChange = (event) => dispatch(setValue(path, event.target.value));
     return <TextField value={value || ''} onChange={onChange} />;
 };
 
@@ -24,6 +24,8 @@ export const getTypeRenderer = (typeDesc) => {
         return TYPE_RENDERERS[typeDesc.renderer];
     } else if (typeDesc && TYPE_DESCS[typeDesc.name] && TYPE_DESCS[typeDesc.name].renderer) {
         return TYPE_RENDERERS[TYPE_DESCS[typeDesc.name].renderer];
+    } else if (typeDesc && typeDesc.variants) {
+        return TYPE_RENDERERS.Enum;
     }
     return StringField;
 }

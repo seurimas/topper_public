@@ -36,7 +36,6 @@ export const EnumDropdown = ({
 export const Enum = ({
     path, typeDesc,
 }) => {
-    console.log(path, typeDesc);
     const discriminantSelector = <EnumDropdown
         path={path}
         typeDesc={typeDesc}
@@ -47,12 +46,13 @@ export const Enum = ({
         fields = variantDesc.fields.map((fieldTypeDesc, idx) => {
             return renderValueOfType([...path, idx], fieldTypeDesc);
         });
+        return (<>
+            {discriminantSelector}
+            ({fields})
+        </>);
+
     }
-    return (<>
-        {discriminantSelector}
-        {fields}
-    </>
-    );
+    return discriminantSelector;
 };
 
 registerTypeRenderer("Enum", Enum);

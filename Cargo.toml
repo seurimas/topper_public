@@ -6,7 +6,6 @@ members = [
     "topper-derive",
     "topper-aetolia",
     "topper-aetolia-mudlet",
-    "topper-aetolia-editor",
     "topper-core-mudlet",
     "topper-sect-parser",
 ]
