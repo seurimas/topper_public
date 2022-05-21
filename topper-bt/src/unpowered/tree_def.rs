@@ -1,5 +1,8 @@
+use serde::{Deserialize, Serialize};
+
 use super::{Repeat, RepeatUntilFail, Selector, Sequence, UnpoweredFunction};
 
+#[derive(Serialize, Deserialize)]
 pub enum UnpoweredTreeDef<U: UserNodeDefinition> {
     Sequence(Vec<UnpoweredTreeDef<U>>),
     Selector(Vec<UnpoweredTreeDef<U>>),

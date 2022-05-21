@@ -5,14 +5,9 @@ use super::*;
 use crate::{bt::*, db::*, defense::*, observables::*, timeline::*, types::*};
 
 lazy_static! {
-    pub static ref DEFAULT_BEHAVIOR_TREE: AetBehaviorTreeDef = {
-        let mut tree_def = UnpoweredTreeDef::Sequence(vec![UnpoweredTreeDef::User(
-            AetBehaviorTreeNode::Action(AetBehavior::BardBehavior(
-                BardBehavior::PerformanceAttack(PerformanceAttack::Crackshot),
-            )),
-        )]);
-        tree_def
-    };
+    pub static ref DEFAULT_BEHAVIOR_TREE: AetBehaviorTreeDef =
+        serde_json::from_str::<AetBehaviorTreeDef>(include_str!("./DEFAULT_BEHAVIOR_TREE.ron"))
+            .unwrap();
 }
 
 pub fn get_action_plan(

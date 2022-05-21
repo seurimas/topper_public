@@ -3098,6 +3098,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "topper-aetolia-editor"
+version = "0.1.0"
+dependencies = [
+ "futures",
+ "js-sys",
+ "lazy_static",
+ "log",
+ "num_enum",
+ "rand 0.7.3",
+ "regex",
+ "serde",
+ "serde_json",
+ "simplelog",
+ "strum 0.16.0",
+ "strum_macros 0.16.0",
+ "topper-aetolia",
+ "topper-bt",
+ "topper-core",
+ "topper-derive",
+ "trunk",
+ "urlencoding 2.1.0",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+ "yew",
+]
+
+[[package]]
 name = "topper-aetolia-mudlet"
 version = "0.1.0"
 dependencies = [
@@ -3126,6 +3154,10 @@ dependencies = [
 [[package]]
 name = "topper-bt"
 version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
 
 [[package]]
 name = "topper-core"
