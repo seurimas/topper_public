@@ -113,6 +113,13 @@ impl RunebandState {
     pub fn initial() -> Self {
         Self::Normal(0)
     }
+
+    pub fn is_active(&self) -> bool {
+        match self {
+            Self::Inactive => false,
+            _ => true,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -131,9 +138,16 @@ impl GlobesState {
     pub fn initial() -> Self {
         Self::Floating(3)
     }
+
+    pub fn is_active(&self) -> bool {
+        match self {
+            Self::None => false,
+            _ => true,
+        }
+    }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Emotion {
     Sadness,
     Happiness,
@@ -146,9 +160,20 @@ pub enum Emotion {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct EmotionState {
-    awakened: bool,
-    primary: Option<Emotion>,
+    pub awakened: bool,
+    pub primary: Option<Emotion>,
     levels: Vec<(Emotion, CType)>,
+}
+
+impl EmotionState {
+    pub fn get_emotion_level(&self, emotion: Emotion) -> CType {
+        for (my_emotion, level) in &self.levels {
+            if *my_emotion == emotion {
+                return *level;
+            }
+        }
+        return 0;
+    }
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]

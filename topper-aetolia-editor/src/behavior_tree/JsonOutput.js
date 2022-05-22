@@ -1,14 +1,14 @@
-import { Accordion, AccordionDetails, AccordionSummary } from '@mui/material';
+import { Accordion, AccordionDetails, AccordionSummary, TextField } from '@mui/material';
 import React from 'react';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import { loadJson } from './actions';
 import { getJsonOutput } from './reducer_selectors';
 
-export const JsonOutput = () => {
-    const jsonOutput = useSelector(getJsonOutput);
+export const JsonOutput = ({ treeName }) => {
+    const dispatch = useDispatch();
+    const jsonOutput = useSelector(getJsonOutput(treeName));
+    const load = (event) => dispatch(loadJson(treeName, event.target.value));
     return (
-        <Accordion>
-            <AccordionSummary>JSON</AccordionSummary>
-            <AccordionDetails>{jsonOutput}</AccordionDetails>
-        </Accordion>
+        <TextField label={treeName} fullWidth multiline value={jsonOutput} onChange={load} />
     );
-}
+};

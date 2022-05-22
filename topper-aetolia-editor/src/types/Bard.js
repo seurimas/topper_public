@@ -1,4 +1,5 @@
 import { registerTypeDesc } from "../components/ValueTypes";
+import { getOptionName, getOptionOf } from "./Option";
 
 export const EMOTION = {
     name: 'Emotion',
@@ -63,6 +64,7 @@ export const PERFORMANCE_ATTACK = {
 
 registerTypeDesc(EMOTION);
 registerTypeDesc(SONG);
+registerTypeDesc(getOptionOf(SONG));
 registerTypeDesc(WEAVABLE);
 registerTypeDesc(WEAVING_ATTACK);
 registerTypeDesc(PERFORMANCE_ATTACK);
@@ -89,10 +91,10 @@ export const BARD_PREDICATE = {
         fields: ['Emotion', 'usize'],
     }, {
         name: 'Singing',
-        fields: ['Song'],
+        fields: [getOptionName('Song')],
     }, {
         name: 'Playing',
-        fields: ['Song'],
+        fields: [getOptionName('Song')],
     }]
 };
 

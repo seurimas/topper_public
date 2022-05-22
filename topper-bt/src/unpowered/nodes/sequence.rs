@@ -1,12 +1,14 @@
 use crate::unpowered::*;
 
 pub struct Sequence<M, C> {
-    nodes: Vec<Box<dyn UnpoweredFunction<Model = M, Controller = C>>>,
+    nodes: Vec<Box<dyn UnpoweredFunction<Model = M, Controller = C> + Send + Sync>>,
     index: Option<usize>,
 }
 
 impl<M, C> Sequence<M, C> {
-    pub fn new(nodes: Vec<Box<dyn UnpoweredFunction<Model = M, Controller = C>>>) -> Self {
+    pub fn new(
+        nodes: Vec<Box<dyn UnpoweredFunction<Model = M, Controller = C> + Send + Sync>>,
+    ) -> Self {
         Sequence { nodes, index: None }
     }
 }

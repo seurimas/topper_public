@@ -4,12 +4,6 @@ use super::*;
 
 use crate::{bt::*, db::*, defense::*, observables::*, timeline::*, types::*};
 
-lazy_static! {
-    pub static ref DEFAULT_BEHAVIOR_TREE: AetBehaviorTreeDef =
-        serde_json::from_str::<AetBehaviorTreeDef>(include_str!("./DEFAULT_BEHAVIOR_TREE.ron"))
-            .unwrap();
-}
-
 pub fn get_action_plan(
     timeline: &AetTimeline,
     me: &String,
@@ -21,8 +15,11 @@ pub fn get_action_plan(
         plan: ActionPlan::new(me),
         target: Some(target.clone()),
     };
-    let mut tree = DEFAULT_BEHAVIOR_TREE.create_tree();
-    tree.resume_with(&timeline, &mut controller);
+    let tree_name = format!("bard/{}", strategy);
+    let tree = get_tree(&tree_name);
+    if let Ok(mut tree) = tree.lock() {
+        tree.resume_with(&timeline, &mut controller);
+    }
     controller.plan
 }
 

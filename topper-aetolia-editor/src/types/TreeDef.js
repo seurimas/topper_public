@@ -30,6 +30,22 @@ export const UNPOWERED_TREE_DEF_DESC = {
             fields: ['UnpoweredTreeDef'],
         },
         {
+            name: 'RepeatUntilSuccess',
+            fields: ['UnpoweredTreeDef'],
+        },
+        {
+            name: 'Succeeder',
+            fields: ['UnpoweredTreeDef'],
+        },
+        {
+            name: 'Inverter',
+            fields: ['UnpoweredTreeDef'],
+        },
+        {
+            name: 'Failer',
+            fields: ['UnpoweredTreeDef'],
+        },
+        {
             name: 'User',
             fields: ['AetBehaviorTreeNode']
         }
@@ -46,6 +62,9 @@ export const AET_BEHAVIOR_TREE_NODE = {
     }, {
         name: 'Predicate',
         fields: ['AetPredicate'],
+    }, {
+        name: 'SubTree',
+        fields: ['String'],
     }],
 };
 

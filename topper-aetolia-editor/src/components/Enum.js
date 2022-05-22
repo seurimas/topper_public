@@ -7,18 +7,17 @@ import { registerTypeRenderer, renderValueOfType } from './ValueTypes';
 
 const isUnit = (variantDesc) => variantDesc && (!variantDesc.fields || variantDesc.fields.length === 0);
 const isTuple = (variantDesc) => variantDesc && variantDesc.fields && !!variantDesc.fields.length;
-const isNamed = (variantDesc) => !isUnit(variantDesc) && !isTuple(variantDesc);
 
 export const EnumDropdown = ({
-    path, typeDesc,
+    treeName, path, typeDesc,
 }) => {
     const discriminants = typeDesc.variants.map(({ name }) => name);
     const dispatch = useDispatch();
-    const value = useSelector(getEnumVariant(path));
+    const value = useSelector(getEnumVariant(treeName, path));
     const setValue = (event) => {
         const newVariantName = event.target.value;
         const newVariant = typeDesc.variants.find(({ name }) => name === newVariantName);
-        dispatch(setEnumVariant(path, newVariant));
+        dispatch(setEnumVariant(treeName, path, newVariant));
     };
     const menuItems = discriminants.map((name) => (
         <MenuItem value={name}>{name}</MenuItem>
@@ -34,17 +33,18 @@ export const EnumDropdown = ({
 };
 
 export const Enum = ({
-    path, typeDesc,
+    treeName, path, typeDesc,
 }) => {
     const discriminantSelector = <EnumDropdown
+        treeName={treeName}
         path={path}
         typeDesc={typeDesc}
     />;
     let fields = [];
-    const variantDesc = useSelector(getEnumVariant(path));
+    const variantDesc = useSelector(getEnumVariant(treeName, path));
     if (isTuple(variantDesc)) {
         fields = variantDesc.fields.map((fieldTypeDesc, idx) => {
-            return renderValueOfType([...path, idx], fieldTypeDesc);
+            return renderValueOfType(treeName, [...path, idx], fieldTypeDesc);
         });
         return (<>
             {discriminantSelector}

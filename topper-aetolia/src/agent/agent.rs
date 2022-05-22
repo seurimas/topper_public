@@ -667,7 +667,7 @@ impl AgentState {
         }
     }
 
-    pub fn check_if_bard<R>(&self, action: fn(&BardClassState) -> R) -> Option<R> {
+    pub fn check_if_bard<R>(&self, action: &Fn(&BardClassState) -> R) -> Option<R> {
         if let ClassState::Bard(bard) = &self.class_state {
             Some(action(bard))
         } else {

@@ -1,12 +1,14 @@
 use crate::unpowered::*;
 
 pub struct Selector<M, C> {
-    nodes: Vec<Box<dyn UnpoweredFunction<Model = M, Controller = C>>>,
+    nodes: Vec<Box<dyn UnpoweredFunction<Model = M, Controller = C> + Send + Sync>>,
     index: Option<usize>,
 }
 
 impl<M, C> Selector<M, C> {
-    pub fn new(nodes: Vec<Box<dyn UnpoweredFunction<Model = M, Controller = C>>>) -> Self {
+    pub fn new(
+        nodes: Vec<Box<dyn UnpoweredFunction<Model = M, Controller = C> + Send + Sync>>,
+    ) -> Self {
         Selector { nodes, index: None }
     }
 }

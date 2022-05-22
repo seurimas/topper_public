@@ -8,10 +8,19 @@ import { behaviorTreeReducer } from './behavior_tree/reducer_selectors';
 import { Provider } from 'react-redux';
 import { combineReducers } from 'redux';
 
+const preloadedState = localStorage.getItem('reduxState')
+  ? JSON.parse(localStorage.getItem('reduxState'))
+  : {};
+
 const store = configureStore({
   reducer: combineReducers({
     behaviorTree: behaviorTreeReducer,
   }),
+  preloadedState,
+});
+
+store.subscribe(() => {
+  localStorage.setItem('reduxState', JSON.stringify(store.getState()));
 });
 
 const root = ReactDOM.createRoot(document.getElementById('root'));

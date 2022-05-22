@@ -4,10 +4,10 @@ import { useDispatch, useSelector } from 'react-redux';
 import { getEnumField } from '../behavior_tree/reducer_selectors';
 import { setValue } from '../behavior_tree/actions';
 
-const StringField = ({ path }) => {
+const StringField = ({ treeName, path }) => {
     const dispatch = useDispatch();
-    const value = useSelector(getEnumField(path));
-    const onChange = (event) => dispatch(setValue(path, event.target.value));
+    const value = useSelector(getEnumField(treeName, path));
+    const onChange = (event) => dispatch(setValue(treeName, path, event.target.value));
     return <TextField value={value || ''} onChange={onChange} />;
 };
 
@@ -31,20 +31,32 @@ export const getTypeRenderer = (typeDesc) => {
 }
 
 export const TYPE_DESCS = {};
+export const VARIANT_TYPES = {};
 
 export const registerTypeDesc = (typeDesc) => {
+    console.log(typeDesc);
     TYPE_DESCS[typeDesc.name] = typeDesc;
+    if (typeDesc.variants) {
+        typeDesc.variants.forEach(({ name }) => {
+            VARIANT_TYPES[name] = typeDesc.name;
+        });
+    }
 };
 
-export const renderValueOfType = (path, typeDesc) => {
+export const renderValueOfType = (treeName, path, typeDesc) => {
     const fullTypeDesc = (typeof typeDesc === 'string')
         ? TYPE_DESCS[typeDesc]
         : typeDesc;
     const Field = getTypeRenderer(fullTypeDesc);
     return (
         <Field
+            treeName={treeName}
             path={path}
             typeDesc={fullTypeDesc}
         />
     );
 };
+
+export const getTypeFromVariant = (variantName) => {
+    return TYPE_DESCS[VARIANT_TYPES[variantName]];
+}

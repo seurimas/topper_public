@@ -95,6 +95,44 @@ pub fn handle_combat_action(
                 });
             }
         }
+        "Bladestorm" => {
+            for_agent_closure(
+                agent_states,
+                &combat_action.caster,
+                Box::new(move |me| {
+                    me.assume_bard(|bard| {
+                        bard.dithering = BLADESTORM_DITHER;
+                    });
+                    if !me.is(FType::Destiny) {
+                        apply_or_infer_balance(me, (BType::Equil, 2.0), &observations);
+                    } else {
+                        me.set_flag(FType::Destiny, false);
+                    }
+                }),
+            );
+            for_agent(agent_states, &combat_action.target, |me| {
+                me.bard_board.blades_count = BLADES_COUNT;
+            });
+        }
+        "Bladestormed" => {
+            let final_blade = combat_action.annotation.eq("final");
+            for_agent_closure(
+                agent_states,
+                &combat_action.caster,
+                Box::new(move |me| {
+                    for observation in observations.iter() {
+                        if let AetObservation::Devenoms(venom) = observation {
+                            apply_venom(me, &venom, false);
+                        }
+                    }
+                    if final_blade {
+                        me.bard_board.blades_count = 0;
+                    } else if me.bard_board.blades_count > 0 {
+                        me.bard_board.blades_count -= 1;
+                    }
+                }),
+            );
+        }
         "Crackshot" => {
             attack_afflictions(
                 agent_states,
@@ -165,62 +203,10 @@ pub fn handle_combat_action(
                 );
             }
         }
-        "Bladestorm" => {
-            for_agent_closure(
-                agent_states,
-                &combat_action.caster,
-                Box::new(move |me| {
-                    me.assume_bard(|bard| {
-                        bard.dithering = BLADESTORM_DITHER;
-                    });
-                    if !me.is(FType::Destiny) {
-                        apply_or_infer_balance(me, (BType::Equil, 2.0), &observations);
-                    } else {
-                        me.set_flag(FType::Destiny, false);
-                    }
-                }),
-            );
-            for_agent(agent_states, &combat_action.target, |me| {
-                me.bard_board.blades_count = BLADES_COUNT;
-            });
-        }
-        "Bladestormed" => {
-            let final_blade = combat_action.annotation.eq("final");
-            for_agent_closure(
-                agent_states,
-                &combat_action.caster,
-                Box::new(move |me| {
-                    for observation in observations.iter() {
-                        if let AetObservation::Devenoms(venom) = observation {
-                            apply_venom(me, &venom, false);
-                        }
-                    }
-                    if final_blade {
-                        me.bard_board.blades_count = 0;
-                    } else if me.bard_board.blades_count > 0 {
-                        me.bard_board.blades_count -= 1;
-                    }
-                }),
-            );
-        }
         "TempoEnd" => {
             for_agent(agent_states, &combat_action.caster, |me| {
                 me.assume_bard(|bard| {
                     bard.off_tempo();
-                });
-            });
-        }
-        "HalfbeatStart" => {
-            for_agent(agent_states, &combat_action.caster, |me| {
-                me.assume_bard(|bard| {
-                    bard.half_beat_pickup();
-                });
-            });
-        }
-        "HalfbeatEnd" => {
-            for_agent(agent_states, &combat_action.caster, |me| {
-                me.assume_bard(|bard| {
-                    bard.half_beat_slowdown();
                 });
             });
         }
@@ -257,6 +243,20 @@ pub fn handle_combat_action(
                     }
                 }),
             );
+        }
+        "HalfbeatStart" => {
+            for_agent(agent_states, &combat_action.caster, |me| {
+                me.assume_bard(|bard| {
+                    bard.half_beat_pickup();
+                });
+            });
+        }
+        "HalfbeatEnd" => {
+            for_agent(agent_states, &combat_action.caster, |me| {
+                me.assume_bard(|bard| {
+                    bard.half_beat_slowdown();
+                });
+            });
         }
         _ => {}
     }

@@ -25,11 +25,27 @@ impl UnpoweredFunction for BardBehavior {
     ) -> UnpoweredFunctionState {
         match self {
             BardBehavior::Weave(weavable) => {
+                if model
+                    .state
+                    .borrow_me()
+                    .check_if_bard(&|bard| bard.dithering > 0)
+                    .unwrap_or(false)
+                {
+                    return UnpoweredFunctionState::Failed;
+                }
                 controller
                     .plan
                     .add_to_qeb(Box::new(WeavingAction::new(model.who_am_i(), *weavable)));
             }
             BardBehavior::WeaveAttack(weave_attack) => {
+                if model
+                    .state
+                    .borrow_me()
+                    .check_if_bard(&|bard| bard.dithering > 0)
+                    .unwrap_or(false)
+                {
+                    return UnpoweredFunctionState::Failed;
+                }
                 if let Some(target) = &controller.target {
                     controller
                         .plan
@@ -56,11 +72,27 @@ impl UnpoweredFunction for BardBehavior {
                 }
             }
             BardBehavior::SingSong(sing_song) => {
+                if model
+                    .state
+                    .borrow_me()
+                    .check_if_bard(&|bard| bard.voice_song.is_some())
+                    .unwrap_or(false)
+                {
+                    return UnpoweredFunctionState::Failed;
+                }
                 controller
                     .plan
                     .add_to_qeb(Box::new(SongAction::sing(model.who_am_i(), *sing_song)));
             }
             BardBehavior::PlaySong(play_song) => {
+                if model
+                    .state
+                    .borrow_me()
+                    .check_if_bard(&|bard| bard.instrument_song.is_some())
+                    .unwrap_or(false)
+                {
+                    return UnpoweredFunctionState::Failed;
+                }
                 controller
                     .plan
                     .add_to_qeb(Box::new(SongAction::play(model.who_am_i(), *play_song)));

@@ -1,7 +1,7 @@
-import { TYPE_DESCS } from "../components/ValueTypes";
+import { getTypeFromVariant, TYPE_DESCS } from "../components/ValueTypes";
 import { VEC_TYPE_DESC } from "../types/Common";
 import { UNPOWERED_TREE_DEF_DESC } from "../types/TreeDef";
-import { ADD_TO_VEC, REMOVE_FROM_VEC, SET_ENUM_VARIANT, SET_VALUE } from "./actions";
+import { ADD_TO_VEC, CREATE_NEW_TREE, LOAD_JSON, REMOVE_FROM_VEC, SET_ENUM_VARIANT, SET_VALUE } from "./actions";
 
 const getEmptyVec = (itemType) => ({
     name: 'Vec',
@@ -9,9 +9,19 @@ const getEmptyVec = (itemType) => ({
     itemType,
 });
 
+const getEmptyTree = () => ({
+    name: UNPOWERED_TREE_DEF_DESC.name,
+    variant: UNPOWERED_TREE_DEF_DESC.variants[0],
+    fields: UNPOWERED_TREE_DEF_DESC.variants[0].fields.map(getDefaultValue),
+});
+
 const getDefaultValue = (field) => {
     if (typeof field === 'string') {
-        return getDefaultValue(TYPE_DESCS[field]);
+        if (field === 'String') {
+            return '';
+        } else {
+            return getDefaultValue(TYPE_DESCS[field]);
+        }
     } else if (field.name === 'Vec') {
         return getEmptyVec(field.itemType);
     } else if (field.defaultValue) {
@@ -21,29 +31,38 @@ const getDefaultValue = (field) => {
     }
 };
 
-const initState = {
-    name: UNPOWERED_TREE_DEF_DESC.name,
-    variant: UNPOWERED_TREE_DEF_DESC.variants[0],
-    fields: UNPOWERED_TREE_DEF_DESC.variants[0].fields.map(getDefaultValue),
-};
+const initState = {};
 
 export const behaviorTreeReducer = (state = initState, action) => {
     switch (action.type) {
+        case CREATE_NEW_TREE:
+            return {
+                ...state,
+                [action.treeName]: getEmptyTree(),
+            }
         case ADD_TO_VEC:
-            return increaseVecSize(action.path, state);
+            return increaseVecSize(action.treeName, action.path, state);
         case REMOVE_FROM_VEC:
-            return deleteVecItem(action.path, state, action.index);
+            return deleteVecItem(action.treeName, action.path, state, action.index);
         case SET_VALUE:
-            return updateValue(action.path, state, action.value);
+            return updateValue(action.treeName, action.path, state, action.value);
         case SET_ENUM_VARIANT:
-            return updateEnumVariant(action.path, state, action.variant);
+            return updateEnumVariant(action.treeName, action.path, state, action.variant);
+        case LOAD_JSON:
+            return {
+                ...state,
+                [action.treeName]: hydrateJson(action.json),
+            };
         default:
             return state;
     }
 };
 
-const updateTree = (path, behaviorTree, update) => {
-    const newState = { ...behaviorTree };
+const updateTree = (treeName, path, behaviorTree, update) => {
+    const newState = {
+        ...behaviorTree,
+        [treeName]: { ...behaviorTree[treeName] }
+    };
     const subState = path.reduce((tree, idx) => {
         const nextTree = {
             ...tree.fields[idx],
@@ -51,13 +70,13 @@ const updateTree = (path, behaviorTree, update) => {
         tree.fields = [...tree.fields];
         tree.fields.splice(idx, 1, nextTree);
         return nextTree;
-    }, newState);
+    }, newState[treeName]);
     update(subState);
     return newState;
 }
 
-const updateEnumVariant = (path, behaviorTree, variant) => {
-    return updateTree(path, behaviorTree, (subState) => {
+const updateEnumVariant = (tree, path, behaviorTree, variant) => {
+    return updateTree(tree, path, behaviorTree, (subState) => {
         subState.variant = variant;
         subState.fields = variant.fields && variant.fields.map(getDefaultValue);
         return subState;
@@ -67,41 +86,43 @@ const updateEnumVariant = (path, behaviorTree, variant) => {
 export const parentPath = (path) => path.slice(0, path.length - 1);
 export const leafPath = (path) => path[path.length - 1];
 
-const updateValue = (path, behaviorTree, value) => {
-    return updateTree(parentPath(path), behaviorTree, (subState) => {
+const updateValue = (tree, path, behaviorTree, value) => {
+    return updateTree(tree, parentPath(path), behaviorTree, (subState) => {
         subState.fields[leafPath(path)] = value;
     });
 };
 
-const increaseVecSize = (path, behaviorTree) => {
-    return updateTree(path, behaviorTree, (subState) => {
+const increaseVecSize = (tree, path, behaviorTree) => {
+    return updateTree(tree, path, behaviorTree, (subState) => {
         subState.fields = [...subState.fields, getDefaultValue(subState.itemType)];
     });
 };
 
-const deleteVecItem = (path, behaviorTree, index) => {
-    return updateTree(path, behaviorTree, (subState) => {
+const deleteVecItem = (tree, path, behaviorTree, index) => {
+    return updateTree(tree, path, behaviorTree, (subState) => {
         subState.fields = subState.fields.filter((_, idx) => index !== idx);
     });
 };
 
-const getElement = (path, behaviorTree) => path.reduce((tree, idx) => {
-    return tree.fields && tree.fields[idx];
-}, behaviorTree);
+export const getTreeNames = ({ behaviorTree }) => Object.keys(behaviorTree);
 
-export const getEnumVariant = (path) => ({ behaviorTree }) => {
-    const element = getElement(path, behaviorTree);
+const getElement = (treeName, path, behaviorTrees) => path.reduce((tree, idx) => {
+    return tree.fields && tree.fields[idx];
+}, behaviorTrees[treeName]);
+
+export const getEnumVariant = (treeName, path) => ({ behaviorTree }) => {
+    const element = getElement(treeName, path, behaviorTree);
     return element
         ? element.variant
         : null;
 };
 
-export const getEnumField = (path) => ({ behaviorTree }) => {
-    return getElement(path, behaviorTree);
+export const getEnumField = (treeName, path) => ({ behaviorTree }) => {
+    return getElement(treeName, path, behaviorTree);
 };
 
-export const getVecPaths = (path) => ({ behaviorTree }) =>
-    getElement(path, behaviorTree).fields.map((_, idx) => [...path, idx]);
+export const getVecPaths = (treeName, path) => ({ behaviorTree }) =>
+    getElement(treeName, path, behaviorTree).fields.map((_, idx) => [...path, idx]);
 
 export const concentrate = (tree) => {
     if (tree.variant) {
@@ -129,6 +150,63 @@ export const concentrate = (tree) => {
     }
 };
 
-export const getJsonOutput = ({ behaviorTree }) => {
-    return JSON.stringify(concentrate(behaviorTree));
+export const getJsonOutput = (treeName) => ({ behaviorTree }) => {
+    return JSON.stringify(concentrate(behaviorTree[treeName]));
+};
+
+export const hydrateVariant = (concentrated, typeDesc) => {
+    const variantName = typeof concentrated === 'object'
+        ? Object.keys(concentrated)[0]
+        : concentrated;
+    const variant = typeDesc.variants.find(({ name }) => name === variantName);
+    if (variant.fields) {
+        const values = concentrated[variantName];
+        console.log(concentrated, variantName);
+        if (variant.fields.length > 1) {
+            return {
+                variant,
+                fields: variant.fields.map((fieldDesc, idx) => hydrateField(values[idx], fieldDesc)),
+            };
+        } else {
+            return {
+                variant,
+                fields: [hydrateField(values, variant.fields[0])],
+            };
+        }
+    } else {
+        return {
+            variant,
+        };
+    }
+};
+
+export const hydrateVec = (concentrated, itemType) => {
+    return {
+        name: 'Vec',
+        fields: concentrated.map((item) => hydrateField(item, itemType)),
+        itemType,
+    };
+};
+
+export const hydrateField = (concentrated, fieldDesc) => {
+    console.log(concentrated, fieldDesc);
+    if (typeof fieldDesc === 'string') {
+        const typeDesc = TYPE_DESCS[fieldDesc];
+        if (typeDesc) {
+            return hydrateField(concentrated, typeDesc);
+        } else {
+            return concentrated;
+        }
+    } else if (fieldDesc.name && fieldDesc.name === 'Vec') {
+        return hydrateVec(concentrated, fieldDesc.itemType);
+    } else if (fieldDesc.variants) {
+        return hydrateVariant(concentrated, fieldDesc);
+    } else {
+        return concentrated;
+    }
+};
+
+export const hydrateJson = (json) => {
+    const concentratedTree = JSON.parse(json);
+    return hydrateVariant(concentratedTree, UNPOWERED_TREE_DEF_DESC);
 };

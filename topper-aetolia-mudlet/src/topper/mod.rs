@@ -3,6 +3,7 @@ use group::GroupModule;
 use prediction::PredictionModule;
 use serde_json::from_str;
 use std::sync::mpsc::Sender;
+use topper_aetolia::bt::clear_behavior_trees;
 use topper_aetolia::classes::get_attack;
 use topper_aetolia::timeline::*;
 use topper_aetolia::types::AgentState;
@@ -14,11 +15,13 @@ use topper_core_mudlet::topper::{
     TopperRequest, TopperResponse,
 };
 pub mod battle_stats;
+mod behavior_trees;
 pub mod db;
 pub mod first_aid;
 pub mod group;
 pub mod prediction;
 pub mod web_ui;
+use crate::topper::behavior_trees::initialize_load_tree_func;
 use crate::topper::prediction::prioritize_cures;
 
 use self::battle_stats::BattleStats;
@@ -136,9 +139,15 @@ impl Topper<AetObservation, AetPrompt, AgentState, AetMudletDatabaseModule> for 
 }
 
 impl AetTopper {
-    pub fn new(send_lines: Sender<String>, path: String, triggers_dir: String) -> Self {
+    pub fn new(
+        send_lines: Sender<String>,
+        path: String,
+        triggers_dir: String,
+        behavior_trees_dir: String,
+    ) -> Self {
         println!("DB: {:?}", std::fs::canonicalize(path.clone()).unwrap());
         let database_module = AetMudletDatabaseModule::new(path);
+        initialize_load_tree_func(behavior_trees_dir);
         AetTopper {
             debug_mode: false,
             triggers_dir: triggers_dir.clone(),
@@ -198,6 +207,9 @@ impl TopperHandler<BattleStats> for AetTopper {
                             aet_observation_creator,
                         )
                         .map_err(|err| err.to_string())?;
+                } else if "core".eq(module) && "reload trees".eq(command) {
+                    println!("Reloading behavior trees");
+                    clear_behavior_trees();
                 }
             }
             _ => {}

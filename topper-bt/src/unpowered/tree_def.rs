@@ -1,13 +1,17 @@
 use serde::{Deserialize, Serialize};
 
-use super::{Repeat, RepeatUntilFail, Selector, Sequence, UnpoweredFunction};
+use super::{nodes::*, UnpoweredFunction};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub enum UnpoweredTreeDef<U: UserNodeDefinition> {
     Sequence(Vec<UnpoweredTreeDef<U>>),
     Selector(Vec<UnpoweredTreeDef<U>>),
     Repeat(Box<UnpoweredTreeDef<U>>, usize),
+    RepeatUntilSuccess(Box<UnpoweredTreeDef<U>>),
     RepeatUntilFail(Box<UnpoweredTreeDef<U>>),
+    Succeeder(Box<UnpoweredTreeDef<U>>),
+    Failer(Box<UnpoweredTreeDef<U>>),
+    Inverter(Box<UnpoweredTreeDef<U>>),
     User(U),
 }
 
@@ -16,19 +20,20 @@ pub trait UserNodeDefinition {
     type Controller: 'static;
     fn create_node(
         &self,
-    ) -> Box<dyn UnpoweredFunction<Model = Self::Model, Controller = Self::Controller>>;
+    ) -> Box<dyn UnpoweredFunction<Model = Self::Model, Controller = Self::Controller> + Send + Sync>;
 }
 
 impl<M: 'static, C: 'static, D: 'static> UserNodeDefinition for D
 where
-    D: UnpoweredFunction<Model = M, Controller = C> + Clone,
+    D: UnpoweredFunction<Model = M, Controller = C> + Clone + Send + Sync,
 {
     type Model = M;
     type Controller = C;
 
     fn create_node(
         &self,
-    ) -> Box<dyn UnpoweredFunction<Model = Self::Model, Controller = Self::Controller>> {
+    ) -> Box<dyn UnpoweredFunction<Model = Self::Model, Controller = Self::Controller> + Send + Sync>
+    {
         Box::new(self.clone())
     }
 }
@@ -36,7 +41,8 @@ where
 impl<U: UserNodeDefinition> UnpoweredTreeDef<U> {
     pub fn create_tree(
         &self,
-    ) -> Box<dyn UnpoweredFunction<Model = U::Model, Controller = U::Controller>> {
+    ) -> Box<dyn UnpoweredFunction<Model = U::Model, Controller = U::Controller> + Send + Sync>
+    {
         match self {
             UnpoweredTreeDef::Sequence(node_defs) => {
                 let nodes = node_defs
@@ -59,6 +65,22 @@ impl<U: UserNodeDefinition> UnpoweredTreeDef<U> {
             UnpoweredTreeDef::RepeatUntilFail(node_def) => {
                 let node = node_def.create_tree();
                 Box::new(RepeatUntilFail::new(node))
+            }
+            UnpoweredTreeDef::RepeatUntilSuccess(node_def) => {
+                let node = node_def.create_tree();
+                Box::new(RepeatUntilSuccess::new(node))
+            }
+            UnpoweredTreeDef::Succeeder(node_def) => {
+                let node = node_def.create_tree();
+                Box::new(Succeeder::new(node))
+            }
+            UnpoweredTreeDef::Inverter(node_def) => {
+                let node = node_def.create_tree();
+                Box::new(Inverter::new(node))
+            }
+            UnpoweredTreeDef::Failer(node_def) => {
+                let node = node_def.create_tree();
+                Box::new(Failer::new(node))
             }
             UnpoweredTreeDef::User(node_def) => node_def.create_node(),
         }

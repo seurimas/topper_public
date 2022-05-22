@@ -10,28 +10,28 @@ export const VecDeleteButton = ({ onClick }) => {
     return <IconButton color="secondary" onClick={onClick}><Delete /></IconButton>;
 };
 
-export const VecItem = ({ path, children }) => {
+export const VecItem = ({ treeName, path, children }) => {
     const vecParentPath = parentPath(path);
     const vecIndex = leafPath(path);
     const dispatch = useDispatch();
-    const deleteItem = () => dispatch(removeFromVec(vecParentPath, vecIndex));
+    const deleteItem = () => dispatch(removeFromVec(treeName, vecParentPath, vecIndex));
     return <Paper>{children}<VecDeleteButton onClick={deleteItem} /></Paper>;
 };
 
-export const VecAddButton = ({ path }) => {
+export const VecAddButton = ({ treeName, path }) => {
     const dispatch = useDispatch();
-    const addItem = () => dispatch(addToVec(path));
+    const addItem = () => dispatch(addToVec(treeName, path));
     return <IconButton color="primary" onClick={addItem}><Add /></IconButton>;
 };
 
 export const VecList = ({
-    path, typeDesc,
+    treeName, path, typeDesc,
 }) => {
     const { itemType } = typeDesc;
-    const vecPaths = useSelector(getVecPaths(path));
+    const vecPaths = useSelector(getVecPaths(treeName, path));
     const items = [
-        ...vecPaths.map(vecPath => <VecItem path={vecPath}>{renderValueOfType(vecPath, itemType)}</VecItem>),
-        <VecAddButton path={path} />,
+        ...vecPaths.map(vecPath => <VecItem treeName={treeName} path={vecPath}>{renderValueOfType(treeName, vecPath, itemType)}</VecItem>),
+        <VecAddButton treeName={treeName} path={path} />,
     ];
     return (
         <Stack direction="row" spacing={2}>{items}</Stack>
