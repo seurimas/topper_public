@@ -36,16 +36,12 @@ pub fn handle_combat_action(
                 "right leg" => LType::RightLegDamage,
                 _ => LType::SIZE, // I don't want to panic
             };
-            for_agent_closure(
-                agent_states,
-                &combat_action.caster,
-                Box::new(move |you| {
-                    you.limb_damage.welt(limb);
-                }),
-            );
+            for_agent(agent_states, &combat_action.caster, &move |you| {
+                you.limb_damage.welt(limb);
+            });
         }
         "Hellcat" => {
-            for_agent(agent_states, &combat_action.caster, |you| {
+            for_agent(agent_states, &combat_action.caster, &|you| {
                 if you.is(FType::Ablaze) {
                     you.tick_flag_up(FType::Ablaze);
                 }
@@ -76,50 +72,58 @@ pub fn handle_combat_action(
                 "right leg" => (LType::RightLegDamage, FType::RightLegDislocated),
                 _ => (LType::SIZE, FType::SIZE), // I don't want to panic
             };
-            for_agent_closure(
-                agent_states,
-                &combat_action.caster,
-                Box::new(move |you| {
-                    let limb_state = you.get_limb_state(limb);
-                    let damage_change = 33.34 - limb_state.damage;
-                    you.limb_damage.set_limb_damaged(limb, true);
-                    you.toggle_flag(dislocation, false);
-                }),
-            );
+            for_agent(agent_states, &combat_action.caster, &move |you| {
+                let limb_state = you.get_limb_state(limb);
+                let damage_change = 33.34 - limb_state.damage;
+                you.limb_damage.set_limb_damaged(limb, true);
+                you.toggle_flag(dislocation, false);
+            });
         }
         "InfernalSeal" => {
-            for_agent(agent_states, &combat_action.caster, |you| {
+            for_agent(agent_states, &combat_action.caster, &|you| {
                 you.observe_flag(FType::Ablaze, true);
                 you.toggle_flag(FType::InfernalSeal, true);
             });
         }
         "Zenith" => {
-            for_agent(agent_states, &combat_action.caster, |you| {
+            for_agent(agent_states, &combat_action.caster, &|you| {
                 you.assume_zealot(|zealot| zealot.zenith.initiate());
             });
         }
         "Pyromania" => match combat_action.annotation.as_ref() {
             "" => {
-                for_agent(agent_states, &combat_action.caster, |you| {
+                for_agent(agent_states, &combat_action.caster, &|you| {
                     you.assume_zealot(|zealot| zealot.pyromania.activate(2000));
                 });
             }
             "hit" => {
-                for_agent(agent_states, &combat_action.caster, |me| {
-                    if me.is(FType::Ablaze) {
-                        me.tick_flag_up(FType::Ablaze);
-                    }
-                });
+                for_agent(
+                    agent_states,
+                    &combat_action.caster,
+                    &|me: &mut AgentState| {
+                        if me.is(FType::Ablaze) {
+                            me.tick_flag_up(FType::Ablaze);
+                        }
+                    },
+                );
             }
             "fall" => {
-                for_agent(agent_states, &combat_action.caster, |me| {
-                    me.toggle_flag(FType::Fallen, true);
-                });
+                for_agent(
+                    agent_states,
+                    &combat_action.caster,
+                    &|me: &mut AgentState| {
+                        me.toggle_flag(FType::Fallen, true);
+                    },
+                );
             }
             "shield" => {
-                for_agent(agent_states, &combat_action.caster, |me| {
-                    me.toggle_flag(FType::Shielded, false);
-                });
+                for_agent(
+                    agent_states,
+                    &combat_action.caster,
+                    &|me: &mut AgentState| {
+                        me.toggle_flag(FType::Shielded, false);
+                    },
+                );
             }
             _ => {}
         },
@@ -138,12 +142,12 @@ pub fn handle_combat_action(
                     (limb, HEELRUSH_ONE_DAMAGE, true),
                     after,
                 );
-                for_agent_closure(
+                for_agent(
                     agent_states,
                     &combat_action.caster,
-                    Box::new(move |me| {
+                    &move |me: &mut AgentState| {
                         me.set_channel(ChannelState::Heelrush(limb, 325));
-                    }),
+                    },
                 );
             }
         }
@@ -208,9 +212,13 @@ pub fn handle_combat_action(
                 (LType::TorsoDamage, RISEKICK_DAMAGE, true),
                 after,
             );
-            for_agent(agent_states, &combat_action.caster, |me| {
-                me.toggle_flag(FType::Fallen, false);
-            });
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &|me: &mut AgentState| {
+                    me.toggle_flag(FType::Fallen, false);
+                },
+            );
         }
         "Pummel" => {
             apply_combo_balance(
@@ -337,7 +345,7 @@ pub fn handle_combat_action(
                 vec![FType::SoreAnkle],
                 after,
             );
-            for_agent(agent_states, &combat_action.target, |you| {
+            for_agent(agent_states, &combat_action.target, &|you| {
                 you.limb_damage.dewelt(LType::LeftLegDamage);
                 you.limb_damage.dewelt(LType::RightLegDamage);
             });
@@ -349,7 +357,7 @@ pub fn handle_combat_action(
                 vec![FType::SoreWrist],
                 after,
             );
-            for_agent(agent_states, &combat_action.target, |you| {
+            for_agent(agent_states, &combat_action.target, &|you| {
                 you.limb_damage.dewelt(LType::LeftArmDamage);
                 you.limb_damage.dewelt(LType::RightArmDamage);
             });
@@ -361,7 +369,7 @@ pub fn handle_combat_action(
                 vec![FType::Backstrain],
                 after,
             );
-            for_agent(agent_states, &combat_action.target, |you| {
+            for_agent(agent_states, &combat_action.target, &|you| {
                 you.limb_damage.dewelt(LType::TorsoDamage);
             });
         }
@@ -372,7 +380,7 @@ pub fn handle_combat_action(
                 vec![FType::Whiplash],
                 after,
             );
-            for_agent(agent_states, &combat_action.target, |you| {
+            for_agent(agent_states, &combat_action.target, &|you| {
                 you.limb_damage.dewelt(LType::HeadDamage);
             });
         }
@@ -385,32 +393,36 @@ pub fn handle_combat_action(
             );
         }
         "Rejection" => {
-            for_agent(agent_states, &combat_action.caster, |me| {
-                me.set_flag(FType::Rebounding, true);
-            });
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &|me: &mut AgentState| {
+                    me.set_flag(FType::Rebounding, true);
+                },
+            );
         }
         "Pendulum" => {
             let observations = after.clone();
-            for_agent_closure(
+            for_agent(
                 agent_states,
                 &combat_action.caster,
-                Box::new(move |me| {
+                &move |me: &mut AgentState| {
                     apply_or_infer_balance(me, (BType::Equil, 3.0), &observations);
                     me.set_balance(BType::Pendulum, 10.0);
-                }),
+                },
             );
             let annotation = combat_action.annotation.clone();
             let observations = after.clone();
-            for_agent_closure(
+            for_agent(
                 agent_states,
                 &combat_action.target,
-                Box::new(move |you| {
-                    you.rotate_limbs(annotation == "anti-clockwise");
-                }),
+                &|me: &mut AgentState| {
+                    me.rotate_limbs(annotation == "anti-clockwise");
+                },
             );
         }
         "Whipburst" => {
-            for_agent(agent_states, &combat_action.target, |you| {
+            for_agent(agent_states, &combat_action.target, &|you| {
                 if you.is(FType::Ablaze) {
                     you.tick_flag_up(FType::Ablaze);
                 }
@@ -418,14 +430,14 @@ pub fn handle_combat_action(
         }
         "Quicken" => {
             let observations = after.clone();
-            for_agent_closure(
+            for_agent(
                 agent_states,
                 &combat_action.caster,
-                Box::new(move |me| {
+                &move |me: &mut AgentState| {
                     apply_or_infer_balance(me, (BType::Equil, 3.0), &observations);
-                }),
+                },
             );
-            for_agent(agent_states, &combat_action.target, |you| {
+            for_agent(agent_states, &combat_action.target, &|you| {
                 you.tick_flag_up(FType::Ablaze);
                 you.tick_flag_up(FType::Ablaze);
                 you.tick_flag_up(FType::Ablaze);
@@ -433,37 +445,37 @@ pub fn handle_combat_action(
         }
         "Infernal" => {
             if combat_action.annotation.eq("failure") {
-                for_agent(agent_states, &combat_action.caster, |you| {
+                for_agent(agent_states, &combat_action.caster, &|you| {
                     you.limb_damage.set_limb_damaged(LType::TorsoDamage, false);
                 });
             } else {
                 let observations = after.clone();
-                for_agent_closure(
+                for_agent(
                     agent_states,
                     &combat_action.caster,
-                    Box::new(move |me| {
+                    &move |me: &mut AgentState| {
                         apply_or_infer_balance(me, (BType::Equil, 2.0), &observations);
-                    }),
+                    },
                 );
                 let observations = after.clone();
-                for_agent(agent_states, &combat_action.target, |you| {
+                for_agent(agent_states, &combat_action.target, &|you| {
                     you.set_flag(FType::InfernalSeal, true);
                 });
             }
         }
         "InfernalShroud" => {
-            for_agent(agent_states, &combat_action.caster, |you| {
+            for_agent(agent_states, &combat_action.caster, &|you| {
                 you.set_flag(FType::Shielded, false);
             });
         }
         "Scorch" => {
             let observations = after.clone();
-            for_agent_closure(
+            for_agent(
                 agent_states,
                 &combat_action.caster,
-                Box::new(move |me| {
+                &move |me: &mut AgentState| {
                     apply_or_infer_balance(me, (BType::Equil, 2.0), &observations);
-                }),
+                },
             );
             attack_afflictions(
                 agent_states,
@@ -474,17 +486,17 @@ pub fn handle_combat_action(
         }
         "Heatspear" => {
             if combat_action.annotation.eq("failure") {
-                for_agent(agent_states, &combat_action.caster, |you| {
+                for_agent(agent_states, &combat_action.caster, &|you| {
                     you.observe_flag(FType::Ablaze, false);
                 });
             } else {
                 let observations = after.clone();
-                for_agent_closure(
+                for_agent(
                     agent_states,
                     &combat_action.caster,
-                    Box::new(move |me| {
+                    &move |me: &mut AgentState| {
                         apply_or_infer_balance(me, (BType::Equil, 3.0), &observations);
-                    }),
+                    },
                 );
                 attack_afflictions(
                     agent_states,
@@ -495,44 +507,76 @@ pub fn handle_combat_action(
             }
         }
         "Firefist" => {
-            for_agent(agent_states, &combat_action.caster, |me| {
-                me.set_balance(BType::Firefist, 80.0);
-            });
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &|me: &mut AgentState| {
+                    me.set_balance(BType::Firefist, 80.0);
+                },
+            );
         }
         "Wrath" => {
-            for_agent(agent_states, &combat_action.caster, |me| {
-                me.set_balance(BType::Wrath, 30.0);
-            });
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &|me: &mut AgentState| {
+                    me.set_balance(BType::Wrath, 30.0);
+                },
+            );
         }
         "Dull" => {
-            for_agent(agent_states, &combat_action.target, |me| {
-                me.set_flag(FType::Indifference, true);
-            });
+            for_agent(
+                agent_states,
+                &combat_action.target,
+                &|me: &mut AgentState| {
+                    me.set_flag(FType::Indifference, true);
+                },
+            );
         }
         "Immolation" => {
             if combat_action.annotation.eq("failure") {
-                for_agent(agent_states, &combat_action.target, |me| {
-                    me.observe_flag(FType::Ablaze, false);
-                });
+                for_agent(
+                    agent_states,
+                    &combat_action.target,
+                    &|me: &mut AgentState| {
+                        me.observe_flag(FType::Ablaze, false);
+                    },
+                );
             }
         }
         "Recover" => {
-            for_agent(agent_states, &combat_action.caster, |me| {
-                me.set_balance(BType::ClassCure1, 20.0);
-            });
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &|me: &mut AgentState| {
+                    me.set_balance(BType::ClassCure1, 20.0);
+                },
+            );
         }
         "Hackles" => {
-            for_agent(agent_states, &combat_action.caster, |me| {
-                me.set_balance(BType::Secondary, 6.5);
-            });
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &|me: &mut AgentState| {
+                    me.set_balance(BType::Secondary, 6.5);
+                },
+            );
         }
         "Disable" => {
-            for_agent(agent_states, &combat_action.caster, |me| {
-                me.set_balance(BType::Disable, 90.0);
-            });
-            for_agent(agent_states, &combat_action.target, |me| {
-                me.set_balance(BType::Disabled, 12.0);
-            });
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &|me: &mut AgentState| {
+                    me.set_balance(BType::Disable, 90.0);
+                },
+            );
+            for_agent(
+                agent_states,
+                &combat_action.target,
+                &|me: &mut AgentState| {
+                    me.set_balance(BType::Disabled, 12.0);
+                },
+            );
         }
         _ => {}
     }

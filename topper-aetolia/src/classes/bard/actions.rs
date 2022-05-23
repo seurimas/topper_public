@@ -276,6 +276,21 @@ pub enum PerformanceAttack {
     Cadence,
 }
 
+impl PerformanceAttack {
+    pub fn needs_weapon(&self) -> bool {
+        match self {
+            Self::TempoOne(_)
+            | Self::TempoTwo(_, _)
+            | Self::TempoThree(_, _, _)
+            | Self::Harry(_)
+            | Self::Bravado(_)
+            | Self::Cadence
+            | Self::Hiltblow => true,
+            _ => false,
+        }
+    }
+}
+
 pub struct PerformanceAttackAction {
     pub caster: String,
     pub target: String,

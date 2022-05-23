@@ -92,12 +92,7 @@ impl<A: BaseAgentState + Clone> TimelineState<A> {
         self.borrow_agent(&self.me.clone())
     }
 
-    pub fn for_agent(&mut self, who: &String, act: fn(&mut A)) {
-        for you in self.get_mut_agent(who) {
-            act(you);
-        }
-    }
-    pub fn for_agent_closure(&mut self, who: &String, act: Box<dyn Fn(&mut A)>) {
+    pub fn for_agent(&mut self, who: &String, act: &Fn(&mut A)) {
         for you in self.get_mut_agent(who) {
             act(you);
         }

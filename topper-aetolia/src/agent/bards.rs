@@ -4,7 +4,7 @@ use serde::*;
 
 use super::*;
 
-#[derive(Debug, Deserialize, Serialize, Display, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Deserialize, Serialize, Display, Clone, Copy, EnumString, PartialEq, Eq, Hash)]
 pub enum Song {
     Origin,
     Charity,
@@ -62,10 +62,25 @@ pub struct BardClassState {
     pub tempo: Option<(usize, CType)>,
     pub voice_song: Option<Song>,
     pub instrument_song: Option<Song>,
+    pub voice_timeout: CType,
+    pub instrument_timeout: CType,
     pub half_beat: HalfbeatState,
 }
 
+const SONG_TIMEOUT: CType = (10.0 * BALANCE_SCALE) as CType;
+
 impl BardClassState {
+    fn wait(&mut self, duration: i32) {
+        if self.voice_timeout <= duration {
+            self.voice_song = None;
+        }
+        if self.instrument_timeout <= duration {
+            self.instrument_song = None;
+        }
+        self.voice_timeout -= duration;
+        self.instrument_timeout -= duration;
+    }
+
     pub fn on_tempo(&mut self) {
         let tempo_count = if let Some((count, _timer)) = self.tempo {
             count + 1
@@ -94,6 +109,24 @@ impl BardClassState {
     pub fn half_beat_end(&mut self) {
         self.half_beat = HalfbeatState::Inactive;
     }
+
+    pub fn start_song(&mut self, song: Song, played: bool) {
+        if played {
+            self.instrument_song = Some(song);
+            self.instrument_timeout = SONG_TIMEOUT;
+        } else {
+            self.voice_song = Some(song);
+            self.voice_timeout = SONG_TIMEOUT;
+        }
+    }
+
+    pub fn end_song(&mut self, song: Song) {
+        if self.voice_song == Some(song) {
+            self.voice_song = None;
+        } else if self.instrument_song == Some(song) {
+            self.instrument_song = None;
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -112,6 +145,18 @@ impl Default for RunebandState {
 impl RunebandState {
     pub fn initial() -> Self {
         Self::Normal(0)
+    }
+
+    pub fn reverse(&mut self) {
+        match &self {
+            Self::Normal(next) => {
+                *self = Self::Reverse(*next);
+            }
+            Self::Reverse(next) => {
+                *self = Self::Normal(*next);
+            }
+            _ => {}
+        }
     }
 
     pub fn is_active(&self) -> bool {
@@ -147,7 +192,7 @@ impl GlobesState {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, EnumString, Copy, PartialEq, Eq, Hash)]
 pub enum Emotion {
     Sadness,
     Happiness,

@@ -72,6 +72,8 @@ registerTypeDesc(PERFORMANCE_ATTACK);
 export const BARD_PREDICATE = {
     name: 'BardPredicate',
     variants: [{
+        name: 'Undithered',
+    }, {
         name: 'InHalfBeat',
     }, {
         name: 'InWholeBeat',

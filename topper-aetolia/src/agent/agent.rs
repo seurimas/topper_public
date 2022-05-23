@@ -247,11 +247,11 @@ impl AgentState {
             }
             FType::Halfbeat => {
                 if value {
-                    self.assume_bard(|bard| {
+                    self.assume_bard(&|bard: &mut BardClassState| {
                         bard.half_beat_slowdown();
                     });
                 } else {
-                    self.assume_bard(|bard| {
+                    self.assume_bard(&|bard: &mut BardClassState| {
                         bard.half_beat_end();
                     })
                 }
@@ -400,6 +400,19 @@ impl AgentState {
     pub fn initialize_stat(&mut self, stat: SType, value: CType) {
         self.max_stats[stat as usize] = value;
         self.stats[stat as usize] = value;
+    }
+
+    pub fn can_wield(&self, left: bool, right: bool) -> bool {
+        if left && self.get_limb_state(LType::LeftArmDamage).broken {
+            return false;
+        }
+        if right && self.get_limb_state(LType::RightArmDamage).broken {
+            return false;
+        }
+        if self.is(FType::Paralysis) {
+            return false;
+        }
+        true
     }
 
     pub fn can_smoke(&self, ignore_bal: bool) -> bool {
@@ -658,7 +671,7 @@ impl AgentState {
         }
     }
 
-    pub fn assume_bard<R>(&mut self, action: fn(&mut BardClassState) -> R) -> R {
+    pub fn assume_bard<R>(&mut self, action: &Fn(&mut BardClassState) -> R) -> R {
         if let ClassState::Bard(bard) = &mut self.class_state {
             action(bard)
         } else {

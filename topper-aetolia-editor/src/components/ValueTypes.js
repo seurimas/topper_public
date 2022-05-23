@@ -1,5 +1,5 @@
 import React from 'react';
-import { TextField } from "@mui/material";
+import { Checkbox, TextField } from "@mui/material";
 import { useDispatch, useSelector } from 'react-redux';
 import { getEnumField } from '../behavior_tree/reducer_selectors';
 import { setValue } from '../behavior_tree/actions';
@@ -11,8 +11,16 @@ const StringField = ({ treeName, path }) => {
     return <TextField value={value || ''} onChange={onChange} />;
 };
 
+const BooleanField = ({ treeName, path }) => {
+    const dispatch = useDispatch();
+    const value = useSelector(getEnumField(treeName, path));
+    const onChange = (event) => dispatch(setValue(treeName, path, event.target.checked));
+    return <Checkbox checked={value || false} onChange={onChange} />;
+};
+
 const TYPE_RENDERERS = {
     "String": StringField,
+    "Boolean": BooleanField,
 };
 
 export const registerTypeRenderer = (valueType, renderer) => {

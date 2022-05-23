@@ -1,6 +1,8 @@
 mod behavior;
 mod predicate;
 mod sub_trees;
+use std::collections::HashSet;
+
 pub use behavior::*;
 pub use predicate::*;
 use serde::{Deserialize, Serialize};
@@ -10,6 +12,8 @@ use topper_bt::unpowered::*;
 use crate::{observables::ActionPlan, timeline::AetTimeline};
 
 pub type AetBehaviorTreeDef = UnpoweredTreeDef<AetBehaviorTreeNode>;
+
+pub static mut DEBUG_TREES: bool = false;
 
 lazy_static! {
     pub static ref DEFAULT_BEHAVIOR_TREE: AetBehaviorTreeDef =
@@ -26,9 +30,24 @@ pub enum AetBehaviorTreeNode {
 
 pub type BehaviorModel = AetTimeline;
 
+#[derive(Default, Debug)]
 pub struct BehaviorController {
     pub plan: ActionPlan,
+    pub used_balance: bool,
+    pub used_equilibrium: bool,
+    pub used_secondary_balance: bool,
+    pub plan_tags: HashSet<String>,
     pub target: Option<String>,
+}
+
+impl BehaviorController {
+    pub fn has_qeb(&self) -> bool {
+        !self.used_balance && !self.used_equilibrium
+    }
+
+    pub fn tag_plan(&mut self, tag: String) {
+        self.plan_tags.insert(tag);
+    }
 }
 
 impl UnpoweredFunction for AetBehaviorTreeNode {
@@ -40,14 +59,20 @@ impl UnpoweredFunction for AetBehaviorTreeNode {
         model: &Self::Model,
         controller: &mut Self::Controller,
     ) -> UnpoweredFunctionState {
-        match self {
+        let result = match self {
             Self::Action(action) => action.resume_with(model, controller),
             Self::Predicate(predicate) => predicate.resume_with(model, controller),
             Self::SubTree(sub_tree) => get_tree(sub_tree)
                 .lock()
                 .unwrap()
                 .resume_with(model, controller),
+        };
+        unsafe {
+            if DEBUG_TREES {
+                println!("BT: {:?} ({:?})", self, result);
+            }
         }
+        result
     }
 
     fn reset(self: &mut Self, model: &Self::Model) {

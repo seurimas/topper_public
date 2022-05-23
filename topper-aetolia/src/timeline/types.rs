@@ -1,8 +1,8 @@
 use super::apply_functions::*;
 use crate::classes::{get_skill_class, handle_combat_action, handle_sent, Class, VENOM_AFFLICTS};
 use crate::curatives::{
-    handle_simple_cure_action, remove_in_order, top_aff, CALORIC_TORSO_ORDER, PILL_CURE_ORDERS,
-    PILL_DEFENCES, SALVE_CURE_ORDERS, SMOKE_CURE_ORDERS,
+    handle_simple_cure_action, top_aff, CALORIC_TORSO_ORDER, PILL_CURE_ORDERS, PILL_DEFENCES,
+    SALVE_CURE_ORDERS, SMOKE_CURE_ORDERS,
 };
 use crate::db::AetDatabaseModule;
 use crate::types::*;
@@ -185,6 +185,7 @@ pub enum AetObservation {
     Shield,
     ListStart(String, String),
     ListItem(String, String, String, String),
+    Undithered,
     // First-Aid simples
     Afflicted(String),
     Discovered(String),
@@ -262,24 +263,21 @@ impl AetTimelineStateTrait for AetTimelineState {
         val: bool,
     ) -> Result<(), String> {
         let flag_name = flag_name.clone();
-        self.for_agent_closure(
-            who,
-            Box::new(move |me| {
-                if let Ok((_damage_type, _damage_amount)) = get_damage_barrier(&flag_name) {
-                    // Do nothing...
-                } else if let Some(aff_flag) = FType::from_name(&flag_name) {
-                    if aff_flag == FType::ThinBlood && !val {
-                        me.clear_relapses();
-                    }
-                    if aff_flag == FType::Insomnia && val && me.is(FType::Hypersomnia) {
-                    } else {
-                        me.set_flag(aff_flag, val);
-                    }
-                } else {
-                    // Err(format!("Failed to find flag {}", flag_name));
+        self.for_agent(who, &move |me: &mut AgentState| {
+            if let Ok((_damage_type, _damage_amount)) = get_damage_barrier(&flag_name) {
+                // Do nothing...
+            } else if let Some(aff_flag) = FType::from_name(&flag_name) {
+                if aff_flag == FType::ThinBlood && !val {
+                    me.clear_relapses();
                 }
-            }),
-        );
+                if aff_flag == FType::Insomnia && val && me.is(FType::Hypersomnia) {
+                } else {
+                    me.set_flag(aff_flag, val);
+                }
+            } else {
+                // Err(format!("Failed to find flag {}", flag_name));
+            }
+        });
         Ok(())
     }
 
@@ -289,42 +287,33 @@ impl AetTimelineStateTrait for AetTimelineState {
         flag_name: &String,
     ) -> Result<(), String> {
         let flag_name = flag_name.clone();
-        self.for_agent_closure(
-            who,
-            Box::new(move |me| {
-                if let Some(aff_flag) = FType::from_name(&flag_name) {
-                    if aff_flag.is_counter() {
-                        me.tick_flag_up(aff_flag);
-                    } else {
-                        // return Err(format!("Tried to tick non-counter: {}", flag_name));
-                    }
+        self.for_agent(who, &move |me: &mut AgentState| {
+            if let Some(aff_flag) = FType::from_name(&flag_name) {
+                if aff_flag.is_counter() {
+                    me.tick_flag_up(aff_flag);
                 } else {
-                    // return Err(format!("Failed to find flag {}", flag_name));
+                    // return Err(format!("Tried to tick non-counter: {}", flag_name));
                 }
-            }),
-        );
+            } else {
+                // return Err(format!("Failed to find flag {}", flag_name));
+            }
+        });
         Ok(())
     }
 
     fn adjust_agent_limb(&mut self, who: &String, what: &String, val: f32) -> Result<(), String> {
         let limb = get_limb_damage(what)?;
-        self.for_agent_closure(
-            who,
-            Box::new(move |me| {
-                me.limb_damage.adjust_limb(limb, (val * 100.0) as CType);
-            }),
-        );
+        self.for_agent(who, &move |me: &mut AgentState| {
+            me.limb_damage.adjust_limb(limb, (val * 100.0) as CType);
+        });
         Ok(())
     }
 
     fn finish_agent_restore(&mut self, who: &String, what: &String) -> Result<(), String> {
         let limb = get_limb_damage(what)?;
-        self.for_agent_closure(
-            who,
-            Box::new(move |me| {
-                me.complete_restoration(limb);
-            }),
-        );
+        self.for_agent(who, &move |me: &mut AgentState| {
+            me.complete_restoration(limb);
+        });
         Ok(())
     }
 
@@ -365,13 +354,9 @@ impl AetTimelineStateTrait for AetTimelineState {
         }
         if let AetPrompt::Stats(stats) = &slice.prompt {
             let sp = stats.sp;
-            for_agent_closure(
-                self,
-                &slice.me,
-                Box::new(move |you| {
-                    you.set_stat(SType::SP, sp);
-                }),
-            );
+            for_agent(self, &slice.me, &move |you| {
+                you.set_stat(SType::SP, sp);
+            });
         }
         self.strikeout();
         Ok(())

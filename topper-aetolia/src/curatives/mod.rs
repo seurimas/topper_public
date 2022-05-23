@@ -25,17 +25,15 @@ pub fn top_missing_aff(who: &AgentState, afflictions: &Vec<FType>) -> Option<FTy
     None
 }
 
-pub fn remove_in_order(afflictions: Vec<FType>) -> Box<Fn(&mut AgentState)> {
-    Box::new(move |me| {
-        for affliction in afflictions.iter() {
-            if me.is(*affliction) {
-                me.set_flag(*affliction, false);
-                return;
-            }
+pub fn remove_in_order(afflictions: Vec<FType>, me: &mut AgentState) {
+    for affliction in afflictions.iter() {
+        if me.is(*affliction) {
+            me.set_flag(*affliction, false);
+            return;
         }
-        // No affs found. Assume this is a poor quality branch.
-        me.branch_state.strike();
-    })
+    }
+    // No affs found. Assume this is a poor quality branch.
+    me.branch_state.strike();
 }
 
 pub fn handle_simple_cure_action(
@@ -47,10 +45,10 @@ pub fn handle_simple_cure_action(
     let observations = after.clone();
     let cure_type = simple_cure.cure_type.clone();
     let first_person = agent_states.me.eq(&simple_cure.caster);
-    for_agent_closure(
+    for_agent(
         agent_states,
         &simple_cure.caster,
-        Box::new(move |me| {
+        &move |me: &mut AgentState| {
             me.set_flag(FType::Asleep, false);
             me.set_flag(FType::Stun, false);
             let mut seared = false;
@@ -80,7 +78,7 @@ pub fn handle_simple_cure_action(
                     }
                 }
             };
-        }),
+        },
     );
     Ok(())
 }

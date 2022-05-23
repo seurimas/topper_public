@@ -37,25 +37,17 @@ pub fn handle_combat_action(
     match combat_action.skill.as_ref() {
         "Aura" => {
             let observations = after.clone();
-            for_agent_closure(
-                agent_states,
-                &combat_action.caster,
-                Box::new(move |me| {
-                    apply_or_infer_balance(me, (BType::Equil, 3.0), &observations);
-                }),
-            );
+            for_agent(agent_states, &combat_action.caster, &move |me: &mut AgentState| {
+                apply_or_infer_balance(me, (BType::Equil, 3.0), &observations);
+            });
             let mut affected = if combat_action.target == "" {
                 &combat_action.caster
             } else {
                 &combat_action.target
             };
-            for_agent_closure(
-                agent_states,
-                affected,
-                Box::new(move |you| {
-                    you.set_flag(FType::Shielded, true);
-                }),
-            );
+            for_agent(agent_states, affected, &move |you| {
+                you.set_flag(FType::Shielded, true);
+            });
         }
         "Smash" => {
             if let Ok(limb) = get_limb_damage(&combat_action.annotation) {

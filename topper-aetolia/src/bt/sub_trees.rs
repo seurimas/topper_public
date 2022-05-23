@@ -52,7 +52,7 @@ pub fn get_tree(
     {
         let mut trees = LOADED_TREES.write().unwrap();
         let tree_json = unsafe { LOAD_TREE_FUNC.unwrap()(tree_name) };
-        println!("{}", tree_json);
+        println!("Loading {} ({})", tree_name, tree_json.len());
         match serde_json::from_str::<AetBehaviorTreeDef>(&tree_json) {
             Ok(tree_def) => {
                 let tree = Arc::new(Mutex::new(tree_def.create_tree()));

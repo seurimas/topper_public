@@ -322,10 +322,10 @@ pub fn handle_combat_action(
             "Focus" => {
                 let observations = after.clone();
                 let first_person = agent_states.me.eq(&combat_action.caster);
-                for_agent_closure(
+                for_agent(
                     agent_states,
                     &combat_action.caster,
-                    Box::new(move |me| {
+                    &move |me: &mut AgentState| {
                         let mut duration = 5.0;
                         if me.is(FType::MentalFatigue) {
                             duration += 5.0;
@@ -340,7 +340,7 @@ pub fn handle_combat_action(
                             first_person,
                         );
                         apply_or_infer_balance(me, (BType::Focus, duration), &observations);
-                    }),
+                    },
                 );
                 Ok(())
             }
@@ -349,23 +349,27 @@ pub fn handle_combat_action(
         "Tattoos" => match combat_action.skill.as_ref() {
             "Shield" => {
                 let observations = after.clone();
-                for_agent(agent_states, &combat_action.caster, |me| {
-                    me.set_flag(FType::Shielded, true);
-                });
+                for_agent(
+                    agent_states,
+                    &combat_action.caster,
+                    &|me: &mut AgentState| {
+                        me.set_flag(FType::Shielded, true);
+                    },
+                );
                 if !combat_action.annotation.eq("proc") {
                     let observations = after.clone();
-                    for_agent_closure(
+                    for_agent(
                         agent_states,
                         &combat_action.caster,
-                        Box::new(move |me| {
+                        &move |me: &mut AgentState| {
                             apply_or_infer_balance(me, (BType::Equil, 4.0), &observations);
-                        }),
+                        },
                     );
                 }
                 Ok(())
             }
             "Hammer" => {
-                for_agent(agent_states, &combat_action.target, |you| {
+                for_agent(agent_states, &combat_action.target, &|you| {
                     you.set_flag(FType::Shielded, false);
                 });
                 Ok(())
@@ -373,10 +377,10 @@ pub fn handle_combat_action(
             "Tree" => {
                 let observations = after.clone();
                 let perspective = agent_states.get_perspective(&combat_action);
-                for_agent_closure(
+                for_agent(
                     agent_states,
                     &combat_action.caster,
-                    Box::new(move |me| {
+                    &move |me: &mut AgentState| {
                         let mut duration = 10.0;
                         if me.is(FType::NumbedSkin) {
                             duration += 5.0;
@@ -393,7 +397,7 @@ pub fn handle_combat_action(
                             perspective,
                             (1, RANDOM_CURES.to_vec()),
                         );
-                    }),
+                    },
                 );
                 Ok(())
             }
@@ -402,12 +406,12 @@ pub fn handle_combat_action(
         "Enchantment" => match combat_action.skill.as_ref() {
             "Icewall" => {
                 let observations = after.clone();
-                for_agent_closure(
+                for_agent(
                     agent_states,
                     &combat_action.caster,
-                    Box::new(move |me| {
+                    &move |me: &mut AgentState| {
                         me.observe_flag(FType::Superstition, false);
-                    }),
+                    },
                 );
                 Ok(())
             }
@@ -416,23 +420,23 @@ pub fn handle_combat_action(
         "Hunting" => match combat_action.skill.as_ref() {
             "Regenerate" => {
                 let observations = after.clone();
-                for_agent_closure(
+                for_agent(
                     agent_states,
                     &combat_action.caster,
-                    Box::new(move |me| {
+                    &move |me: &mut AgentState| {
                         me.regenerate();
                         apply_or_infer_balance(me, (BType::Regenerate, 15.0), &observations);
-                    }),
+                    },
                 );
                 Ok(())
             }
             "Renew" => {
                 let observations = after.clone();
                 let perspective = agent_states.get_perspective(&combat_action);
-                for_agent_closure(
+                for_agent(
                     agent_states,
                     &combat_action.caster,
-                    Box::new(move |me| {
+                    &move |me: &mut AgentState| {
                         me.observe_flag(FType::Impairment, false);
                         apply_or_infer_balance(me, (BType::Renew, 20.0), &observations);
                         apply_or_strike_random_cure(
@@ -441,18 +445,18 @@ pub fn handle_combat_action(
                             perspective,
                             (1, RANDOM_CURES.to_vec()),
                         );
-                    }),
+                    },
                 );
                 Ok(())
             }
             "Meditate" => {
                 let observations = after.clone();
-                for_agent_closure(
+                for_agent(
                     agent_states,
                     &combat_action.caster,
-                    Box::new(move |me| {
+                    &move |me: &mut AgentState| {
                         me.observe_flag(FType::Impatience, false);
-                    }),
+                    },
                 );
                 Ok(())
             }
@@ -467,36 +471,32 @@ pub fn handle_combat_action(
                     "Deadly flames" => (13, 120),
                     _ => (1, 120),
                 };
-                for_agent_closure(
-                    agent_states,
-                    &combat_action.caster,
-                    Box::new(move |you| {
-                        you.tick_flag_up(FType::Ablaze);
-                        if you.get_count(FType::Ablaze) < minimum_stacks {
-                            you.set_count(FType::Ablaze, minimum_stacks);
-                        } else if you.get_count(FType::Ablaze) > maximum_stacks {
-                            you.set_count(FType::Ablaze, maximum_stacks);
-                        }
-                    }),
-                );
+                for_agent(agent_states, &combat_action.caster, &move |you| {
+                    you.tick_flag_up(FType::Ablaze);
+                    if you.get_count(FType::Ablaze) < minimum_stacks {
+                        you.set_count(FType::Ablaze, minimum_stacks);
+                    } else if you.get_count(FType::Ablaze) > maximum_stacks {
+                        you.set_count(FType::Ablaze, maximum_stacks);
+                    }
+                });
                 Ok(())
             }
             "dizziness" => {
-                for_agent(agent_states, &combat_action.caster, |you| {
+                for_agent(agent_states, &combat_action.caster, &|you| {
                     you.toggle_flag(FType::Fallen, true);
                     you.observe_flag(FType::Dizziness, true);
                 });
                 Ok(())
             }
             "stupidity" => {
-                for_agent(agent_states, &combat_action.caster, |you| {
+                for_agent(agent_states, &combat_action.caster, &|you| {
                     you.toggle_flag(FType::Fallen, true);
                     you.observe_flag(FType::Stupidity, true);
                 });
                 Ok(())
             }
             "narcolepsy" => {
-                for_agent(agent_states, &combat_action.caster, |you| {
+                for_agent(agent_states, &combat_action.caster, &|you| {
                     you.observe_flag(FType::Narcolepsy, true);
                     if you.is(FType::Insomnia) {
                         you.toggle_flag(FType::Insomnia, false);
@@ -507,13 +507,13 @@ pub fn handle_combat_action(
                 Ok(())
             }
             "vomiting" => {
-                for_agent(agent_states, &combat_action.caster, |you| {
+                for_agent(agent_states, &combat_action.caster, &|you| {
                     you.observe_flag(FType::Vomiting, true);
                 });
                 Ok(())
             }
             "broken legs" => {
-                for_agent(agent_states, &combat_action.caster, |you| {
+                for_agent(agent_states, &combat_action.caster, &|you| {
                     you.toggle_flag(FType::Fallen, true);
                     you.observe_flag(FType::LeftLegBroken, true);
                     you.observe_flag(FType::RightLegBroken, true);

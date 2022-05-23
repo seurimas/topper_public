@@ -104,6 +104,9 @@ export const AET_PREDICATE = {
             itemType: 'FType',
         }],
     }, {
+        name: 'Locked',
+        fields: ['AetTarget', 'bool'],
+    }, {
         name: 'BardPredicate',
         fields: ['AetTarget', 'BardPredicate'],
     }]

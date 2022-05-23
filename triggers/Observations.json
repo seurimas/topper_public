@@ -505,5 +505,10 @@
       }
     ],
     "observation_name": "FillPipe"
+  },
+  {
+    "regex": "^Your fingers begin to trail with light.$",
+    "args": [],
+    "observation_name": "Undithered"
   }
 ]

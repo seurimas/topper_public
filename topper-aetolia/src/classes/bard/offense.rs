@@ -14,6 +14,7 @@ pub fn get_action_plan(
     let mut controller = BehaviorController {
         plan: ActionPlan::new(me),
         target: Some(target.clone()),
+        ..Default::default()
     };
     let tree_name = format!("bard/{}", strategy);
     let tree = get_tree(&tree_name);

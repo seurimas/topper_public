@@ -18,7 +18,7 @@ const RUNEBAND_AFFS: [FType; 7] = [
     FType::Clumsiness,
 ];
 
-pub fn handle_combat_action(
+pub fn handle_weaving_action(
     combat_action: &CombatAction,
     agent_states: &mut AetTimelineState,
     _before: &Vec<AetObservation>,
@@ -29,11 +29,11 @@ pub fn handle_combat_action(
     let hints = agent_states.get_player_hint(&combat_action.caster, &"CALLED_VENOMS".to_string());
     match combat_action.skill.as_ref() {
         "Runeband" => {
-            for_agent_closure(
+            for_agent(
                 agent_states,
                 &combat_action.caster,
-                Box::new(move |me| {
-                    me.assume_bard(|bard| {
+                &move |me: &mut AgentState| {
+                    me.assume_bard(&|bard: &mut BardClassState| {
                         bard.dithering = RUNEBAND_DITHER;
                     });
                     if !me.is(FType::Destiny) {
@@ -41,66 +41,90 @@ pub fn handle_combat_action(
                     } else {
                         me.set_flag(FType::Destiny, false);
                     }
-                }),
+                },
             );
-            for_agent(agent_states, &combat_action.target, |me| {
-                me.bard_board.runeband_state = RunebandState::initial();
-            });
+            for_agent(
+                agent_states,
+                &combat_action.target,
+                &|me: &mut AgentState| {
+                    me.bard_board.runeband_state = RunebandState::initial();
+                },
+            );
         }
         "Runebanded" => {
-            for_agent(agent_states, &combat_action.caster, |me| {
-                if let Some(aff) = me.bard_board.runebanded(&RUNEBAND_AFFS) {
-                    me.set_flag(aff, true);
-                };
-            });
-        }
-        "Globes" => {
-            for_agent_closure(
+            for_agent(
                 agent_states,
                 &combat_action.caster,
-                Box::new(move |me| {
-                    me.assume_bard(|bard| {
-                        bard.dithering = RUNEBAND_DITHER;
+                &|me: &mut AgentState| {
+                    if let Some(aff) = me.bard_board.runebanded(&RUNEBAND_AFFS) {
+                        me.set_flag(aff, true);
+                    };
+                },
+            );
+        }
+        "Globes" => {
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &move |me: &mut AgentState| {
+                    me.assume_bard(&|bard: &mut BardClassState| {
+                        bard.dithering = GLOBES_DITHER;
                     });
                     if !me.is(FType::Destiny) {
                         apply_or_infer_balance(me, (BType::Equil, 2.0), &observations);
                     } else {
                         me.set_flag(FType::Destiny, false);
                     }
-                }),
+                },
             );
-            for_agent(agent_states, &combat_action.target, |me| {
-                me.bard_board.globes_state = GlobesState::initial();
-            });
+            for_agent(
+                agent_states,
+                &combat_action.target,
+                &|me: &mut AgentState| {
+                    me.bard_board.globes_state = GlobesState::initial();
+                },
+            );
         }
         "Globed" => {
             if combat_action.annotation.eq("final") {
-                for_agent(agent_states, &combat_action.caster, |me| {
-                    me.bard_board.globes_state = GlobesState::Floating(1);
-                    if let Some(aff) = me.bard_board.globed(&GLOBE_AFFS) {
-                        me.set_flag(aff, true);
-                    };
-                });
+                for_agent(
+                    agent_states,
+                    &combat_action.caster,
+                    &|me: &mut AgentState| {
+                        me.bard_board.globes_state = GlobesState::Floating(1);
+                        if let Some(aff) = me.bard_board.globed(&GLOBE_AFFS) {
+                            me.set_flag(aff, true);
+                        };
+                    },
+                );
             } else if combat_action.annotation.eq("all") {
-                for_agent(agent_states, &combat_action.caster, |me| {
-                    while let Some(aff) = me.bard_board.globed(&GLOBE_AFFS) {
-                        me.set_flag(aff, true);
-                    }
-                });
+                for_agent(
+                    agent_states,
+                    &combat_action.caster,
+                    &|me: &mut AgentState| {
+                        while let Some(aff) = me.bard_board.globed(&GLOBE_AFFS) {
+                            me.set_flag(aff, true);
+                        }
+                    },
+                );
             } else {
-                for_agent(agent_states, &combat_action.caster, |me| {
-                    if let Some(aff) = me.bard_board.globed(&GLOBE_AFFS) {
-                        me.set_flag(aff, true);
-                    };
-                });
+                for_agent(
+                    agent_states,
+                    &combat_action.caster,
+                    &|me: &mut AgentState| {
+                        if let Some(aff) = me.bard_board.globed(&GLOBE_AFFS) {
+                            me.set_flag(aff, true);
+                        };
+                    },
+                );
             }
         }
         "Bladestorm" => {
-            for_agent_closure(
+            for_agent(
                 agent_states,
                 &combat_action.caster,
-                Box::new(move |me| {
-                    me.assume_bard(|bard| {
+                &move |me: &mut AgentState| {
+                    me.assume_bard(&|bard: &mut BardClassState| {
                         bard.dithering = BLADESTORM_DITHER;
                     });
                     if !me.is(FType::Destiny) {
@@ -108,31 +132,51 @@ pub fn handle_combat_action(
                     } else {
                         me.set_flag(FType::Destiny, false);
                     }
-                }),
+                },
             );
-            for_agent(agent_states, &combat_action.target, |me| {
-                me.bard_board.blades_count = BLADES_COUNT;
-            });
+            for_agent(
+                agent_states,
+                &combat_action.target,
+                &|me: &mut AgentState| {
+                    me.bard_board.blades_count = BLADES_COUNT;
+                },
+            );
         }
         "Bladestormed" => {
             let final_blade = combat_action.annotation.eq("final");
-            for_agent_closure(
+            for_agent(
                 agent_states,
                 &combat_action.caster,
-                Box::new(move |me| {
+                &move |me: &mut AgentState| {
                     for observation in observations.iter() {
                         if let AetObservation::Devenoms(venom) = observation {
                             apply_venom(me, &venom, false);
                         }
                     }
+                    me.bard_board.runeband_state.reverse();
                     if final_blade {
                         me.bard_board.blades_count = 0;
                     } else if me.bard_board.blades_count > 0 {
                         me.bard_board.blades_count -= 1;
                     }
-                }),
+                },
             );
         }
+        _ => {}
+    }
+    Ok(())
+}
+
+pub fn handle_performance_action(
+    combat_action: &CombatAction,
+    agent_states: &mut AetTimelineState,
+    _before: &Vec<AetObservation>,
+    after: &Vec<AetObservation>,
+) -> Result<(), String> {
+    let observations = after.clone();
+    let first_person = combat_action.caster.eq(&agent_states.me);
+    let hints = agent_states.get_player_hint(&combat_action.caster, &"CALLED_VENOMS".to_string());
+    match combat_action.skill.as_ref() {
         "Crackshot" => {
             attack_afflictions(
                 agent_states,
@@ -140,12 +184,12 @@ pub fn handle_combat_action(
                 vec![FType::Dizziness, FType::Perplexed, FType::Stun],
                 after,
             );
-            for_agent_closure(
+            for_agent(
                 agent_states,
                 &combat_action.target,
-                Box::new(move |me| {
+                &move |me: &mut AgentState| {
                     apply_or_infer_balance(me, (BType::Balance, 2.8), &observations);
-                }),
+                },
             );
         }
         "Hiltblow" => {
@@ -155,21 +199,21 @@ pub fn handle_combat_action(
                 vec![FType::Vomiting, FType::Misery],
                 after,
             );
-            for_agent_closure(
+            for_agent(
                 agent_states,
                 &combat_action.target,
-                Box::new(move |me| {
+                &move |me: &mut AgentState| {
                     apply_or_infer_balance(me, (BType::Balance, 2.8), &observations);
-                }),
+                },
             );
         }
         "Tempo" | "Harry" | "Bravado" => {
-            for_agent_closure(
+            for_agent(
                 agent_states,
                 &combat_action.caster,
-                Box::new(move |me| {
+                &move |me: &mut AgentState| {
                     apply_or_infer_balance(me, (BType::Balance, 2.65), &observations);
-                }),
+                },
             );
             apply_weapon_hits(
                 agent_states,
@@ -180,18 +224,22 @@ pub fn handle_combat_action(
                 &hints,
             );
             if combat_action.skill.eq("Tempo") {
-                for_agent(agent_states, &combat_action.caster, |me| {
-                    me.assume_bard(|bard| {
-                        bard.on_tempo();
-                    });
-                });
+                for_agent(
+                    agent_states,
+                    &combat_action.caster,
+                    &|me: &mut AgentState| {
+                        me.assume_bard(&|bard: &mut BardClassState| {
+                            bard.on_tempo();
+                        });
+                    },
+                );
             } else if combat_action.skill.eq("Bravado") {
                 let observations = after.clone();
                 let perspective = agent_states.get_perspective(&combat_action);
-                for_agent_closure(
+                for_agent(
                     agent_states,
                     &combat_action.caster,
-                    Box::new(move |me| {
+                    &move |me: &mut AgentState| {
                         apply_or_strike_random_cure(
                             me,
                             &observations,
@@ -199,66 +247,189 @@ pub fn handle_combat_action(
                             (1, RANDOM_CURES.to_vec()),
                         );
                         apply_or_infer_balance(me, (BType::ClassCure1, 15.0), &observations);
-                    }),
+                    },
                 );
             }
         }
         "TempoEnd" => {
-            for_agent(agent_states, &combat_action.caster, |me| {
-                me.assume_bard(|bard| {
-                    bard.off_tempo();
-                });
-            });
-        }
-        "Needle" => {
-            for_agent_closure(
+            for_agent(
                 agent_states,
                 &combat_action.caster,
-                Box::new(move |me| {
+                &|me: &mut AgentState| {
+                    me.assume_bard(&|bard: &mut BardClassState| {
+                        bard.off_tempo();
+                    });
+                },
+            );
+        }
+        "Needle" => {
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &move |me: &mut AgentState| {
                     apply_or_infer_balance(me, (BType::Balance, 1.0), &observations);
-                }),
+                },
             );
             let venom = combat_action.annotation.clone();
             if venom.eq("dodge") {
-                for_agent(agent_states, &combat_action.target, |me| {
-                    me.dodge_state.register_dodge();
-                });
-            } else {
-                for_agent_closure(
+                for_agent(
                     agent_states,
                     &combat_action.target,
-                    Box::new(move |me| {
+                    &|me: &mut AgentState| {
+                        me.dodge_state.register_dodge();
+                    },
+                );
+            } else {
+                for_agent(
+                    agent_states,
+                    &combat_action.target,
+                    &move |me: &mut AgentState| {
                         me.bard_board.needle_with(&venom);
-                    }),
+                    },
                 );
             }
         }
         "Needled" => {
-            for_agent_closure(
+            for_agent(
                 agent_states,
                 &combat_action.caster,
-                Box::new(move |me| {
+                &move |me: &mut AgentState| {
                     if let Some(venom) = me.bard_board.needled() {
                         apply_venom(me, &venom, false);
                     }
-                }),
+                },
             );
-        }
-        "HalfbeatStart" => {
-            for_agent(agent_states, &combat_action.caster, |me| {
-                me.assume_bard(|bard| {
-                    bard.half_beat_pickup();
-                });
-            });
-        }
-        "HalfbeatEnd" => {
-            for_agent(agent_states, &combat_action.caster, |me| {
-                me.assume_bard(|bard| {
-                    bard.half_beat_slowdown();
-                });
-            });
         }
         _ => {}
     }
     Ok(())
+}
+
+pub fn handle_songcalling_action(
+    combat_action: &CombatAction,
+    agent_states: &mut AetTimelineState,
+    _before: &Vec<AetObservation>,
+    after: &Vec<AetObservation>,
+) -> Result<(), String> {
+    let observations = after.clone();
+    let first_person = combat_action.caster.eq(&agent_states.me);
+    let hints = agent_states.get_player_hint(&combat_action.caster, &"CALLED_VENOMS".to_string());
+    match (
+        combat_action.skill.as_ref(),
+        combat_action.annotation.as_ref(),
+    ) {
+        ("HalfbeatStart", _) => {
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &|me: &mut AgentState| {
+                    me.assume_bard(&|bard: &mut BardClassState| {
+                        bard.half_beat_pickup();
+                    });
+                },
+            );
+        }
+        ("HalfbeatEnd", _) => {
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &|me: &mut AgentState| {
+                    me.assume_bard(&|bard: &mut BardClassState| {
+                        bard.half_beat_slowdown();
+                    });
+                },
+            );
+        }
+        ("Remembrance", "end") => {
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &|me: &mut AgentState| {
+                    me.assume_bard(&|bard: &mut BardClassState| {
+                        bard.dithering = 0;
+                        bard.end_song(Song::Remembrance);
+                    });
+                },
+            );
+        }
+        ("AudienceSong", "end") => {
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &move |me: &mut AgentState| {
+                    me.assume_bard(&|bard: &mut BardClassState| {
+                        for song in [
+                            Song::Fate,
+                            Song::Mythics,
+                            Song::Hero,
+                            Song::Doom,
+                            Song::Sorrow,
+                            Song::Unheard,
+                            Song::Fascination,
+                        ] {
+                            bard.end_song(song);
+                        }
+                    });
+                },
+            );
+        }
+        (song_name, "end") => {
+            if let Some(song) = song_name.parse().ok() {
+                for_agent(
+                    agent_states,
+                    &combat_action.caster,
+                    &move |me: &mut AgentState| {
+                        me.assume_bard(&|bard: &mut BardClassState| {
+                            bard.end_song(song);
+                        });
+                    },
+                );
+            }
+        }
+        (song_name, "") => {
+            if let Some(song) = song_name.parse().ok() {
+                for_agent(
+                    agent_states,
+                    &combat_action.caster,
+                    &move |me: &mut AgentState| {
+                        me.assume_bard(&|bard: &mut BardClassState| {
+                            bard.start_song(song, false);
+                        });
+                    },
+                );
+            }
+        }
+        (song_name, "play") => {
+            if let Some(song) = song_name.parse().ok() {
+                for_agent(
+                    agent_states,
+                    &combat_action.caster,
+                    &move |me: &mut AgentState| {
+                        me.assume_bard(&|bard: &mut BardClassState| {
+                            bard.start_song(song, true);
+                        });
+                    },
+                );
+            }
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
+pub fn handle_combat_action(
+    combat_action: &CombatAction,
+    agent_states: &mut AetTimelineState,
+    before: &Vec<AetObservation>,
+    after: &Vec<AetObservation>,
+) -> Result<(), String> {
+    let observations = after.clone();
+    let first_person = combat_action.caster.eq(&agent_states.me);
+    let hints = agent_states.get_player_hint(&combat_action.caster, &"CALLED_VENOMS".to_string());
+    match combat_action.category.as_ref() {
+        "Weaving" => handle_weaving_action(combat_action, agent_states, before, after),
+        "Performance" => handle_performance_action(combat_action, agent_states, before, after),
+        "Songcalling" => handle_songcalling_action(combat_action, agent_states, before, after),
+        _ => Err(format!("Bad category: {}", combat_action.category)),
+    }
 }

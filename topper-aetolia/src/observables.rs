@@ -24,10 +24,17 @@ pub trait ActiveTransition {
     fn simulate(&self, timline: &AetTimeline) -> Vec<ProbableEvent>;
 }
 
+#[derive(Default)]
 pub struct ActionPlan {
     who: String,
     qeb: Option<Box<dyn ActiveTransition>>,
     other: HashMap<BType, Box<dyn ActiveTransition>>,
+}
+
+impl core::fmt::Debug for ActionPlan {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.who)
+    }
 }
 
 impl ActionPlan {

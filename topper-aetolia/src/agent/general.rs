@@ -727,6 +727,51 @@ pub enum WieldState {
     TwoHanded(String),
 }
 
+impl WieldState {
+    pub fn is_wielding(&self, substring: &str) -> bool {
+        match self {
+            Self::Normal { left, right } => {
+                left.as_ref()
+                    .map(|left| left.find(substring).is_some())
+                    .unwrap_or(false)
+                    || right
+                        .as_ref()
+                        .map(|right| right.find(substring).is_some())
+                        .unwrap_or(false)
+            }
+            Self::TwoHanded(both) => both.find(substring).is_some(),
+        }
+    }
+
+    pub fn empty_hand(&self) -> bool {
+        self.get_left().is_none() || self.get_right().is_none()
+    }
+
+    pub fn hands_empty(&self, left: bool, right: bool) -> bool {
+        if left && self.get_left().is_some() {
+            false
+        } else if right && self.get_right().is_some() {
+            false
+        } else {
+            true
+        }
+    }
+
+    pub fn get_left(&self) -> Option<String> {
+        match self {
+            Self::Normal { left, .. } => left.clone(),
+            Self::TwoHanded(left) => Some(left.clone()),
+        }
+    }
+
+    pub fn get_right(&self) -> Option<String> {
+        match self {
+            Self::Normal { right, .. } => right.clone(),
+            Self::TwoHanded(right) => Some(right.clone()),
+        }
+    }
+}
+
 impl Default for WieldState {
     fn default() -> Self {
         WieldState::Normal {

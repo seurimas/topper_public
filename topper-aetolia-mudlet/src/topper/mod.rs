@@ -3,7 +3,7 @@ use group::GroupModule;
 use prediction::PredictionModule;
 use serde_json::from_str;
 use std::sync::mpsc::Sender;
-use topper_aetolia::bt::clear_behavior_trees;
+use topper_aetolia::bt::{clear_behavior_trees, DEBUG_TREES};
 use topper_aetolia::classes::get_attack;
 use topper_aetolia::timeline::*;
 use topper_aetolia::types::AgentState;
@@ -194,6 +194,9 @@ impl TopperHandler<BattleStats> for AetTopper {
             TopperMessage::Request(TopperRequest::ModuleMsg(module, command)) => {
                 if "core".eq(module) && "debug".eq(command) {
                     self.debug_mode = !self.debug_mode;
+                    unsafe {
+                        DEBUG_TREES = self.debug_mode;
+                    }
                     if self.debug_mode {
                         println!("Debug mode on!");
                     } else {

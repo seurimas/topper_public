@@ -52,27 +52,23 @@ pub fn handle_combat_action(
                 _ => Default::default(),
             };
             let second_person = combat_action.target.eq(&agent_states.me);
-            for_agent_closure(
-                agent_states,
-                &combat_action.target,
-                Box::new(move |you| {
-                    if let Some(afflicted) = afflicted {
-                        for aff in affs.iter() {
-                            if afflicted != *aff {
-                                if second_person && !you.is(*aff) {
-                                    you.observe_flag(*aff, true);
-                                    you.hidden_state.add_guess(*aff);
-                                }
-                            } else {
-                                you.toggle_flag(*aff, true);
-                                return;
+            for_agent(agent_states, &combat_action.target, &move |you| {
+                if let Some(afflicted) = afflicted {
+                    for aff in affs.iter() {
+                        if afflicted != *aff {
+                            if second_person && !you.is(*aff) {
+                                you.observe_flag(*aff, true);
+                                you.hidden_state.add_guess(*aff);
                             }
+                        } else {
+                            you.toggle_flag(*aff, true);
+                            return;
                         }
-                    } else if let Some(aff) = top_missing_aff(you, &affs) {
-                        you.set_flag(aff, true);
                     }
-                }),
-            );
+                } else if let Some(aff) = top_missing_aff(you, &affs) {
+                    you.set_flag(aff, true);
+                }
+            });
         }
         "Shape" => {
             let observations = after.clone();

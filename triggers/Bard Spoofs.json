@@ -117,6 +117,27 @@
                 "Literal": "Awakening"
             },
             {
+                "Literal": "hit"
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^With a final, flourishing note, (\\w+)'?s? powerful song awakens the inner emotions of those around .*.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Songcalling"
+            },
+            {
+                "Literal": "Awakening"
+            },
+            {
                 "Literal": "end"
             },
             {
@@ -127,6 +148,27 @@
     },
     {
         "regex": "^You sense that your charitable song has affected (\\w+).$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Songcalling"
+            },
+            {
+                "Literal": "Charity"
+            },
+            {
+                "Literal": "hit"
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^(\\w+)'?s? charming song weaves its well-natured notes through the air, instilling a sense of altruism.$",
         "args": [
             {
                 "GroupAsTarget": 1
@@ -159,6 +201,48 @@
                 "Literal": "Fascination"
             },
             {
+                "Literal": "hit"
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^You have no audience at which to sing your song.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Songcalling"
+            },
+            {
+                "Literal": "AudienceSong"
+            },
+            {
+                "Literal": "fail"
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^(You)r tantalizing song coils around your audience with the hedonistic slink of silk, concluding with a single velvety note lingering in the ether.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Songcalling"
+            },
+            {
+                "Literal": "Decadence"
+            },
+            {
                 "Literal": "end"
             },
             {
@@ -180,7 +264,7 @@
                 "Literal": "Decadence"
             },
             {
-                "Literal": "end"
+                "Literal": "hit"
             },
             {
                 "Literal": ""
@@ -222,7 +306,28 @@
                 "Literal": "Sorrow"
             },
             {
-                "Literal": "end"
+                "Literal": "hit"
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^The morbid cadence of your sombre ballad incites a deep and profound sorrow in (\\w+).$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Songcalling"
+            },
+            {
+                "Literal": "Sorrow"
+            },
+            {
+                "Literal": "hit"
             },
             {
                 "Literal": ""
@@ -243,7 +348,7 @@
                 "Literal": "Remembrance"
             },
             {
-                "Literal": "end"
+                "Literal": "hit"
             },
             {
                 "Literal": ""
@@ -315,7 +420,7 @@
         "observation_name": "Proc"
     },
     {
-        "regex": "^The illusionary globes spinning around (\\w+) flare in size, then crash into .* body.$",
+        "regex": "^The illusionary globes spinning around (\\w+) flare in size, then crash (dizzingly |)into .* body.$",
         "args": [
             {
                 "GroupAsTarget": 1

@@ -410,9 +410,13 @@ pub fn handle_combat_action(
 ) -> Result<(), String> {
     match combat_action.skill.as_ref() {
         "Might" => {
-            for_agent(agent_states, &combat_action.caster, |me| {
-                me.set_balance(BType::ClassCure1, 20.0);
-            });
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &|me: &mut AgentState| {
+                    me.set_balance(BType::ClassCure1, 20.0);
+                },
+            );
         }
         "Slash" | "Stab" | "Slice" | "Thrust" | "Ambush" | "Flourish" => {
             let observations = after.clone();
@@ -427,12 +431,12 @@ pub fn handle_combat_action(
                 first_person,
                 &hints,
             );
-            for_agent_closure(
+            for_agent(
                 agent_states,
                 &combat_action.caster,
-                Box::new(move |me| {
+                &move |me: &mut AgentState| {
                     apply_or_infer_balance(me, (BType::Balance, 2.65), &observations);
-                }),
+                },
             );
         }
         "Pierce" | "Sever" => {
@@ -461,28 +465,24 @@ pub fn handle_combat_action(
                 }
             }
             if let Some(limb_hit) = limb_hit {
-                for_agent_closure(
-                    agent_states,
-                    target,
-                    Box::new(move |you: &mut AgentState| {
-                        if limb_damaged {
-                            you.set_limb_damage(limb_hit, DAMAGED_VALUE);
-                            you.limb_damage.set_limb_damaged(limb_hit, true);
-                        } else {
-                            you.set_flag(limb_hit.broken().unwrap(), true);
-                        }
-                    }),
-                );
+                for_agent(agent_states, target, &move |you: &mut AgentState| {
+                    if limb_damaged {
+                        you.set_limb_damage(limb_hit, DAMAGED_VALUE);
+                        you.limb_damage.set_limb_damaged(limb_hit, true);
+                    } else {
+                        you.set_flag(limb_hit.broken().unwrap(), true);
+                    }
+                });
             } else {
                 println!("No limb hit...");
             }
         }
         "Dualraze" => {
             let razed = combat_action.annotation.clone();
-            for_agent_closure(
+            for_agent(
                 agent_states,
                 &combat_action.target,
-                Box::new(move |mut you: &mut AgentState| {
+                &move |mut you: &mut AgentState| {
                     remove_through(
                         you,
                         match razed.as_ref() {
@@ -492,15 +492,15 @@ pub fn handle_combat_action(
                         },
                         &DUALRAZE_ORDER.to_vec(),
                     );
-                }),
+                },
             );
         }
         "Reave" => {
             let razed = combat_action.annotation.clone();
-            for_agent_closure(
+            for_agent(
                 agent_states,
                 &combat_action.target,
-                Box::new(move |mut you: &mut AgentState| {
+                &move |mut you: &mut AgentState| {
                     remove_through(
                         you,
                         match razed.as_ref() {
@@ -509,7 +509,7 @@ pub fn handle_combat_action(
                         },
                         &REAVE_ORDER.to_vec(),
                     );
-                }),
+                },
             );
             if let Some(def_flag) = FType::from_name(&combat_action.annotation) {
                 attack_strip(agent_states, &combat_action.caster, vec![def_flag], after);
@@ -566,9 +566,13 @@ pub fn handle_combat_action(
             // TODO: Parse out which limb was hit and its effect
         }
         "Trip" => {
-            for_agent(agent_states, &combat_action.caster, |me| {
-                me.set_balance(BType::Balance, 2.25);
-            });
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &|me: &mut AgentState| {
+                    me.set_balance(BType::Balance, 2.25);
+                },
+            );
             attack_afflictions(
                 agent_states,
                 &combat_action.target,
@@ -577,9 +581,13 @@ pub fn handle_combat_action(
             );
         }
         "Slam" => {
-            for_agent(agent_states, &combat_action.caster, |me| {
-                me.set_balance(BType::Balance, 2.25);
-            });
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &|me: &mut AgentState| {
+                    me.set_balance(BType::Balance, 2.25);
+                },
+            );
             attack_afflictions(
                 agent_states,
                 &combat_action.target,
@@ -588,9 +596,13 @@ pub fn handle_combat_action(
             );
         }
         "Gouge" => {
-            for_agent(agent_states, &combat_action.caster, |me| {
-                me.set_balance(BType::Balance, 2.25);
-            });
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &|me: &mut AgentState| {
+                    me.set_balance(BType::Balance, 2.25);
+                },
+            );
             attack_afflictions(
                 agent_states,
                 &combat_action.target,
@@ -599,9 +611,13 @@ pub fn handle_combat_action(
             );
         }
         "Heartbreaker" => {
-            for_agent(agent_states, &combat_action.caster, |me| {
-                me.set_balance(BType::Balance, 2.25);
-            });
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &|me: &mut AgentState| {
+                    me.set_balance(BType::Balance, 2.25);
+                },
+            );
             attack_afflictions(
                 agent_states,
                 &combat_action.target,
@@ -610,9 +626,13 @@ pub fn handle_combat_action(
             );
         }
         "Slit" => {
-            for_agent(agent_states, &combat_action.caster, |me| {
-                me.set_balance(BType::Balance, 2.25);
-            });
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &|me: &mut AgentState| {
+                    me.set_balance(BType::Balance, 2.25);
+                },
+            );
             attack_afflictions(
                 agent_states,
                 &combat_action.target,
@@ -649,9 +669,13 @@ pub fn handle_combat_action(
         }
         "Daunt" => match combat_action.annotation.as_ref() {
             "direwolf" => {
-                for_agent(agent_states, &combat_action.caster, |me| {
-                    me.set_balance(BType::Equil, 2.25);
-                });
+                for_agent(
+                    agent_states,
+                    &combat_action.caster,
+                    &|me: &mut AgentState| {
+                        me.set_balance(BType::Equil, 2.25);
+                    },
+                );
                 attack_afflictions(
                     agent_states,
                     &combat_action.target,
@@ -660,9 +684,13 @@ pub fn handle_combat_action(
                 );
             }
             "raloth" => {
-                for_agent(agent_states, &combat_action.caster, |me| {
-                    me.set_balance(BType::Equil, 2.25);
-                });
+                for_agent(
+                    agent_states,
+                    &combat_action.caster,
+                    &|me: &mut AgentState| {
+                        me.set_balance(BType::Equil, 2.25);
+                    },
+                );
                 attack_afflictions(
                     agent_states,
                     &combat_action.target,
@@ -671,9 +699,13 @@ pub fn handle_combat_action(
                 );
             }
             "crocodile" => {
-                for_agent(agent_states, &combat_action.caster, |me| {
-                    me.set_balance(BType::Equil, 2.25);
-                });
+                for_agent(
+                    agent_states,
+                    &combat_action.caster,
+                    &|me: &mut AgentState| {
+                        me.set_balance(BType::Equil, 2.25);
+                    },
+                );
                 attack_afflictions(
                     agent_states,
                     &combat_action.target,
@@ -682,9 +714,13 @@ pub fn handle_combat_action(
                 );
             }
             "cockatrice" => {
-                for_agent(agent_states, &combat_action.caster, |me| {
-                    me.set_balance(BType::Equil, 2.25);
-                });
+                for_agent(
+                    agent_states,
+                    &combat_action.caster,
+                    &|me: &mut AgentState| {
+                        me.set_balance(BType::Equil, 2.25);
+                    },
+                );
                 attack_afflictions(
                     agent_states,
                     &combat_action.target,
@@ -695,9 +731,13 @@ pub fn handle_combat_action(
             _ => {}
         },
         "Icebreath" => {
-            for_agent(agent_states, &combat_action.caster, |me| {
-                me.set_balance(BType::Equil, 2.25);
-            });
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &|me: &mut AgentState| {
+                    me.set_balance(BType::Equil, 2.25);
+                },
+            );
             attack_strip_or_afflict(
                 agent_states,
                 &combat_action.target,

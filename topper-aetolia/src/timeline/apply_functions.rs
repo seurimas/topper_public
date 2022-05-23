@@ -54,6 +54,13 @@ pub fn apply_observation(
                 timeline.set_flag_for_agent(who, &"Ablaze".to_string(), false)?;
             }
         }
+        AetObservation::Undithered => {
+            timeline.for_agent(&timeline.me.clone(), &|me| {
+                me.assume_bard(&|bard| {
+                    bard.dithering = 0;
+                });
+            });
+        }
         AetObservation::Afflicted(affliction) => {
             if affliction.eq("sapped_strength") {
                 timeline.tick_counter_up_for_agent(&timeline.me.clone(), affliction);
@@ -64,14 +71,11 @@ pub fn apply_observation(
         AetObservation::Discovered(affliction) => {
             let flag_name = affliction.clone();
             let who_am_i = timeline.me.clone();
-            timeline.for_agent_closure(
-                &who_am_i,
-                Box::new(move |me| {
-                    if let Some(aff_flag) = FType::from_name(&flag_name) {
-                        me.observe_flag(aff_flag, true);
-                    }
-                }),
-            );
+            timeline.for_agent(&who_am_i, &move |me: &mut AgentState| {
+                if let Some(aff_flag) = FType::from_name(&flag_name) {
+                    me.observe_flag(aff_flag, true);
+                }
+            });
         }
         AetObservation::OtherAfflicted(who, affliction) => {
             if before.len() > 0 {
@@ -86,33 +90,29 @@ pub fn apply_observation(
             timeline.set_flag_for_agent(who, affliction, true)?;
         }
         AetObservation::Dodges(who) => {
-            for_agent(timeline, who, |me| {
+            for_agent(timeline, who, &|me: &mut AgentState| {
                 me.dodge_state.register_dodge();
             });
         }
         AetObservation::ListStart(list_type, who) => match list_type.as_ref() {
             "Wounds" => {
                 let observations = after.clone();
-                for_agent_closure(
-                    timeline,
-                    who,
-                    Box::new(move |me| {
-                        for after in observations.iter() {
-                            match after {
-                                AetObservation::ListItem(list_type, limb, damage, _) => {
-                                    if list_type.eq("Wounds") {
-                                        if let (Ok(limb), Ok(damage)) =
-                                            (get_limb_damage(limb), damage.parse::<f32>())
-                                        {
-                                            me.set_limb_damage(limb, (damage * 100.0) as CType);
-                                        }
+                for_agent(timeline, who, &move |me: &mut AgentState| {
+                    for after in observations.iter() {
+                        match after {
+                            AetObservation::ListItem(list_type, limb, damage, _) => {
+                                if list_type.eq("Wounds") {
+                                    if let (Ok(limb), Ok(damage)) =
+                                        (get_limb_damage(limb), damage.parse::<f32>())
+                                    {
+                                        me.set_limb_damage(limb, (damage * 100.0) as CType);
                                     }
                                 }
-                                _ => {}
                             }
+                            _ => {}
                         }
-                    }),
-                );
+                    }
+                });
             }
             "Diagnose" => {
                 if !timeline.is_hint_time_fresh(
@@ -136,14 +136,11 @@ pub fn apply_observation(
                         _ => None,
                     })
                     .collect::<HashSet<FType>>();
-                timeline.for_agent_closure(
-                    who,
-                    Box::new(move |me| {
-                        for affliction in FType::afflictions() {
-                            me.observe_flag(affliction, afflictions.contains(&affliction));
-                        }
-                    }),
-                );
+                timeline.for_agent(who, &move |me: &mut AgentState| {
+                    for affliction in FType::afflictions() {
+                        me.observe_flag(affliction, afflictions.contains(&affliction));
+                    }
+                });
             }
             "Pipes" => {
                 let pipes = after
@@ -172,47 +169,44 @@ pub fn apply_observation(
                         _ => None,
                     })
                     .collect::<Vec<(String, Pipe)>>();
-                timeline.for_agent_closure(
-                    &timeline.me.clone(),
-                    Box::new(move |me| {
-                        let mut found_yarrow = None;
-                        let mut found_willow = None;
-                        let mut found_reishi = None;
-                        for (herb, pipe) in &pipes {
-                            if herb.eq("yarrow") {
+                timeline.for_agent(&timeline.me.clone(), &move |me: &mut AgentState| {
+                    let mut found_yarrow = None;
+                    let mut found_willow = None;
+                    let mut found_reishi = None;
+                    for (herb, pipe) in &pipes {
+                        if herb.eq("yarrow") {
+                            found_yarrow = Some(pipe);
+                        } else if herb.eq("willow") {
+                            found_willow = Some(pipe);
+                        } else if herb.eq("reishi") {
+                            found_reishi = Some(pipe);
+                        }
+                    }
+                    for (herb, pipe) in &pipes {
+                        if herb.eq("empty") {
+                            if found_yarrow.is_none() {
                                 found_yarrow = Some(pipe);
-                            } else if herb.eq("willow") {
+                            } else if found_willow.is_none() {
                                 found_willow = Some(pipe);
-                            } else if herb.eq("reishi") {
+                            } else if found_reishi.is_none() {
                                 found_reishi = Some(pipe);
                             }
                         }
-                        for (herb, pipe) in &pipes {
-                            if herb.eq("empty") {
-                                if found_yarrow.is_none() {
-                                    found_yarrow = Some(pipe);
-                                } else if found_willow.is_none() {
-                                    found_willow = Some(pipe);
-                                } else if found_reishi.is_none() {
-                                    found_reishi = Some(pipe);
-                                }
-                            }
-                        }
-                        if let Some(pipe) = found_yarrow {
-                            me.pipe_state.initialize("yarrow", pipe.clone());
-                        }
-                        if let Some(pipe) = found_willow {
-                            me.pipe_state.initialize("willow", pipe.clone());
-                        }
-                        if let Some(pipe) = found_reishi {
-                            me.pipe_state.initialize("reishi", pipe.clone());
-                        }
-                        println!(
-                            "Pipes: {:?} {:?} {:?}",
-                            found_yarrow, found_willow, found_reishi
-                        );
-                    }),
-                );
+                    }
+                    if let Some(pipe) = found_yarrow {
+                        me.pipe_state.initialize("yarrow", pipe.clone());
+                    }
+                    if let Some(pipe) = found_willow {
+                        me.pipe_state.initialize("willow", pipe.clone());
+                    }
+                    if let Some(pipe) = found_reishi {
+                        me.pipe_state.initialize("reishi", pipe.clone());
+                    }
+                    println!(
+                        "Pipes: {:?} {:?} {:?}",
+                        found_yarrow, found_willow, found_reishi
+                    );
+                });
             }
             _ => {}
         },
@@ -231,7 +225,7 @@ pub fn apply_observation(
         AetObservation::Gained(who, defence) => {
             timeline.set_flag_for_agent(who, defence, true)?;
             if defence.eq("rebounding") {
-                for_agent(timeline, who, |me| {
+                for_agent(timeline, who, &|me: &mut AgentState| {
                     me.set_balance(BType::Rebounding, 0.0);
                 });
             }
@@ -250,17 +244,13 @@ pub fn apply_observation(
             timeline.set_flag_for_agent(who, &"fallen".to_string(), false);
             if timeline.borrow_agent(who).is(FType::Backstrain) {
                 let after = after.clone();
-                for_agent_closure(
-                    timeline,
-                    who,
-                    Box::new(move |you| {
-                        apply_limb_damage(
-                            you,
-                            (LType::TorsoDamage, 10.0, you.is(FType::Stiffness)),
-                            &after,
-                        );
-                    }),
-                );
+                for_agent(timeline, who, &move |you| {
+                    apply_limb_damage(
+                        you,
+                        (LType::TorsoDamage, 10.0, you.is(FType::Stiffness)),
+                        &after,
+                    );
+                });
             }
         }
         AetObservation::Fall(who) => {
@@ -268,37 +258,29 @@ pub fn apply_observation(
         }
         AetObservation::ParryStart(who, what) => {
             let limb = get_limb_damage(what)?;
-            for_agent_closure(
-                timeline,
-                who,
-                Box::new(move |me| {
-                    me.set_parrying(limb);
-                }),
-            );
+            for_agent(timeline, who, &move |me: &mut AgentState| {
+                me.set_parrying(limb);
+            });
         }
         AetObservation::Parry(who, what) => {
             let limb = get_limb_damage(what)?;
             let who = who.clone();
             let after = after.clone();
-            for_agent_closure(
-                timeline,
-                &who,
-                Box::new(move |you| {
-                    you.set_parrying(limb);
-                    if you.is(FType::SoreWrist) {
-                        apply_limb_damage(
-                            you,
-                            (LType::LeftArmDamage, 4.0, you.is(FType::Stiffness)),
-                            &after,
-                        );
-                        apply_limb_damage(
-                            you,
-                            (LType::LeftArmDamage, 4.0, you.is(FType::Stiffness)),
-                            &after,
-                        );
-                    }
-                }),
-            );
+            for_agent(timeline, &who, &move |you: &mut AgentState| {
+                you.set_parrying(limb);
+                if you.is(FType::SoreWrist) {
+                    apply_limb_damage(
+                        you,
+                        (LType::LeftArmDamage, 4.0, you.is(FType::Stiffness)),
+                        &after,
+                    );
+                    apply_limb_damage(
+                        you,
+                        (LType::LeftArmDamage, 4.0, you.is(FType::Stiffness)),
+                        &after,
+                    );
+                }
+            });
         }
         AetObservation::Wield { who, what, hand } => {
             let left = if hand.eq("left") {
@@ -311,45 +293,29 @@ pub fn apply_observation(
             } else {
                 None
             };
-            for_agent_closure(
-                timeline,
-                &who,
-                Box::new(move |me| {
-                    me.wield_multi(left.clone(), right.clone());
-                }),
-            );
+            for_agent(timeline, &who, &move |me: &mut AgentState| {
+                me.wield_multi(left.clone(), right.clone());
+            });
         }
         AetObservation::Unwield { who, what: _, hand } => {
             let left = hand.eq("left");
             let right = hand.eq("right");
-            for_agent_closure(
-                timeline,
-                &who,
-                Box::new(move |me| {
-                    me.unwield_multi(left, right);
-                }),
-            );
+            for_agent(timeline, &who, &move |me: &mut AgentState| {
+                me.unwield_multi(left, right);
+            });
         }
         AetObservation::DualWield { who, left, right } => {
             let left = left.clone();
             let right = right.clone();
-            for_agent_closure(
-                timeline,
-                &who,
-                Box::new(move |me| {
-                    me.wield_multi(Some(left.clone()), Some(right.clone()));
-                }),
-            );
+            for_agent(timeline, &who, &move |me: &mut AgentState| {
+                me.wield_multi(Some(left.clone()), Some(right.clone()));
+            });
         }
         AetObservation::TwoHandedWield(who, what) => {
             let what = what.clone();
-            for_agent_closure(
-                timeline,
-                &who,
-                Box::new(move |me| {
-                    me.wield_two_hands(what.clone());
-                }),
-            );
+            for_agent(timeline, &who, &move |me: &mut AgentState| {
+                me.wield_two_hands(what.clone());
+            });
         }
         AetObservation::TickAff(who, what) => {
             timeline.tick_counter_up_for_agent(who, what)?;
@@ -370,12 +336,12 @@ pub fn apply_observation(
         }
         AetObservation::FillPipe(herb_str) => {
             let herb = herb_from_string(herb_str).to_string();
-            for_agent_closure(
+            for_agent(
                 timeline,
                 &timeline.me.clone(),
-                Box::new(move |me| {
+                &move |me: &mut AgentState| {
                     me.pipe_state.refill(&herb);
-                }),
+                },
             );
         }
         _ => {}
@@ -465,26 +431,20 @@ pub fn apply_weapon_hits(
         for i in 0..observations.len() {
             if let Some(AetObservation::Devenoms(venom)) = observations.get(i) {
                 if let Some(AetObservation::Rebounds) = observations.get(i - 1) {
-                    agent_states.for_agent(you, |you| {
+                    agent_states.for_agent(you, &|you: &mut AgentState| {
                         you.observe_flag(FType::Rebounding, true);
                     });
                     let venom = venom.clone();
-                    agent_states.for_agent_closure(
-                        me,
-                        Box::new(move |me| {
-                            apply_venom(me, &venom, false);
-                        }),
-                    );
+                    agent_states.for_agent(me, &move |me: &mut AgentState| {
+                        apply_venom(me, &venom, false);
+                    });
                 } else {
                     if let Some(AetObservation::PurgeVenom(_, _v2)) = observations.get(i + 1) {
                     } else {
                         let venom = venom.clone();
-                        agent_states.for_agent_closure(
-                            you,
-                            Box::new(move |you| {
-                                apply_venom(you, &venom, false);
-                            }),
-                        );
+                        agent_states.for_agent(you, &move |you| {
+                            apply_venom(you, &venom, false);
+                        });
                     }
                 }
             } else if let Some(AetObservation::CombatAction(_)) = observations.get(i) {
@@ -508,14 +468,11 @@ pub fn apply_weapon_hits(
         } else if let Some(AetObservation::Dodges(_)) = observations.get(1) {
             venoms.pop();
         }
-        agent_states.for_agent_closure(
-            you,
-            Box::new(move |you| {
-                for venom in venoms.iter() {
-                    apply_venom(you, &venom, false);
-                }
-            }),
-        );
+        agent_states.for_agent(you, &move |you| {
+            for venom in venoms.iter() {
+                apply_venom(you, &venom, false);
+            }
+        });
     }
     Ok(())
 }
@@ -875,7 +832,7 @@ pub fn apply_or_infer_cures(
                 who.observe_flag(*aff, false);
             }
         } else {
-            remove_in_order(cures)(who);
+            remove_in_order(cures, who);
         }
     }
     Ok(())
@@ -1004,7 +961,7 @@ pub fn apply_or_infer_cure(
                         }
                     } else {
                         let cured = top_aff(who, order.to_vec());
-                        remove_in_order(order.to_vec())(who);
+                        remove_in_order(order.to_vec(), who);
                         if cured == Some(FType::ThinBlood) {
                             who.clear_relapses();
                         }
@@ -1022,7 +979,7 @@ pub fn apply_or_infer_cure(
                 who.observe_flag(FType::Slickness, false);
                 if salve_name == "caloric" {
                     if who.some(CALORIC_TORSO_ORDER.to_vec()) {
-                        remove_in_order(CALORIC_TORSO_ORDER.to_vec())(who);
+                        remove_in_order(CALORIC_TORSO_ORDER.to_vec(), who);
                     } else {
                         who.set_flag(FType::Insulation, true);
                     }
@@ -1036,7 +993,7 @@ pub fn apply_or_infer_cure(
                 {
                     if let Ok(limb) = get_limb_damage(salve_loc) {
                         if !who.limb_damage.damaged(limb) {
-                            remove_in_order(order.to_vec())(who);
+                            remove_in_order(order.to_vec(), who);
                         } else {
                             println!("{} fizzled on {}", salve_name, salve_loc);
                         }
@@ -1046,7 +1003,7 @@ pub fn apply_or_infer_cure(
                                 who.observe_flag(*salve_aff, false);
                             }
                         } else {
-                            remove_in_order(order.to_vec())(who);
+                            remove_in_order(order.to_vec(), who);
                         }
                     }
                 } else {
@@ -1061,7 +1018,7 @@ pub fn apply_or_infer_cure(
                             who.observe_flag(*smoke_aff, false);
                         }
                     } else {
-                        remove_in_order(order.to_vec())(who);
+                        remove_in_order(order.to_vec(), who);
                     }
                 } else if herb_name == "reishi" {
                     who.set_balance(BType::Rebounding, 6.25);
@@ -1074,16 +1031,8 @@ pub fn apply_or_infer_cure(
     Ok(found_cures)
 }
 
-pub fn for_agent(agent_states: &mut AetTimelineState, target: &String, act: fn(&mut AgentState)) {
+pub fn for_agent(agent_states: &mut AetTimelineState, target: &String, act: &Fn(&mut AgentState)) {
     agent_states.for_agent(target, act)
-}
-
-pub fn for_agent_closure(
-    agent_states: &mut AetTimelineState,
-    target: &String,
-    act: Box<dyn Fn(&mut AgentState)>,
-) {
-    agent_states.for_agent_closure(target, act)
 }
 
 pub fn for_agent_uncertain(
@@ -1109,14 +1058,11 @@ pub fn attack_afflictions(
     after: &Vec<AetObservation>,
 ) {
     if attack_hit(after) {
-        agent_states.for_agent_closure(
-            target,
-            Box::new(move |you| {
-                for aff in affs.clone().iter() {
-                    you.set_flag(*aff, true);
-                }
-            }),
-        );
+        agent_states.for_agent(target, &move |you: &mut AgentState| {
+            for aff in affs.clone().iter() {
+                you.set_flag(*aff, true);
+            }
+        });
     }
 }
 
@@ -1127,14 +1073,11 @@ pub fn attack_strip(
     after: &Vec<AetObservation>,
 ) {
     if attack_hit(after) {
-        agent_states.for_agent_closure(
-            target,
-            Box::new(move |you| {
-                for def in defs.clone().iter() {
-                    you.set_flag(*def, false);
-                }
-            }),
-        );
+        agent_states.for_agent(target, &move |you: &mut AgentState| {
+            for def in defs.clone().iter() {
+                you.set_flag(*def, false);
+            }
+        });
     }
 }
 
@@ -1145,20 +1088,17 @@ pub fn attack_strip_or_afflict(
     after: &Vec<AetObservation>,
 ) {
     if attack_hit(after) {
-        agent_states.for_agent_closure(
-            target,
-            Box::new(move |you| {
-                for aff_def in aff_defs.clone().iter() {
-                    if !aff_def.is_affliction() && you.is(*aff_def) {
-                        you.set_flag(*aff_def, false);
-                        break;
-                    } else if aff_def.is_affliction() && !you.is(*aff_def) {
-                        you.set_flag(*aff_def, true);
-                        break;
-                    }
+        agent_states.for_agent(target, &move |you: &mut AgentState| {
+            for aff_def in aff_defs.clone().iter() {
+                if !aff_def.is_affliction() && you.is(*aff_def) {
+                    you.set_flag(*aff_def, false);
+                    break;
+                } else if aff_def.is_affliction() && !you.is(*aff_def) {
+                    you.set_flag(*aff_def, true);
+                    break;
                 }
-            }),
-        );
+            }
+        });
     }
 }
 
@@ -1169,13 +1109,9 @@ pub fn apply_combo_balance(
     after: &Vec<AetObservation>,
 ) {
     let observations = after.clone();
-    for_agent_closure(
-        agent_states,
-        caster,
-        Box::new(move |me| {
-            apply_or_infer_combo_balance(me, expected, &observations);
-        }),
-    );
+    for_agent(agent_states, caster, &move |me: &mut AgentState| {
+        apply_or_infer_combo_balance(me, expected, &observations);
+    });
 }
 
 pub fn attack_limb_damage(
@@ -1185,11 +1121,7 @@ pub fn attack_limb_damage(
     after: &Vec<AetObservation>,
 ) {
     let observations = after.clone();
-    for_agent_closure(
-        agent_states,
-        target,
-        Box::new(move |you| {
-            apply_limb_damage(you, expected, &observations);
-        }),
-    );
+    for_agent(agent_states, target, &move |you| {
+        apply_limb_damage(you, expected, &observations);
+    });
 }

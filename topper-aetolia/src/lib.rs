@@ -18,6 +18,7 @@ pub mod classes;
 pub mod curatives;
 pub mod db;
 pub mod defense;
+pub mod items;
 pub mod observables;
 pub mod timeline;
 pub mod types;

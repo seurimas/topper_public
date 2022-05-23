@@ -11,14 +11,10 @@ pub fn handle_combat_action(
         "Fitness" => {
             let observations = after.clone();
             let first_person = agent_states.me.eq(&combat_action.caster);
-            for_agent_closure(
-                agent_states,
-                &combat_action.caster,
-                Box::new(move |me| {
-                    apply_or_infer_cures(me, vec![FType::Asthma], &observations, first_person);
-                    apply_or_infer_balance(me, (BType::ClassCure1, 12.0), &observations);
-                }),
-            );
+            for_agent(agent_states, &combat_action.caster, &move |me: &mut AgentState| {
+                apply_or_infer_cures(me, vec![FType::Asthma], &observations, first_person);
+                apply_or_infer_balance(me, (BType::ClassCure1, 12.0), &observations);
+            });
         }
         _ => {}
     }

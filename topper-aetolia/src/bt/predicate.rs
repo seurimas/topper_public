@@ -18,18 +18,18 @@ pub enum AetTarget {
 impl AetTarget {
     pub fn get_target<'a>(
         &self,
-        world: &'a BehaviorModel,
+        model: &'a BehaviorModel,
         controller: &BehaviorController,
     ) -> Option<&'a AgentState> {
         match self {
-            AetTarget::Me => world
+            AetTarget::Me => model
                 .state
-                .get_agent(&world.who_am_i())
+                .get_agent(&model.who_am_i())
                 .and_then(|branches| branches.get(0)),
             AetTarget::Target => controller
                 .target
                 .as_ref()
-                .and_then(|target| world.state.get_agent(&target))
+                .and_then(|target| model.state.get_agent(&target))
                 .and_then(|branches| branches.get(0)),
         }
     }
@@ -40,6 +40,7 @@ pub enum AetPredicate {
     AllAffs(AetTarget, Vec<FType>),
     SomeAffs(AetTarget, Vec<FType>),
     NoAffs(AetTarget, Vec<FType>),
+    Locked(AetTarget, bool),
     BardPredicate(AetTarget, BardPredicate),
 }
 
@@ -133,6 +134,16 @@ impl UnpoweredFunction for AetPredicate {
                 } else {
                     UnpoweredFunctionState::Failed
                 }
+            }
+            AetPredicate::Locked(target, hard_only) => {
+                if let Some(target) = target.get_target(model, controller) {
+                    if let Some(lock) = target.lock_duration() {
+                        if !*hard_only || lock >= 10.0 {
+                            return UnpoweredFunctionState::Complete;
+                        }
+                    }
+                }
+                UnpoweredFunctionState::Failed
             }
             AetPredicate::BardPredicate(target, bard_predicate) => {
                 if bard_predicate.check(target, model, controller) {
