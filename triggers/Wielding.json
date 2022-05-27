@@ -12,6 +12,36 @@
     "observation_name": "TwoHandedWield"
   },
   {
+    "regex": "^(You) cease to wield (.*) in your (left|right) hand, securing it conveniently on your weaponbelt.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "GroupAsTarget": 2
+      },
+      {
+        "GroupAsTarget": 3
+      }
+    ],
+    "observation_name": "Unwield"
+  },
+  {
+    "regex": "^(You) cease wielding (.*) in your (left|right) hand.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "GroupAsTarget": 2
+      },
+      {
+        "GroupAsTarget": 3
+      }
+    ],
+    "observation_name": "Unwield"
+  },
+  {
     "regex": "^(\\w+) fluidly swaps? (.*) with (.*) in \\w+ left hand and (.*) in \\w+ right hand.$",
     "args": [
       {
@@ -25,6 +55,21 @@
       }
     ],
     "observation_name": "DualWield"
+  },
+  {
+    "regex": "^(\\w+) starts? to wield (.*) in .* (left|right) hand.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "GroupAsTarget": 2
+      },
+      {
+        "GroupAsTarget": 3
+      }
+    ],
+    "observation_name": "Wield"
   },
   {
     "regex": "^(\\w+) fluidly swaps? (.*) with (.*) in \\w+ (\\w+) hand.$",

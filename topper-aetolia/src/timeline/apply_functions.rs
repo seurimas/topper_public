@@ -55,7 +55,7 @@ pub fn apply_observation(
             }
         }
         AetObservation::Undithered => {
-            timeline.for_agent(&timeline.me.clone(), &|me| {
+            timeline.for_agent(&timeline.me.clone(), &|me: &mut AgentState| {
                 me.assume_bard(&|bard| {
                     bard.dithering = 0;
                 });
@@ -140,6 +140,46 @@ pub fn apply_observation(
                     for affliction in FType::afflictions() {
                         me.observe_flag(affliction, afflictions.contains(&affliction));
                     }
+                });
+            }
+            "ColdRead" => {
+                let emotions = after
+                    .iter()
+                    .filter_map(|item| match item {
+                        AetObservation::ListItem(list_type, emotion, value, _) => {
+                            let emotion = {
+                                let mut c = emotion.chars();
+                                match c.next() {
+                                    None => String::new(),
+                                    Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+                                }
+                            };
+                            if let (Some(emotion), Some(value)) =
+                                (emotion.parse().ok(), value.parse().ok())
+                            {
+                                Some((emotion, value))
+                            } else {
+                                None
+                            }
+                        }
+                        _ => None,
+                    })
+                    .collect();
+                let primary = after
+                    .iter()
+                    .filter_map(|item| match item {
+                        AetObservation::ListItem(list_type, is_primary, emotion, _) => {
+                            if is_primary.eq("Primary") {
+                                emotion.parse().ok()
+                            } else {
+                                None
+                            }
+                        }
+                        _ => None,
+                    })
+                    .next();
+                timeline.for_agent(who, &move |me: &mut AgentState| {
+                    me.bard_board.set_emotions(primary, &emotions);
                 });
             }
             "Pipes" => {
@@ -1021,7 +1061,11 @@ pub fn apply_or_infer_cure(
                         remove_in_order(order.to_vec(), who);
                     }
                 } else if herb_name == "reishi" {
-                    who.set_balance(BType::Rebounding, 6.25);
+                    if who.is(FType::Besilence) {
+                        who.toggle_flag(FType::Besilence, false);
+                    } else {
+                        who.set_balance(BType::Rebounding, 6.25);
+                    }
                 } else {
                     return Err(format!("Could not find smoke {}", herb_name));
                 }

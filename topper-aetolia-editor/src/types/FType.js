@@ -38,6 +38,7 @@ Zenith
 Firefist
 Swagger
 Wrath
+Discordance
 Destiny
 Sheath
 Aurora
@@ -180,10 +181,13 @@ BurntSkin
 CrushedChest
 Heatspear
 Deepwound
-Whiplash,   Backstrain, MuscleSpasms
+Whiplash,
+Backstrain
+MuscleSpasms
 Stiffness
-SoreWrist, WeakGrip
-SoreAnkle, 
+SoreWrist
+WeakGrip
+SoreAnkle,
 Hypothermia
 IceEncased
 Frozen

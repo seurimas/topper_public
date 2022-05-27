@@ -58,6 +58,7 @@ export const renderValueOfType = (treeName, path, typeDesc) => {
     const Field = getTypeRenderer(fullTypeDesc);
     return (
         <Field
+            key={path.join(',')}
             treeName={treeName}
             path={path}
             typeDesc={fullTypeDesc}

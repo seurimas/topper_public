@@ -21,6 +21,27 @@
         "observation_name": "Proc"
     },
     {
+        "regex": "^(You) feel your body flush as the poison from the needle circulates.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Performance"
+            },
+            {
+                "Literal": "Needled"
+            },
+            {
+                "Literal": ""
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
         "regex": "^A dark dagger plunges down from the skies and into (\\w+), sinking up to the hilt.$",
         "args": [
             {
@@ -46,6 +67,27 @@
         "args": [
             {
                 "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Weaving"
+            },
+            {
+                "Literal": "Bladestormed"
+            },
+            {
+                "Literal": "final"
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^Your daggers held within the sky vanish into wisps of smoke.$",
+        "args": [
+            {
+                "Literal": "Rhyot"
             },
             {
                 "Literal": "Weaving"
@@ -136,6 +178,27 @@
             },
             {
                 "Literal": "Awakening"
+            },
+            {
+                "Literal": "end"
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^The flow of destiny favours (you) as your song ends with a single strident note.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Songcalling"
+            },
+            {
+                "Literal": "Destiny"
             },
             {
                 "Literal": "end"
@@ -433,6 +496,99 @@
             },
             {
                 "Literal": "all"
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^(A sharp anelace) breaks into shimmering light in (you)r hands as it crumbles apart.$",
+        "args": [
+            {
+                "GroupAsTarget": 2
+            },
+            {
+                "Literal": "Weaving"
+            },
+            {
+                "Literal": "UnweavedHands"
+            },
+            {
+                "GroupAsTarget": 2
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^(A sharp anelace) breaks into shimmering light in (you)r weaponbelt as it crumbles apart.$",
+        "args": [
+            {
+                "GroupAsTarget": 2
+            },
+            {
+                "Literal": "Weaving"
+            },
+            {
+                "Literal": "UnweavedBelt"
+            },
+            {
+                "GroupAsTarget": 2
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^Your music already produces discord in those who listen.$",
+        "args": [
+            {
+                "Literal": "Discordance"
+            }
+        ],
+        "observation_name": "Discovered"
+    },
+    {
+        "regex": "^(You)r tone shifts as it picks up speed.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Songcalling"
+            },
+            {
+                "Literal": "HalfbeatStart"
+            },
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^(You)r songs lose their tempo as your body calms itself.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Songcalling"
+            },
+            {
+                "Literal": "HalfbeatEnd"
+            },
+            {
+                "GroupAsTarget": 1
             },
             {
                 "Literal": ""

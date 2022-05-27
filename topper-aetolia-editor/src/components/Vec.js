@@ -30,7 +30,7 @@ export const VecList = ({
     const { itemType } = typeDesc;
     const vecPaths = useSelector(getVecPaths(treeName, path));
     const items = [
-        ...vecPaths.map(vecPath => <VecItem treeName={treeName} path={vecPath}>{renderValueOfType(treeName, vecPath, itemType)}</VecItem>),
+        ...vecPaths.map(vecPath => <VecItem key={vecPath.join(',')} treeName={treeName} path={vecPath}>{renderValueOfType(treeName, vecPath, itemType)}</VecItem>),
         <VecAddButton treeName={treeName} path={path} />,
     ];
     return (

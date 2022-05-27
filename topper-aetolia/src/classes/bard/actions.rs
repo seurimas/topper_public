@@ -426,11 +426,11 @@ impl ActiveTransition for PerformanceAttackAction {
         Ok(match &self.attack {
             PerformanceAttack::TempoOne(venom) => format!("tempo {} {}", self.target, venom),
             PerformanceAttack::TempoTwo(venom_one, venom_two) => format!(
-                "tempo {} {};;envenom rapier with {}",
+                "tempo {} {};;envenom falchion with {}",
                 self.target, venom_one, venom_two
             ),
             PerformanceAttack::TempoThree(venom_one, venom_two, venom_three) => format!(
-                "tempo {} {};;envenom rapier with {};;envenom rapier with {}",
+                "tempo {} {};;envenom falchion with {};;envenom falchion with {}",
                 self.target, venom_one, venom_three, venom_two
             ),
             PerformanceAttack::Needle(venom) => format!("needle {} {}", self.target, venom),
@@ -483,5 +483,53 @@ impl ActiveTransition for SongAction {
         } else {
             format!("sing song of {}", self.song)
         })
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+pub struct AnelaceAction {
+    pub caster: String,
+    pub target: String,
+}
+
+impl AnelaceAction {
+    pub fn new(caster: String, target: String) -> Self {
+        AnelaceAction { caster, target }
+    }
+}
+
+impl ActiveTransition for AnelaceAction {
+    fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
+        ProbableEvent::certain(vec![CombatAction::observation(
+            &self.caster,
+            "Weaving",
+            "Anelace",
+            "stab",
+            &self.target,
+        )])
+    }
+    fn act(&self, timeline: &AetTimeline) -> ActivateResult {
+        Ok(format!("stab {}", self.target))
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+pub struct ColdReadAction {
+    pub caster: String,
+    pub target: String,
+}
+
+impl ColdReadAction {
+    pub fn new(caster: String, target: String) -> Self {
+        ColdReadAction { caster, target }
+    }
+}
+
+impl ActiveTransition for ColdReadAction {
+    fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
+        vec![]
+    }
+    fn act(&self, timeline: &AetTimeline) -> ActivateResult {
+        Ok(format!("coldread {}", self.target))
     }
 }

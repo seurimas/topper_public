@@ -13,7 +13,7 @@ export const SONG = {
 
 export const WEAVABLE = {
     name: 'Weavable',
-    variants: ''.split(',').map(name => ({ name })),
+    variants: 'Anelace'.split(',').map(name => ({ name })),
 };
 
 export const WEAVING_ATTACK = {
@@ -42,6 +42,8 @@ export const PERFORMANCE_ATTACK = {
         name: 'Bravado',
         fields: ['String'],
     }, {
+        name: 'Anelace',
+    }, {
         name: 'Pierce',
     }, {
         name: 'Seduce',
@@ -62,17 +64,25 @@ export const PERFORMANCE_ATTACK = {
     }]
 };
 
+export const VENOM_ATTACK = {
+    name: 'BardVenomAttack',
+    variants: 'Tempo,Needle,Harry,Bravado'.split(',').map(name => ({ name })),
+};
+
 registerTypeDesc(EMOTION);
 registerTypeDesc(SONG);
 registerTypeDesc(getOptionOf(SONG));
 registerTypeDesc(WEAVABLE);
 registerTypeDesc(WEAVING_ATTACK);
 registerTypeDesc(PERFORMANCE_ATTACK);
+registerTypeDesc(VENOM_ATTACK);
 
 export const BARD_PREDICATE = {
     name: 'BardPredicate',
     variants: [{
         name: 'Undithered',
+    }, {
+        name: 'InRhythm',
     }, {
         name: 'InHalfBeat',
     }, {
@@ -80,17 +90,26 @@ export const BARD_PREDICATE = {
     }, {
         name: 'Runebanded',
     }, {
+        name: 'IronCollared',
+    }, {
         name: 'Globed',
+    }, {
+        name: 'GlobeAffIsPriority',
     }, {
         name: 'Awakened',
     }, {
         name: 'Bladestorm',
+    }, {
+        name: 'HasAnelace',
     }, {
         name: 'PrimaryEmotion',
         fields: ['Emotion'],
     }, {
         name: 'EmotionLevel',
         fields: ['Emotion', 'usize'],
+    }, {
+        name: 'Needled',
+        fields: [getOptionName('String')],
     }, {
         name: 'Singing',
         fields: [getOptionName('Song')],
@@ -108,11 +127,18 @@ export const BARD_BEHAVIOR = {
         name: 'Weave',
         fields: ['Weavable'],
     }, {
+        "name": "Anelace",
+    }, {
+        "name": "ColdRead",
+    }, {
         name: 'WeaveAttack',
         fields: ['WeavingAttack'],
     }, {
         name: 'PerformanceAttack',
         fields: ['PerformanceAttack'],
+    }, {
+        name: 'VenomAttack',
+        fields: ['BardVenomAttack'],
     }, {
         name: 'SingSong',
         fields: ['Song'],

@@ -464,7 +464,9 @@ impl AgentState {
     }
 
     pub fn can_focus(&self, ignore_bal: bool) -> bool {
-        !self.is(FType::Impatience) && (ignore_bal || self.balanced(BType::Focus))
+        !self.is(FType::Impatience)
+            && !self.is(FType::Besilence)
+            && (ignore_bal || self.balanced(BType::Focus))
     }
 
     pub fn can_parry(&self) -> bool {

@@ -124,7 +124,7 @@ export const getEnumField = (treeName, path) => ({ behaviorTree }) => {
 export const getVecPaths = (treeName, path) => ({ behaviorTree }) =>
     getElement(treeName, path, behaviorTree).fields.map((_, idx) => [...path, idx]);
 
-export const concentrate = (tree) => {
+export const concentrate = (tree, typeDesc) => {
     if (tree.variant) {
         // Enum value.
         if (!tree.fields || tree.fields.length === 0) {
@@ -133,18 +133,20 @@ export const concentrate = (tree) => {
         } else if (tree.fields.length === 1) {
             // Tuple N = 1.
             return {
-                [tree.variant.name]: concentrate(tree.fields[0]),
+                [tree.variant.name]: concentrate(tree.fields[0], tree.variant.fields[0]),
             };
         } else {
             // Tuple N = 2+
             return {
-                [tree.variant.name]: tree.fields.map(concentrate),
+                [tree.variant.name]: tree.fields.map((treeField, fieldIdx) => concentrate(treeField, tree.variant.fields[fieldIdx])),
             };
         }
         // TODO Tuple with field names.
     } else if (tree.fields) {
         // Vec
-        return tree.fields.map(concentrate);
+        return tree.fields.map((treeField) => concentrate(treeField, typeDesc.itemType));
+    } else if (typeDesc && typeDesc === 'usize') {
+        return Number.parseInt(tree);
     } else {
         return tree;
     }
@@ -155,9 +157,12 @@ export const getJsonOutput = (treeName) => ({ behaviorTree }) => {
 };
 
 export const hydrateVariant = (concentrated, typeDesc) => {
-    const variantName = typeof concentrated === 'object'
-        ? Object.keys(concentrated)[0]
-        : concentrated;
+    let variantName = "None";
+    if (concentrated !== null) {
+        variantName = typeof concentrated === 'object'
+            ? Object.keys(concentrated)[0]
+            : concentrated;
+    }
     const variant = typeDesc.variants.find(({ name }) => name === variantName);
     if (variant.fields) {
         const values = concentrated[variantName];
@@ -199,6 +204,8 @@ export const hydrateField = (concentrated, fieldDesc) => {
         }
     } else if (fieldDesc.name && fieldDesc.name === 'Vec') {
         return hydrateVec(concentrated, fieldDesc.itemType);
+    } else if (fieldDesc.name === 'usize') {
+        return "" + concentrated;
     } else if (fieldDesc.variants) {
         return hydrateVariant(concentrated, fieldDesc);
     } else {

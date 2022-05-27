@@ -65,6 +65,7 @@ pub struct BardClassState {
     pub voice_timeout: CType,
     pub instrument_timeout: CType,
     pub half_beat: HalfbeatState,
+    pub anelaces: usize,
 }
 
 const SONG_TIMEOUT: CType = (10.0 * BALANCE_SCALE) as CType;
@@ -192,6 +193,28 @@ impl GlobesState {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum IronCollarState {
+    None,
+    Locking,
+    Locked,
+}
+
+impl Default for IronCollarState {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+impl IronCollarState {
+    pub fn is_active(&self) -> bool {
+        match self {
+            Self::None => false,
+            _ => true,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, EnumString, Copy, PartialEq, Eq, Hash)]
 pub enum Emotion {
     Sadness,
@@ -226,6 +249,7 @@ pub struct BardBoard {
     pub emotion_state: EmotionState,
     pub runeband_state: RunebandState,
     pub globes_state: GlobesState,
+    pub iron_collar_state: IronCollarState,
     pub blades_count: usize,
     pub needle_venom: Option<String>,
 }
@@ -277,5 +301,17 @@ impl BardBoard {
             }
             _ => None,
         }
+    }
+
+    pub fn awaken(&mut self) {
+        self.emotion_state.awakened = true;
+        self.emotion_state.levels = vec![];
+        self.emotion_state.primary = None;
+    }
+
+    pub fn set_emotions(&mut self, primary: Option<Emotion>, levels: &Vec<(Emotion, CType)>) {
+        self.emotion_state.awakened = levels.len() > 0;
+        self.emotion_state.levels = levels.clone();
+        self.emotion_state.primary = primary;
     }
 }

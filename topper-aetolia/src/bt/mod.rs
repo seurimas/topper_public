@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 pub use sub_trees::*;
 use topper_bt::unpowered::*;
 
-use crate::{observables::ActionPlan, timeline::AetTimeline};
+use crate::{classes::VenomPlan, observables::ActionPlan, timeline::AetTimeline};
 
 pub type AetBehaviorTreeDef = UnpoweredTreeDef<AetBehaviorTreeNode>;
 
@@ -36,6 +36,7 @@ pub struct BehaviorController {
     pub used_balance: bool,
     pub used_equilibrium: bool,
     pub used_secondary_balance: bool,
+    pub aff_priorities: Option<Vec<VenomPlan>>,
     pub plan_tags: HashSet<String>,
     pub target: Option<String>,
 }

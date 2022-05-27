@@ -76,6 +76,15 @@ export const AET_BEHAVIOR = {
         name: 'PlainQebBehavior',
         fields: ['String'],
     }, {
+        name: 'UnstackAffs',
+        fields: [{
+            name: 'Vec',
+            itemType: 'FType',
+        }],
+    }, {
+        name: 'PushAff',
+        fields: ['FType'],
+    }, {
         name: 'BardBehavior',
         fields: ['BardBehavior'],
     }],
@@ -104,13 +113,31 @@ export const AET_PREDICATE = {
             itemType: 'FType',
         }],
     }, {
+        name: 'PriorityAffIs',
+        fields: ['AetTarget', 'FType'],
+    }, {
+        name: 'Buffered',
+        fields: ['AetTarget', 'FType'],
+    }, {
+        name: 'AffCountOver',
+        fields: ['AetTarget', 'usize', {
+            name: 'Vec',
+            itemType: 'FType',
+        }],
+    }, {
+        name: 'AffCountUnder',
+        fields: ['AetTarget', 'usize', {
+            name: 'Vec',
+            itemType: 'FType',
+        }],
+    }, {
         name: 'Locked',
         fields: ['AetTarget', 'bool'],
     }, {
         name: 'BardPredicate',
         fields: ['AetTarget', 'BardPredicate'],
     }]
-}
+};
 
 registerTypeDesc(AET_PREDICATE);
 

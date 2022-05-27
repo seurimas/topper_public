@@ -199,6 +199,7 @@ impl TopperHandler<BattleStats> for AetTopper {
                     }
                     if self.debug_mode {
                         println!("Debug mode on!");
+                        println!("{:?}", self.timeline_module.timeline.state.borrow_me());
                     } else {
                         println!("Debug mode off!");
                     }

@@ -3,6 +3,7 @@ use serde::Serialize;
 use topper_bt::unpowered::*;
 
 use crate::classes::bard::BardBehavior;
+use crate::classes::VenomPlan;
 use crate::observables::PlainAction;
 use crate::timeline::*;
 use crate::types::*;
@@ -11,6 +12,8 @@ use super::{BehaviorController, BehaviorModel};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub enum AetBehavior {
+    UnstackAffs(Vec<FType>),
+    PushAff(FType),
     PlainQebBehavior(String),
     BardBehavior(BardBehavior),
 }
@@ -25,6 +28,22 @@ impl UnpoweredFunction for AetBehavior {
         controller: &mut Self::Controller,
     ) -> UnpoweredFunctionState {
         match self {
+            AetBehavior::UnstackAffs(unstacked) => {
+                if let Some(priorities) = &mut controller.aff_priorities {
+                    priorities.retain(|aff| !unstacked.contains(&aff.affliction()));
+                    return UnpoweredFunctionState::Complete;
+                } else {
+                    UnpoweredFunctionState::Failed
+                }
+            }
+            AetBehavior::PushAff(aff) => {
+                if let Some(priorities) = &mut controller.aff_priorities {
+                    priorities.insert(0, VenomPlan::Stick(*aff));
+                    return UnpoweredFunctionState::Complete;
+                } else {
+                    UnpoweredFunctionState::Failed
+                }
+            }
             AetBehavior::PlainQebBehavior(action) => {
                 controller
                     .plan

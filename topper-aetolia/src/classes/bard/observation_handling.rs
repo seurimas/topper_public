@@ -1,4 +1,6 @@
-use crate::{curatives::RANDOM_CURES, observables::*, timeline::*, types::*};
+use crate::{
+    classes::remove_through, curatives::RANDOM_CURES, observables::*, timeline::*, types::*,
+};
 
 const BLADES_COUNT: usize = 3;
 // All values assume onyx.
@@ -6,8 +8,11 @@ const RUNEBAND_DITHER: usize = 2;
 const GLOBES_DITHER: usize = 0;
 const BARBS_DITHER: usize = 2;
 const BLADESTORM_DITHER: usize = 2;
+const ANELACE_DITHER: usize = 2;
 
-const GLOBE_AFFS: [FType; 3] = [FType::Dizziness, FType::Confusion, FType::Perplexed];
+pub const ANELACE: &str = "a sharp anelace";
+
+pub const GLOBE_AFFS: [FType; 3] = [FType::Dizziness, FType::Confusion, FType::Perplexed];
 const RUNEBAND_AFFS: [FType; 7] = [
     FType::Stupidity,
     FType::Paranoia,
@@ -17,6 +22,15 @@ const RUNEBAND_AFFS: [FType; 7] = [
     FType::Laxity,
     FType::Clumsiness,
 ];
+
+lazy_static! {
+    static ref PIERCE_ORDER: Vec<FType> = vec![
+        FType::Reflection,
+        FType::Shielded,
+        FType::Rebounding,
+        FType::Speed,
+    ];
+}
 
 pub fn handle_weaving_action(
     combat_action: &CombatAction,
@@ -162,6 +176,60 @@ pub fn handle_weaving_action(
                 },
             );
         }
+        "Anelace" => {
+            let stabbed = combat_action.annotation.eq("stab");
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &move |me: &mut AgentState| {
+                    if stabbed {
+                        me.assume_bard(&|bard: &mut BardClassState| {
+                            if bard.anelaces > 0 {
+                                bard.anelaces -= 1;
+                            }
+                        });
+                        me.wield_state.unweave(ANELACE);
+                    } else {
+                        me.assume_bard(&|bard: &mut BardClassState| {
+                            bard.anelaces += 1;
+                            bard.dithering = ANELACE_DITHER;
+                        });
+                        me.wield_state.weave(ANELACE);
+                    }
+                },
+            );
+            if stabbed {
+                attack_afflictions(
+                    agent_states,
+                    &combat_action.target,
+                    vec![FType::Hollow, FType::Narcolepsy],
+                    &observations,
+                );
+            }
+        }
+        "UnweavedHands" | "UnweavedBelt" => {
+            let unweaved = combat_action.annotation.clone().to_ascii_lowercase();
+            let in_hands = combat_action.skill.eq("UnweavedHands");
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &|me: &mut AgentState| {
+                    match unweaved.as_ref() {
+                        ANELACE => {
+                            me.assume_bard(&move |bard: &mut BardClassState| {
+                                if bard.anelaces > 0 {
+                                    bard.anelaces -= 1;
+                                }
+                            });
+                        }
+                        _ => {}
+                    };
+                    if in_hands {
+                        me.wield_state.unweave(&unweaved);
+                    }
+                },
+            );
+        }
         _ => {}
     }
     Ok(())
@@ -177,6 +245,33 @@ pub fn handle_performance_action(
     let first_person = combat_action.caster.eq(&agent_states.me);
     let hints = agent_states.get_player_hint(&combat_action.caster, &"CALLED_VENOMS".to_string());
     match combat_action.skill.as_ref() {
+        "Pierce" => {
+            let annotation = combat_action.annotation.clone();
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &move |me: &mut AgentState| {
+                    apply_or_infer_balance(me, (BType::Balance, 2.0), &observations);
+                },
+            );
+            for_agent(
+                agent_states,
+                &combat_action.target,
+                &move |me: &mut AgentState| {
+                    remove_through(
+                        me,
+                        match annotation.as_ref() {
+                            "reflection" => FType::Reflection,
+                            "shield" => FType::Shielded,
+                            "rebounding" => FType::Rebounding,
+                            "speed" => FType::Speed,
+                            _ => FType::Speed,
+                        },
+                        &PIERCE_ORDER.to_vec(),
+                    )
+                },
+            );
+        }
         "Crackshot" => {
             attack_afflictions(
                 agent_states,
@@ -186,7 +281,70 @@ pub fn handle_performance_action(
             );
             for_agent(
                 agent_states,
+                &combat_action.caster,
+                &move |me: &mut AgentState| {
+                    apply_or_infer_balance(me, (BType::Balance, 2.8), &observations);
+                },
+            );
+        }
+        "Ridicule" => {
+            if combat_action.annotation.eq("hard") {
+                attack_afflictions(
+                    agent_states,
+                    &combat_action.target,
+                    vec![FType::SelfLoathing],
+                    after,
+                );
+            } else {
+                attack_afflictions(
+                    agent_states,
+                    &combat_action.target,
+                    vec![FType::Magnanimity],
+                    after,
+                );
+            }
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &move |me: &mut AgentState| {
+                    apply_or_infer_balance(me, (BType::Balance, 2.8), &observations);
+                },
+            );
+        }
+        "Quip" => {
+            if combat_action.annotation.eq("angry") {
+                attack_afflictions(
+                    agent_states,
+                    &combat_action.target,
+                    vec![FType::Hatred],
+                    after,
+                );
+            } else {
+                attack_afflictions(
+                    agent_states,
+                    &combat_action.target,
+                    vec![FType::Berserking],
+                    after,
+                );
+            }
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &move |me: &mut AgentState| {
+                    apply_or_infer_balance(me, (BType::Balance, 2.8), &observations);
+                },
+            );
+        }
+        "Sock" => {
+            attack_afflictions(
+                agent_states,
                 &combat_action.target,
+                vec![FType::Dizziness],
+                after,
+            );
+            for_agent(
+                agent_states,
+                &combat_action.caster,
                 &move |me: &mut AgentState| {
                     apply_or_infer_balance(me, (BType::Balance, 2.8), &observations);
                 },
@@ -224,6 +382,20 @@ pub fn handle_performance_action(
                 &hints,
             );
             if combat_action.skill.eq("Tempo") {
+                let annotation = combat_action.annotation.clone();
+                for_agent(
+                    agent_states,
+                    &combat_action.target,
+                    &move |me: &mut AgentState| {
+                        if annotation.eq("two") {
+                            me.observe_flag(FType::Paresis, true);
+                        } else if annotation.eq("three") {
+                            me.observe_flag(FType::Shyness, true);
+                        } else if annotation.eq("four") {
+                            me.observe_flag(FType::Besilence, true);
+                        }
+                    },
+                );
                 for_agent(
                     agent_states,
                     &combat_action.caster,
@@ -373,6 +545,35 @@ pub fn handle_songcalling_action(
                 },
             );
         }
+        ("Awakening", "hit") => {
+            for_agent(agent_states, &combat_action.caster, &|me| {
+                me.bard_board.awaken();
+            });
+        }
+        ("Sorrow", "hit") => {
+            attack_afflictions(
+                agent_states,
+                &combat_action.target,
+                vec![FType::Squelched, FType::Migraine],
+                after,
+            );
+        }
+        ("Decadence", "hit") => {
+            attack_afflictions(
+                agent_states,
+                &combat_action.target,
+                vec![FType::Addiction],
+                after,
+            );
+        }
+        ("Charity", "hit") => {
+            attack_afflictions(
+                agent_states,
+                &combat_action.target,
+                vec![FType::Generosity],
+                after,
+            );
+        }
         (song_name, "end") => {
             if let Some(song) = song_name.parse().ok() {
                 for_agent(
@@ -382,6 +583,9 @@ pub fn handle_songcalling_action(
                         me.assume_bard(&|bard: &mut BardClassState| {
                             bard.end_song(song);
                         });
+                        if song == Song::Destiny {
+                            me.set_flag(FType::Destiny, true);
+                        }
                     },
                 );
             }

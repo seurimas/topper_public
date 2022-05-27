@@ -3,6 +3,9 @@ use serde::Serialize;
 use topper_bt::unpowered::*;
 
 use crate::classes::bard::BardPredicate;
+use crate::classes::get_affs_from_plan;
+use crate::classes::VenomPlan;
+use crate::curatives::get_cure_depth;
 use crate::timeline::*;
 use crate::types::*;
 
@@ -40,6 +43,10 @@ pub enum AetPredicate {
     AllAffs(AetTarget, Vec<FType>),
     SomeAffs(AetTarget, Vec<FType>),
     NoAffs(AetTarget, Vec<FType>),
+    AffCountOver(AetTarget, usize, Vec<FType>),
+    AffCountUnder(AetTarget, usize, Vec<FType>),
+    PriorityAffIs(AetTarget, FType),
+    Buffered(AetTarget, FType),
     Locked(AetTarget, bool),
     BardPredicate(AetTarget, BardPredicate),
 }
@@ -104,6 +111,34 @@ fn no_affs(
     return false;
 }
 
+fn aff_counts(
+    target: &AetTarget,
+    model: &BehaviorModel,
+    controller: &mut BehaviorController,
+    affs: &Vec<FType>,
+) -> Option<usize> {
+    target.get_target(model, controller).map(|target| {
+        if affs.len() > 0 {
+            target.affs_count(affs)
+        } else {
+            target.aff_count()
+        }
+    })
+}
+
+pub fn get_priority_aff(
+    target: &AetTarget,
+    model: &BehaviorModel,
+    controller: &BehaviorController,
+    stack: Option<Vec<VenomPlan>>,
+) -> Option<FType> {
+    if let (Some(target), Some(stack)) = (target.get_target(model, controller), stack) {
+        get_affs_from_plan(&stack, 1, target).get(0).cloned()
+    } else {
+        None
+    }
+}
+
 impl UnpoweredFunction for AetPredicate {
     type Model = BehaviorModel;
     type Controller = BehaviorController;
@@ -135,12 +170,52 @@ impl UnpoweredFunction for AetPredicate {
                     UnpoweredFunctionState::Failed
                 }
             }
+            AetPredicate::AffCountOver(target, min_count, affs) => {
+                if let Some(aff_count) = aff_counts(target, model, controller, affs) {
+                    if aff_count >= *min_count {
+                        UnpoweredFunctionState::Complete
+                    } else {
+                        UnpoweredFunctionState::Failed
+                    }
+                } else {
+                    UnpoweredFunctionState::Failed
+                }
+            }
+            AetPredicate::AffCountUnder(target, min_count, affs) => {
+                if let Some(aff_count) = aff_counts(target, model, controller, affs) {
+                    if aff_count <= *min_count {
+                        UnpoweredFunctionState::Complete
+                    } else {
+                        UnpoweredFunctionState::Failed
+                    }
+                } else {
+                    UnpoweredFunctionState::Failed
+                }
+            }
             AetPredicate::Locked(target, hard_only) => {
                 if let Some(target) = target.get_target(model, controller) {
                     if let Some(lock) = target.lock_duration() {
                         if !*hard_only || lock >= 10.0 {
                             return UnpoweredFunctionState::Complete;
                         }
+                    }
+                }
+                UnpoweredFunctionState::Failed
+            }
+            AetPredicate::PriorityAffIs(target, aff) => {
+                if let Some(priority_aff) =
+                    get_priority_aff(target, model, controller, controller.aff_priorities.clone())
+                {
+                    if priority_aff == *aff {
+                        return UnpoweredFunctionState::Complete;
+                    }
+                }
+                UnpoweredFunctionState::Failed
+            }
+            AetPredicate::Buffered(target, aff) => {
+                if let Some(target) = target.get_target(model, controller) {
+                    if get_cure_depth(target, *aff).cures > 1 {
+                        return UnpoweredFunctionState::Complete;
                     }
                 }
                 UnpoweredFunctionState::Failed

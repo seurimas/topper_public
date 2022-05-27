@@ -30,7 +30,7 @@ function App() {
   console.log(treeNames);
   return (
     <div className="App">
-      {treeNames.map((treeName) => <Accordion>
+      {treeNames.map((treeName) => <Accordion TransitionProps={{ unmountOnExit: true }} >
         <AccordionSummary>{treeName}</AccordionSummary>
         <AccordionDetails>
           <JsonOutput treeName={treeName} />

@@ -1,6 +1,7 @@
 use super::*;
 use num_enum::TryFromPrimitive;
 use serde::{Deserialize, Serialize};
+use std::ascii::AsciiExt;
 use std::convert::{TryFrom, TryInto};
 use std::fmt;
 use topper_core::timeline::BaseAgentState;
@@ -147,6 +148,7 @@ pub enum FType {
     Equipoise,
     Stretching,
     Halfbeat,
+    Discordance,
 
     // Antipsychotic
     Sadness, // MUST BE FIRST AFFLICTION
@@ -253,6 +255,9 @@ pub enum FType {
     ShaderotHeat,
     ShaderotWither,
     ShaderotBody,
+
+    // Reishi
+    Besilence,
 
     // Willow
     Aeon,
@@ -769,6 +774,75 @@ impl WieldState {
             Self::Normal { right, .. } => right.clone(),
             Self::TwoHanded(right) => Some(right.clone()),
         }
+    }
+
+    pub fn weave(&mut self, weaved_item: &str) {
+        let left_hand = self.get_left().is_none();
+        *self = match self {
+            Self::Normal {
+                left: old_left,
+                right: old_right,
+            } => Self::Normal {
+                left: if left_hand {
+                    Some(weaved_item.to_string())
+                } else {
+                    old_left.clone()
+                },
+                right: if left_hand {
+                    Some(weaved_item.to_string())
+                } else {
+                    old_right.clone()
+                },
+            },
+            Self::TwoHanded(item) => Self::Normal {
+                left: Some(weaved_item.to_string()),
+                right: None,
+            },
+        };
+    }
+
+    pub fn unweave(&mut self, weaved_item: &str) {
+        *self = match self {
+            WieldState::Normal {
+                left: old_left,
+                right: old_right,
+            } => {
+                if old_left
+                    .as_ref()
+                    .map(|old_left| old_left.eq_ignore_ascii_case(weaved_item))
+                    .unwrap_or_default()
+                {
+                    WieldState::Normal {
+                        left: None,
+                        right: old_right.clone(),
+                    }
+                } else if old_right
+                    .as_ref()
+                    .map(|old_right| old_right.eq_ignore_ascii_case(weaved_item))
+                    .unwrap_or_default()
+                {
+                    WieldState::Normal {
+                        left: old_left.clone(),
+                        right: None,
+                    }
+                } else {
+                    WieldState::Normal {
+                        left: old_left.clone(),
+                        right: old_right.clone(),
+                    }
+                }
+            }
+            WieldState::TwoHanded(item) => {
+                if item.eq_ignore_ascii_case(weaved_item) {
+                    WieldState::Normal {
+                        left: None,
+                        right: None,
+                    }
+                } else {
+                    WieldState::TwoHanded(item.clone())
+                }
+            }
+        };
     }
 }
 

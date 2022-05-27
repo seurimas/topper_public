@@ -562,6 +562,16 @@ lazy_static! {
 }
 
 lazy_static! {
+    pub static ref AFF_TO_AFF_MAP: HashMap<FType, FType> = {
+        let mut val = HashMap::new();
+        for aff in FType::afflictions() {
+            val.insert(aff, aff);
+        }
+        val
+    };
+}
+
+lazy_static! {
     pub static ref VENOM_AFFLICTS: HashMap<String, FType> = {
         let mut val = HashMap::new();
         val.insert("xentio".into(), FType::Clumsiness);
@@ -756,6 +766,7 @@ affliction_plan_stacker!(
     AFFLICT_VENOMS,
     &'static str
 );
+affliction_plan_stacker!(add_aff_from_plan, get_affs_from_plan, AFF_TO_AFF_MAP, FType);
 
 pub struct RestoreAction {
     caster: String,
