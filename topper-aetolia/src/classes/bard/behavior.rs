@@ -91,6 +91,12 @@ impl UnpoweredFunction for BardBehavior {
                         return UnpoweredFunctionState::Failed;
                     }
                 }
+                if *venom_attack == BardVenomAttack::Bravado {
+                    let me = model.state.borrow_me();
+                    if !me.balanced(BType::ClassCure1) {
+                        return UnpoweredFunctionState::Failed;
+                    }
+                }
                 if let (Some(target), Some(venom_plan)) = (
                     controller.target.as_ref(),
                     controller.aff_priorities.as_ref(),

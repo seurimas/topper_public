@@ -5,6 +5,7 @@ use serde_json::from_str;
 use std::sync::mpsc::Sender;
 use topper_aetolia::bt::{clear_behavior_trees, DEBUG_TREES};
 use topper_aetolia::classes::get_attack;
+use topper_aetolia::non_agent::{AetNonAgent, AetTimelineRoomExt};
 use topper_aetolia::timeline::*;
 use topper_aetolia::types::AgentState;
 use topper_core::observations;
@@ -28,7 +29,7 @@ use self::battle_stats::BattleStats;
 use self::db::AetMudletDatabaseModule;
 use self::web_ui::WebModule;
 
-pub type AetTimelineModule = TimelineModule<AetObservation, AetPrompt, AgentState>;
+pub type AetTimelineModule = TimelineModule<AetObservation, AetPrompt, AgentState, AetNonAgent>;
 
 impl<'s> TopperModule<'s, AetTimeSlice, BattleStats> for AetTimelineModule {
     type Siblings = (&'s AetMudletDatabaseModule,);
@@ -123,7 +124,9 @@ pub struct AetTopper {
     pub observation_parser: ObservationParser<AetObservation>,
 }
 
-impl Topper<AetObservation, AetPrompt, AgentState, AetMudletDatabaseModule> for AetTopper {
+impl Topper<AetObservation, AetPrompt, AgentState, AetNonAgent, AetMudletDatabaseModule>
+    for AetTopper
+{
     fn get_timeline_module(&self) -> &AetTimelineModule {
         &self.timeline_module
     }
@@ -185,6 +188,8 @@ impl TopperHandler<BattleStats> for AetTopper {
                 let mut new_observations = self.observation_parser.observe(&slice);
                 if self.debug_mode {
                     println!("{:?}", new_observations);
+                    println!("{:?}", slice.gmcp);
+                    println!("{:?}", self.timeline_module.timeline.state.get_my_room());
                 }
                 slice
                     .observations

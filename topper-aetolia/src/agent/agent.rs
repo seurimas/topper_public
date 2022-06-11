@@ -25,6 +25,7 @@ pub struct AgentState {
     pub resin_state: ResinState,
     pub pipe_state: PipesState,
     pub bard_board: BardBoard,
+    pub room_id: i64,
 }
 
 impl BaseAgentState for AgentState {
@@ -75,6 +76,9 @@ impl BaseAgentState for AgentState {
             self.set_flag(FType::Void, false);
         } else if self.is(FType::Weakvoid) && self.balanced(BType::Void) {
             self.set_flag(FType::Weakvoid, false);
+        }
+        if self.is(FType::Manabarbs) && self.balanced(BType::Manabarbs) {
+            self.set_flag(FType::Manabarbs, false);
         }
     }
     fn get_base_state() -> Self {
@@ -409,7 +413,7 @@ impl AgentState {
         if right && self.get_limb_state(LType::RightArmDamage).broken {
             return false;
         }
-        if self.is(FType::Paralysis) {
+        if self.is(FType::Paralysis) || self.is(FType::Perplexed) {
             return false;
         }
         true

@@ -42,6 +42,7 @@ pub enum BType {
     Rebounding,
     Void,
     ParesisParalysis,
+    Manabarbs,
 
     UNKNOWN,
     SIZE,
@@ -788,7 +789,7 @@ impl WieldState {
                 } else {
                     old_left.clone()
                 },
-                right: if left_hand {
+                right: if !left_hand {
                     Some(weaved_item.to_string())
                 } else {
                     old_right.clone()

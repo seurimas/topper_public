@@ -19,6 +19,7 @@ pub mod curatives;
 pub mod db;
 pub mod defense;
 pub mod items;
+pub mod non_agent;
 pub mod observables;
 pub mod timeline;
 pub mod types;

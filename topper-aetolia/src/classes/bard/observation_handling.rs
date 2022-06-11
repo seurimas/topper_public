@@ -1,15 +1,21 @@
 use crate::{
-    classes::remove_through, curatives::RANDOM_CURES, observables::*, timeline::*, types::*,
+    classes::remove_through, curatives::RANDOM_CURES, non_agent::AetTimelineRoomExt,
+    observables::*, timeline::*, types::*,
 };
 
 const BLADES_COUNT: usize = 3;
 // All values assume onyx.
 const RUNEBAND_DITHER: usize = 2;
+const MANABARBS_DITHER: usize = 2;
 const GLOBES_DITHER: usize = 0;
 const BARBS_DITHER: usize = 2;
 const BLADESTORM_DITHER: usize = 2;
 const ANELACE_DITHER: usize = 2;
+const NULLSTONE_DITHER: usize = 1;
+const BOUNDARY_DITHER: usize = 3;
+const IRONCOLLAR_DITHER: usize = 2;
 
+pub const NULLSTONE: &str = "a stone of annulment";
 pub const ANELACE: &str = "a sharp anelace";
 
 pub const GLOBE_AFFS: [FType; 3] = [FType::Dizziness, FType::Confusion, FType::Perplexed];
@@ -156,6 +162,24 @@ pub fn handle_weaving_action(
                 },
             );
         }
+        "Barbs" => {
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &move |me: &mut AgentState| {
+                    me.assume_bard(&|bard: &mut BardClassState| {
+                        bard.dithering = BLADESTORM_DITHER;
+                    });
+                },
+            );
+            for_agent(
+                agent_states,
+                &combat_action.target,
+                &|me: &mut AgentState| {
+                    me.set_flag(FType::Manabarbs, true);
+                },
+            );
+        }
         "Bladestormed" => {
             let final_blade = combat_action.annotation.eq("final");
             for_agent(
@@ -176,6 +200,54 @@ pub fn handle_weaving_action(
                 },
             );
         }
+        "Ironcollar" => {
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &move |me: &mut AgentState| {
+                    me.assume_bard(&|bard: &mut BardClassState| {
+                        bard.dithering = IRONCOLLAR_DITHER;
+                    });
+                    apply_or_infer_balance(me, (BType::Equil, 3.0), &observations);
+                },
+            );
+            for_agent(
+                agent_states,
+                &combat_action.target,
+                &|me: &mut AgentState| {
+                    me.bard_board.iron_collar_state = IronCollarState::Locking;
+                },
+            );
+        }
+        "Ironcollared" => {
+            if combat_action.annotation.eq("hit") {
+                for_agent(
+                    agent_states,
+                    &combat_action.caster,
+                    &|me: &mut AgentState| {
+                        me.bard_board.iron_collar_state = IronCollarState::Locked;
+                    },
+                );
+            } else if combat_action.annotation.eq("end") || combat_action.annotation.eq("miss") {
+                for_agent(
+                    agent_states,
+                    &combat_action.caster,
+                    &|me: &mut AgentState| {
+                        me.bard_board.iron_collar_state = IronCollarState::None;
+                    },
+                );
+            }
+        }
+        "Nullstone" => for_agent(
+            agent_states,
+            &combat_action.caster,
+            &|me: &mut AgentState| {
+                me.assume_bard(&|bard: &mut BardClassState| {
+                    bard.dithering = NULLSTONE_DITHER;
+                });
+                me.wield_state.weave(NULLSTONE);
+            },
+        ),
         "Anelace" => {
             let stabbed = combat_action.annotation.eq("stab");
             for_agent(
@@ -229,6 +301,26 @@ pub fn handle_weaving_action(
                     }
                 },
             );
+        }
+        "Boundary" => {
+            if let Some(my_room) = agent_states.get_my_room_mut() {
+                if combat_action.annotation.eq("end") {
+                    my_room.remove_tag("boundary");
+                } else {
+                    my_room.add_tag("boundary");
+                }
+            }
+            if !combat_action.annotation.eq("fail") && !combat_action.annotation.eq("end") {
+                for_agent(
+                    agent_states,
+                    &combat_action.caster,
+                    &|me: &mut AgentState| {
+                        me.assume_bard(&|bard| {
+                            bard.dithering = BOUNDARY_DITHER;
+                        });
+                    },
+                );
+            }
         }
         _ => {}
     }
@@ -292,14 +384,14 @@ pub fn handle_performance_action(
                 attack_afflictions(
                     agent_states,
                     &combat_action.target,
-                    vec![FType::SelfLoathing],
+                    vec![FType::Magnanimity],
                     after,
                 );
             } else {
                 attack_afflictions(
                     agent_states,
                     &combat_action.target,
-                    vec![FType::Magnanimity],
+                    vec![FType::SelfLoathing],
                     after,
                 );
             }
@@ -588,6 +680,8 @@ pub fn handle_songcalling_action(
                         }
                     },
                 );
+            } else {
+                println!("No such song found: {}", song_name);
             }
         }
         (song_name, "") => {

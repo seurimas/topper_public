@@ -6,11 +6,12 @@ use serde_json::Value;
 use std::collections::HashMap;
 pub type CType = i32;
 pub const BALANCE_SCALE: f32 = 100.0;
+pub type GMCP = (String, Value);
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct TimeSlice<O, P> {
     pub observations: Option<Vec<O>>,
-    pub gmcp: Vec<(String, Value)>,
+    pub gmcp: Vec<GMCP>,
     pub lines: Vec<(String, u32)>,
     pub prompt: P,
     pub time: CType,
@@ -26,17 +27,19 @@ pub trait BaseAgentState {
 pub type AgentStates<A> = HashMap<String, Vec<A>>;
 
 #[derive(Clone)]
-pub struct TimelineState<A> {
+pub struct TimelineState<A, N> {
     pub agent_states: AgentStates<A>,
+    pub non_agent_states: HashMap<String, N>,
     pub free_hints: HashMap<String, String>,
     pub time: CType,
     pub me: String,
 }
 
-impl<A: BaseAgentState + Clone> TimelineState<A> {
+impl<A: BaseAgentState + Clone, N: Clone> TimelineState<A, N> {
     pub fn new() -> Self {
         TimelineState {
             agent_states: HashMap::new(),
+            non_agent_states: HashMap::new(),
             free_hints: HashMap::new(),
             time: 0,
             me: "".to_string(),
@@ -175,22 +178,22 @@ pub enum BattleEvent {
     Linked(String, u32),
 }
 
-pub struct Timeline<O, P, A> {
+pub struct Timeline<O, P, A, N> {
     pub slices: Vec<TimeSlice<O, P>>,
     pub digest: Vec<BattleEvent>,
-    pub state: TimelineState<A>,
+    pub state: TimelineState<A, N>,
 }
 
 pub trait BaseTimeline<O, P, DB> {
     fn push_time_slice(&mut self, slice: TimeSlice<O, P>, db: Option<&DB>) -> Result<(), String>;
 }
 
-impl<O, P, A: BaseAgentState + Clone> Timeline<O, P, A> {
+impl<O, P, A: BaseAgentState + Clone, N: Clone> Timeline<O, P, A, N> {
     pub fn new() -> Self {
         Timeline {
             slices: Vec::new(),
             digest: Vec::new(),
-            state: TimelineState::<A>::new(),
+            state: TimelineState::<A, N>::new(),
         }
     }
 

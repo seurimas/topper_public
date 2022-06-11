@@ -37,7 +37,11 @@ pub fn get_action_plan(
         aff_priorities: get_stack(timeline, target, strategy, db),
         ..Default::default()
     };
-    let tree_name = format!("bard/{}", strategy);
+    let tree_name = if strategy.eq("class") {
+        format!("bard/base")
+    } else {
+        format!("bard/{}", strategy)
+    };
     let tree = get_tree(&tree_name);
     if let Ok(mut tree) = tree.lock() {
         tree.resume_with(&timeline, &mut controller);

@@ -10,6 +10,7 @@ use topper_core_mudlet::topper::{TopperMessage, TopperModule, TopperResponse};
 #[derive(Debug, Default)]
 pub struct PredictionModule {
     prediction: String,
+    removing: bool,
 }
 impl<'s> TopperModule<'s, AetTimeSlice, BattleStats> for PredictionModule {
     type Siblings = (
@@ -141,6 +142,18 @@ pub fn prioritize_cures(
                 return TopperResponse::passive("predict".to_string(), guesses);
             }
         }
+    }
+    let me = timeline.state.borrow_me();
+    if me.bard_board.iron_collar_state == IronCollarState::Locking && !me.is(FType::Perplexed) {
+        if !prediction_module.removing {
+            prediction_module.removing = true;
+            return TopperResponse::passive(
+                "defend".to_string(),
+                "remove collar;;remove collar".to_string(),
+            );
+        }
+    } else {
+        prediction_module.removing = false;
     }
     TopperResponse::silent()
 }

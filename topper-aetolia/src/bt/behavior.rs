@@ -4,6 +4,7 @@ use topper_bt::unpowered::*;
 
 use crate::classes::bard::BardBehavior;
 use crate::classes::VenomPlan;
+use crate::defense::DefenseBehavior;
 use crate::observables::PlainAction;
 use crate::timeline::*;
 use crate::types::*;
@@ -15,6 +16,7 @@ pub enum AetBehavior {
     UnstackAffs(Vec<FType>),
     PushAff(FType),
     PlainQebBehavior(String),
+    DefenseBehavior(DefenseBehavior),
     BardBehavior(BardBehavior),
 }
 
@@ -49,6 +51,9 @@ impl UnpoweredFunction for AetBehavior {
                     .plan
                     .add_to_qeb(Box::new(PlainAction::new(action.clone())));
                 UnpoweredFunctionState::Complete
+            }
+            AetBehavior::DefenseBehavior(defense_behavior) => {
+                defense_behavior.resume_with(model, controller)
             }
             AetBehavior::BardBehavior(bard_behavior) => {
                 bard_behavior.resume_with(model, controller)

@@ -865,7 +865,7 @@ pub fn choose_venoms(
     }
     if !priority_buffer {
         if go_for_thin_blood(timeline, &you, strategy) {
-            if you.is(FType::Fangbarrier) {
+            if you.is(FType::Fangbarrier) && !you.is(FType::Hypersomnia) {
                 let mut buffer = get_venoms(THIN_BUFFER_STACK.to_vec(), 1, &you);
                 add_buffers(&mut venoms, &buffer);
                 return venoms;

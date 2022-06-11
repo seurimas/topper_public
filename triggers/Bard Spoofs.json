@@ -105,7 +105,7 @@
         "observation_name": "Proc"
     },
     {
-        "regex": "^The searing globe rattles (\\w+)'s thoughts as it spins out of existence.$",
+        "regex": "^The searing globe rattles (\\w+)'?s? thoughts as it spins out of existence.$",
         "args": [
             {
                 "GroupAsTarget": 1
@@ -126,7 +126,7 @@
         "observation_name": "Proc"
     },
     {
-        "regex": "^The final globe burns itself into (\\w+)'s thoughts before fading into obscurity.$",
+        "regex": "^The final globe burns itself into (\\w+)'?s? thoughts before fading into obscurity.$",
         "args": [
             {
                 "GroupAsTarget": 1
@@ -189,6 +189,27 @@
         "observation_name": "Proc"
     },
     {
+        "regex": "^(You)r tantalizing song$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Songcalling"
+            },
+            {
+                "Literal": "Decadence"
+            },
+            {
+                "Literal": "end"
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
         "regex": "^The flow of destiny favours (you) as your song ends with a single strident note.$",
         "args": [
             {
@@ -210,7 +231,7 @@
         "observation_name": "Proc"
     },
     {
-        "regex": "^You sense that your charitable song has affected (\\w+).$",
+        "regex": "^(You) sense that your charitable song has affected (\\w+).$",
         "args": [
             {
                 "GroupAsTarget": 1
@@ -225,7 +246,7 @@
                 "Literal": "hit"
             },
             {
-                "Literal": ""
+                "GroupAsTarget": 2
             }
         ],
         "observation_name": "Proc"
@@ -273,7 +294,7 @@
         "observation_name": "Proc"
     },
     {
-        "regex": "^You have no audience at which to sing your song.$",
+        "regex": "^(You) have no audience at which to sing your song.$",
         "args": [
             {
                 "GroupAsTarget": 1
@@ -285,7 +306,7 @@
                 "Literal": "AudienceSong"
             },
             {
-                "Literal": "fail"
+                "Literal": "end"
             },
             {
                 "Literal": ""
@@ -315,7 +336,7 @@
         "observation_name": "Proc"
     },
     {
-        "regex": "^You sense that your decadent song has affected (\\w+).$",
+        "regex": "^(You) sense that your decadent song has affected (\\w+).$",
         "args": [
             {
                 "GroupAsTarget": 1
@@ -330,7 +351,7 @@
                 "Literal": "hit"
             },
             {
-                "Literal": ""
+                "GroupAsTarget": 2
             }
         ],
         "observation_name": "Proc"
@@ -357,7 +378,7 @@
         "observation_name": "Proc"
     },
     {
-        "regex": "^The morbid cadence of your sombre ballad incites a deep and profound sorrow in (\\w+).$",
+        "regex": "^The morbid cadence of (you)r sombre ballad incites a deep and profound sorrow in (\\w+).$",
         "args": [
             {
                 "GroupAsTarget": 1
@@ -372,28 +393,7 @@
                 "Literal": "hit"
             },
             {
-                "Literal": ""
-            }
-        ],
-        "observation_name": "Proc"
-    },
-    {
-        "regex": "^The morbid cadence of your sombre ballad incites a deep and profound sorrow in (\\w+).$",
-        "args": [
-            {
-                "GroupAsTarget": 1
-            },
-            {
-                "Literal": "Songcalling"
-            },
-            {
-                "Literal": "Sorrow"
-            },
-            {
-                "Literal": "hit"
-            },
-            {
-                "Literal": ""
+                "GroupAsTarget": 2
             }
         ],
         "observation_name": "Proc"
@@ -504,6 +504,69 @@
         "observation_name": "Proc"
     },
     {
+        "regex": "^An iron collar snaps shut around (\\w+)'?s? throat, sealing itself together.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Weaving"
+            },
+            {
+                "Literal": "Ironcollared"
+            },
+            {
+                "Literal": "hit"
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^An iron collar snaps shut in (you)r hand, clamping only air.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Weaving"
+            },
+            {
+                "Literal": "Ironcollared"
+            },
+            {
+                "Literal": "miss"
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^Smoke begins to smoulder from an iron collar upon (\\w+) as it crumbles.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Weaving"
+            },
+            {
+                "Literal": "Ironcollared"
+            },
+            {
+                "Literal": "end"
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
         "regex": "^(A sharp anelace) breaks into shimmering light in (you)r hands as it crumbles apart.$",
         "args": [
             {
@@ -516,7 +579,7 @@
                 "Literal": "UnweavedHands"
             },
             {
-                "GroupAsTarget": 2
+                "GroupAsTarget": 1
             },
             {
                 "Literal": ""
@@ -537,7 +600,7 @@
                 "Literal": "UnweavedBelt"
             },
             {
-                "GroupAsTarget": 2
+                "GroupAsTarget": 1
             },
             {
                 "Literal": ""
@@ -550,6 +613,15 @@
         "args": [
             {
                 "Literal": "Discordance"
+            }
+        ],
+        "observation_name": "Discovered"
+    },
+    {
+        "regex": "^You are already playing your songs at a half beat tempo.$",
+        "args": [
+            {
+                "Literal": "Halfbeat"
             }
         ],
         "observation_name": "Discovered"
@@ -589,6 +661,48 @@
             },
             {
                 "GroupAsTarget": 1
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^(This) location already has a destructive boundary.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Weaving"
+            },
+            {
+                "Literal": "Boundary"
+            },
+            {
+                "Literal": "fail"
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^A glimmer catches (you)r eye as the boundary of light disappears.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Weaving"
+            },
+            {
+                "Literal": "Boundary"
+            },
+            {
+                "Literal": "end"
             },
             {
                 "Literal": ""

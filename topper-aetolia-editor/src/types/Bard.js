@@ -101,6 +101,7 @@ export const BARD_PREDICATE = {
         name: 'Bladestorm',
     }, {
         name: 'HasAnelace',
+        fields: [getOptionName('usize')],
     }, {
         name: 'PrimaryEmotion',
         fields: ['Emotion'],
@@ -110,6 +111,9 @@ export const BARD_PREDICATE = {
     }, {
         name: 'Needled',
         fields: [getOptionName('String')],
+    }, {
+        name: 'NeedlingFor',
+        fields: ['FType'],
     }, {
         name: 'Singing',
         fields: [getOptionName('Song')],

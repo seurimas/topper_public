@@ -178,7 +178,11 @@ fn get_cure_depth_locked(me: &AgentState, target_aff: FType, checked: u32) -> Cu
 }
 
 pub fn get_cure_depth(me: &AgentState, target_aff: FType) -> CureDepth {
-    get_cure_depth_locked(me, target_aff, 0)
+    if !me.is(target_aff) {
+        CureDepth::default()
+    } else {
+        get_cure_depth_locked(me, target_aff, 0)
+    }
 }
 
 pub fn get_cure_depths(me: &AgentState) -> CureDepths {

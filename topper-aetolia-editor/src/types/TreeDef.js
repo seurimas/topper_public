@@ -116,6 +116,9 @@ export const AET_PREDICATE = {
         name: 'PriorityAffIs',
         fields: ['AetTarget', 'FType'],
     }, {
+        name: 'CannotCure',
+        fields: ['AetTarget', 'FType'],
+    }, {
         name: 'Buffered',
         fields: ['AetTarget', 'FType'],
     }, {

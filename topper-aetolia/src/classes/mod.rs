@@ -724,20 +724,20 @@ macro_rules! affliction_plan_stacker {
                     if let (Some(priority_venom), Some(secondary_venom)) =
                         ($stack.get(priority), $stack.get(secondary))
                     {
-                        if target.is(*priority) && !target.is(*secondary) {
+                        if !is_susceptible(target, priority) && is_susceptible(target, secondary) {
                             venoms.insert(0, *secondary_venom);
-                        } else if !target.is(*priority) {
+                        } else if is_susceptible(target, priority) {
                             venoms.insert(0, *priority_venom);
                         }
                     }
                 }
                 VenomPlan::IfDo(when, plan) => {
-                    if target.is(*when) {
+                    if !is_susceptible(target, when) {
                         $add_name(plan, target, venoms);
                     }
                 }
                 VenomPlan::IfNotDo(when, plan) => {
-                    if !target.is(*when) {
+                    if is_susceptible(target, when) {
                         $add_name(plan, target, venoms);
                     }
                 }

@@ -46,6 +46,7 @@ pub enum AetPredicate {
     AffCountOver(AetTarget, usize, Vec<FType>),
     AffCountUnder(AetTarget, usize, Vec<FType>),
     PriorityAffIs(AetTarget, FType),
+    CannotCure(AetTarget, FType),
     Buffered(AetTarget, FType),
     Locked(AetTarget, bool),
     BardPredicate(AetTarget, BardPredicate),
@@ -198,6 +199,17 @@ impl UnpoweredFunction for AetPredicate {
                         if !*hard_only || lock >= 10.0 {
                             return UnpoweredFunctionState::Complete;
                         }
+                    }
+                }
+                UnpoweredFunctionState::Failed
+            }
+            AetPredicate::CannotCure(target, aff) => {
+                if let Some(target) = target.get_target(model, controller) {
+                    let mut afflicted = target.clone();
+                    afflicted.set_flag(FType::Paresis, true);
+                    let cure_depth = get_cure_depth(&afflicted, FType::Paresis);
+                    if cure_depth.time > 100 {
+                        return UnpoweredFunctionState::Complete;
                     }
                 }
                 UnpoweredFunctionState::Failed

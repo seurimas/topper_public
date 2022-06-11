@@ -172,11 +172,11 @@ impl<BS> TopperResponse<BS> {
     }
 }
 
-pub trait Topper<O, P, A: BaseAgentState + Clone, DB: DatabaseModule> {
-    fn get_timeline_module(&self) -> &TimelineModule<O, P, A>;
+pub trait Topper<O, P, A: BaseAgentState + Clone, N: Clone, DB: DatabaseModule> {
+    fn get_timeline_module(&self) -> &TimelineModule<O, P, A, N>;
     fn get_core_module(&self) -> &TopperCore;
     fn get_database(&mut self) -> &mut DB;
-    fn get_mut_timeline_module(&mut self) -> &mut TimelineModule<O, P, A>;
+    fn get_mut_timeline_module(&mut self) -> &mut TimelineModule<O, P, A, N>;
 
     fn me(&self) -> String {
         self.get_timeline_module().timeline.who_am_i()
@@ -186,7 +186,7 @@ pub trait Topper<O, P, A: BaseAgentState + Clone, DB: DatabaseModule> {
         self.get_core_module().target.clone()
     }
 
-    fn get_timeline(&mut self) -> &mut Timeline<O, P, A> {
+    fn get_timeline(&mut self) -> &mut Timeline<O, P, A, N> {
         &mut self.get_mut_timeline_module().timeline
     }
 

@@ -1,10 +1,12 @@
 use super::apply_functions::*;
+use super::gmcp_functions::*;
 use crate::classes::{get_skill_class, handle_combat_action, handle_sent, Class, VENOM_AFFLICTS};
 use crate::curatives::{
     handle_simple_cure_action, top_aff, CALORIC_TORSO_ORDER, PILL_CURE_ORDERS, PILL_DEFENCES,
     SALVE_CURE_ORDERS, SMOKE_CURE_ORDERS,
 };
 use crate::db::AetDatabaseModule;
+use crate::non_agent::AetNonAgent;
 use crate::types::*;
 use log::warn;
 use regex::Regex;
@@ -23,8 +25,8 @@ pub enum AetPrompt {
     Stats(PromptStats),
 }
 pub type AetTimeSlice = TimeSlice<AetObservation, AetPrompt>;
-pub type AetTimelineState = TimelineState<AgentState>;
-pub type AetTimeline = Timeline<AetObservation, AetPrompt, AgentState>;
+pub type AetTimelineState = TimelineState<AgentState, AetNonAgent>;
+pub type AetTimeline = Timeline<AetObservation, AetPrompt, AgentState, AetNonAgent>;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct PromptStats {
@@ -237,6 +239,12 @@ pub trait AetTimelineStateTrait {
         db: Option<&DB>,
     ) -> Result<(), String>;
 
+    fn apply_gmcp<DB: AetDatabaseModule>(
+        &mut self,
+        gmcp: &GMCP,
+        db: Option<&DB>,
+    ) -> Result<(), String>;
+
     fn apply_time_slice<DB: AetDatabaseModule>(
         &mut self,
         slice: &TimeSlice<AetObservation, AetPrompt>,
@@ -327,6 +335,14 @@ impl AetTimelineStateTrait for AetTimelineState {
         apply_observation(self, observation, before, after, db)
     }
 
+    fn apply_gmcp<DB: AetDatabaseModule>(
+        &mut self,
+        gmcp: &GMCP,
+        db: Option<&DB>,
+    ) -> Result<(), String> {
+        apply_gmcp(self, gmcp, db)
+    }
+
     fn apply_time_slice<DB: AetDatabaseModule>(
         &mut self,
         slice: &TimeSlice<AetObservation, AetPrompt>,
@@ -334,6 +350,9 @@ impl AetTimelineStateTrait for AetTimelineState {
     ) -> Result<(), String> {
         self.me = slice.me.clone();
         self.update_time(slice.time);
+        for gmcp in slice.gmcp.iter() {
+            self.apply_gmcp(gmcp, db);
+        }
         let mut before = Vec::new();
         let observations: Vec<AetObservation> = slice
             .observations
@@ -354,7 +373,7 @@ impl AetTimelineStateTrait for AetTimelineState {
         }
         if let AetPrompt::Stats(stats) = &slice.prompt {
             let sp = stats.sp;
-            for_agent(self, &slice.me, &move |you| {
+            for_agent(self, &slice.me, &move |you: &mut AgentState| {
                 you.set_stat(SType::SP, sp);
             });
         }

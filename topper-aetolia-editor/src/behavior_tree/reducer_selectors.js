@@ -131,6 +131,9 @@ export const concentrate = (tree, typeDesc) => {
             // Unit.
             return tree.variant.name;
         } else if (tree.fields.length === 1) {
+            if (tree.variant.name === "Some") {
+                return concentrate(tree.fields[0], tree.variant.fields[0]);
+            }
             // Tuple N = 1.
             return {
                 [tree.variant.name]: concentrate(tree.fields[0], tree.variant.fields[0]),
@@ -206,6 +209,12 @@ export const hydrateField = (concentrated, fieldDesc) => {
         return hydrateVec(concentrated, fieldDesc.itemType);
     } else if (fieldDesc.name === 'usize') {
         return "" + concentrated;
+    } else if (fieldDesc.name && fieldDesc.name.indexOf("Option") === 0) {
+        if (concentrated === null) {
+            return hydrateVariant(concentrated, fieldDesc);
+        } else {
+            return hydrateVariant({ Some: concentrated }, fieldDesc);
+        }
     } else if (fieldDesc.variants) {
         return hydrateVariant(concentrated, fieldDesc);
     } else {

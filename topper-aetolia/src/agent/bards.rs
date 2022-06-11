@@ -252,17 +252,28 @@ pub struct BardBoard {
     pub iron_collar_state: IronCollarState,
     pub blades_count: usize,
     pub needle_venom: Option<String>,
+    pub needle_timer: CType,
 }
 
 impl BardBoard {
+    pub fn wait(&mut self, duration: i32) {
+        self.needle_timer -= duration;
+    }
+
     pub fn needle_with(&mut self, venom: &String) {
         self.needle_venom = Some(venom.clone());
+        self.needle_timer = 350;
     }
 
     pub fn needled(&mut self) -> Option<String> {
         let needled = self.needle_venom.clone();
         self.needle_venom = None;
+        self.needle_timer = 0;
         needled
+    }
+
+    pub fn needling(&self) -> bool {
+        self.needle_venom.is_some() && self.needle_timer <= 0
     }
 
     pub fn globed(&mut self, affs: &[FType]) -> Option<FType> {

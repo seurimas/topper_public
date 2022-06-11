@@ -2,7 +2,7 @@ use serde::*;
 use topper_bt::unpowered::*;
 use topper_core::timeline::CType;
 
-use crate::{bt::*, types::*};
+use crate::{bt::*, classes::VENOM_AFFLICTS, timeline::apply_functions::apply_venom, types::*};
 
 use super::{actions::*, GLOBE_AFFS};
 
@@ -20,8 +20,9 @@ pub enum BardPredicate {
     PrimaryEmotion(Emotion),
     EmotionLevel(Emotion, CType),
     Bladestorm,
-    HasAnelace,
+    HasAnelace(Option<usize>),
     Needled(Option<String>),
+    NeedlingFor(FType),
     Singing(Option<Song>),
     Playing(Option<Song>),
 }
@@ -47,8 +48,8 @@ impl TargetPredicate for BardPredicate {
                 BardPredicate::InWholeBeat => target
                     .check_if_bard(&|bard| bard.half_beat.resting())
                     .unwrap_or(false),
-                BardPredicate::HasAnelace => target
-                    .check_if_bard(&|bard| bard.anelaces > 0)
+                BardPredicate::HasAnelace(min) => target
+                    .check_if_bard(&|bard| bard.anelaces > min.unwrap_or(0))
                     .unwrap_or(false),
                 BardPredicate::Runebanded => target.bard_board.runeband_state.is_active(),
                 BardPredicate::IronCollared => target.bard_board.iron_collar_state.is_active(),
@@ -63,7 +64,7 @@ impl TargetPredicate for BardPredicate {
                                 controller,
                                 controller.aff_priorities.clone(),
                             ),
-                            GLOBE_AFFS.get(2 - aff_num),
+                            GLOBE_AFFS.get(GLOBE_AFFS.len() - aff_num),
                         ) {
                             *globe_aff == priority_aff
                         } else {
@@ -78,6 +79,20 @@ impl TargetPredicate for BardPredicate {
                 BardPredicate::EmotionLevel(_, _) => todo!(),
                 BardPredicate::Bladestorm => target.bard_board.blades_count > 0,
                 BardPredicate::Needled(None) => target.bard_board.needle_venom.is_some(),
+                BardPredicate::NeedlingFor(aff) => {
+                    if !target.bard_board.needling() {
+                        false
+                    } else if let Some(venom_aff) = target
+                        .bard_board
+                        .needle_venom
+                        .as_ref()
+                        .and_then(|venom| VENOM_AFFLICTS.get(venom))
+                    {
+                        venom_aff == aff
+                    } else {
+                        false
+                    }
+                }
                 BardPredicate::Needled(Some(venom)) => target
                     .bard_board
                     .needle_venom

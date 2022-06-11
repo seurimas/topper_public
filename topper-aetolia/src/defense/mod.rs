@@ -1,5 +1,7 @@
+pub mod behavior;
 pub mod parry;
 pub mod pipes;
+pub use behavior::*;
 pub use parry::*;
 pub use pipes::*;
 
