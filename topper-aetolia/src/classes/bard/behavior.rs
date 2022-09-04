@@ -136,6 +136,13 @@ impl UnpoweredFunction for BardBehavior {
                     return UnpoweredFunctionState::Failed;
                 } else if performance_attack.needs_weapon() {
                     let me = model.state.borrow_me();
+                    if me
+                        .check_if_bard(&|me: &BardClassState| me.is_on_tempo())
+                        .unwrap_or(false)
+                    {
+                        // If it's a weapon attack, we cannot use while in rhythm.
+                        return UnpoweredFunctionState::Failed;
+                    }
                     if !assure_wielded(&me, model, controller, "falchion", true) {
                         return UnpoweredFunctionState::Failed;
                     }

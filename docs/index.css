@@ -1,1 +1,100 @@
-body.outer{margin:0}iframe{box-sizing:border-box;width:calc(100% - 480px)}body:not(.outer){background-color:#000;margin:0;padding:0;position:relative}body:not(.outer) span{font-weight:normal !important;white-space:pre-wrap;font-family:Anadale Mono,monospace;font-size:14px}body:not(.outer) .line{display:block;width:100%}.scroll_indicator{position:absolute;z-index:1;bottom:0;width:100%;background-color:#214444;opacity:.5;transition:ease-in-out top 500ms;pointer-events:none}@keyframes flash{from{background-color:#fff}}.battle_stats{position:absolute;right:0;width:480px;background-color:#214444;border:1px solid #a48021;display:flex;flex-direction:row;align-items:flex-start}.battle_stats .pills,.battle_stats .smokes,.battle_stats .salves{display:flex;flex-direction:row}.battle_stats--me{top:0;bottom:50%}.battle_stats--you{top:50%;bottom:0}.battle_stats .pill_strip{width:16px;display:flex;flex-direction:column;border:2px solid #fff;border-radius:4px}.battle_stats .aff{width:16px;height:16px;line-height:16px;text-align:center}.battle_stats .aff--cured{background-color:green}.battle_stats .aff--afflicted{background-color:red;color:#fff;opacity:1;animation:flash .5s ease-in-out 0s 1 normal}.battle_stats .aff--Sadness,.battle_stats .aff--SelfPity,.battle_stats .aff--Baldness,.battle_stats .aff--CommitmentFear,.battle_stats .aff--BodyOdor,.battle_stats .aff--Hubris{opacity:.7}.battle_stats .aff--Paralysis,.battle_stats .aff--Stormtouched{margin-top:16px}.battle_stats .aff--Paresis,.battle_stats .aff--Paralysis,.battle_stats .aff--Asthma,.battle_stats .aff--Impatience{font-weight:bold}.battle_stats .aff--Insomnia{display:none}
+body.outer {
+  margin: 0;
+}
+
+iframe {
+  box-sizing: border-box;
+  width: calc(100% - 480px);
+}
+
+body:not(.outer) {
+  background-color: black;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+body:not(.outer) span {
+  font-weight: normal !important;
+  white-space: pre-wrap;
+  font-family: Anadale Mono, monospace;
+  font-size: 14px;
+}
+body:not(.outer) .line {
+  display: block;
+  width: 100%;
+}
+
+.scroll_indicator {
+  position: absolute;
+  z-index: 1;
+  bottom: 0;
+  width: 100%;
+  background-color: #214444;
+  opacity: 0.5;
+  transition: ease-in-out top 500ms;
+  pointer-events: none;
+}
+
+@keyframes flash {
+  from {
+    background-color: white;
+  }
+}
+.battle_stats {
+  position: absolute;
+  right: 0;
+  width: 480px;
+  background-color: #214444;
+  border: 1px solid #a48021;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+}
+.battle_stats .pills,
+.battle_stats .smokes,
+.battle_stats .salves {
+  display: flex;
+  flex-direction: row;
+}
+.battle_stats--me {
+  top: 0;
+  bottom: 50%;
+}
+.battle_stats--you {
+  top: 50%;
+  bottom: 0;
+}
+.battle_stats .pill_strip {
+  width: 16px;
+  display: flex;
+  flex-direction: column;
+  border: 2px solid white;
+  border-radius: 4px;
+}
+.battle_stats .aff {
+  width: 16px;
+  height: 16px;
+  line-height: 16px;
+  text-align: center;
+}
+.battle_stats .aff--cured {
+  background-color: green;
+}
+.battle_stats .aff--afflicted {
+  background-color: red;
+  color: white;
+  opacity: 1;
+  animation: flash 0.5s ease-in-out 0s 1 normal;
+}
+.battle_stats .aff--Sadness, .battle_stats .aff--SelfPity, .battle_stats .aff--Baldness, .battle_stats .aff--CommitmentFear, .battle_stats .aff--BodyOdor, .battle_stats .aff--Hubris {
+  opacity: 0.7;
+}
+.battle_stats .aff--Paralysis, .battle_stats .aff--Stormtouched {
+  margin-top: 16px;
+}
+.battle_stats .aff--Paresis, .battle_stats .aff--Paralysis, .battle_stats .aff--Asthma, .battle_stats .aff--Impatience {
+  font-weight: bold;
+}
+.battle_stats .aff--Insomnia {
+  display: none;
+}

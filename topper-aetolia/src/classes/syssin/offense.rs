@@ -633,9 +633,9 @@ fn should_bedazzle(
     }
 }
 
-fn needs_shrugging(timeline: &AetTimeline, me: &String) -> bool {
+fn needs_fitness(timeline: &AetTimeline, me: &String) -> bool {
     let me = timeline.state.borrow_agent(me);
-    me.balanced(BType::ClassCure1)
+    me.balanced(BType::Fitness)
         && me.is(FType::Asthma)
         && me.is(FType::Anorexia)
         && me.is(FType::Slickness)
@@ -949,8 +949,8 @@ pub fn get_balance_attack<'s>(
         let v2 = two_venoms.get(1);
         let v1 = two_venoms.get(0);
         let v_one = choose_venoms(&timeline, who_am_i, target, strategy, &stack, db, 1).pop();
-        if needs_shrugging(&timeline, who_am_i) {
-            return Box::new(ShruggingAction::shrug_asthma(who_am_i.to_string()));
+        if needs_fitness(&timeline, who_am_i) {
+            return Box::new(FitnessAction::new(who_am_i.to_string()));
         } else if needs_restore(&timeline, who_am_i) {
             return Box::new(RestoreAction::new(who_am_i.to_string()));
         } else if let Ok(true) = get_equil_attack(timeline, who_am_i, target, strategy, db)
@@ -1059,8 +1059,8 @@ pub fn get_balance_attack<'s>(
         let me = timeline.state.borrow_me();
         if me.can_touch() && !me.is(FType::Shielded) {
             return Box::new(ShieldAction::new(who_am_i));
-        } else if needs_shrugging(timeline, who_am_i) {
-            return Box::new(ShruggingAction::shrug_asthma(who_am_i.to_string()));
+        } else if needs_fitness(timeline, who_am_i) {
+            return Box::new(FitnessAction::new(who_am_i.to_string()));
         } else {
             return Box::new(Action::new(
                 "firstaid elevate paresis;;firstaid elevate frozen;;firstaid elevate paralysis"

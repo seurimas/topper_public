@@ -26,8 +26,9 @@ pub enum BType {
     Regenerate,
 
     // Misc
+    Fitness,
     ClassCure1,
-    ClassCure2, // Fitness
+    ClassCure2,
 
     // Cooldowns
     Wrath,
@@ -241,7 +242,7 @@ pub enum FType {
     Blisters,
     Slickness,
     Heartflutter,
-    Sandrot,
+    Slough,
 
     // Anabiotic
     Plodding,

@@ -81,7 +81,7 @@ lazy_static! {
         FType::BloodCurse,
         FType::BloodPoison,
         FType::Clumsiness,
-        FType::Sandrot,
+        FType::Slough,
         FType::Hallucinations,
         FType::Dementia,
         FType::Recklessness,
@@ -262,7 +262,7 @@ lazy_static! {
         FType::Blisters,
         FType::Slickness,
         FType::Heartflutter,
-        FType::Sandrot,
+        FType::Slough,
     ];
 }
 

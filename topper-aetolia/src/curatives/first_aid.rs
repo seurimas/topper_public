@@ -137,7 +137,7 @@ static FIRST_AID_BLOCK: &'static str = "\x1b[48;5;232mYour affliction curing pri
                left_arm_mangled, left_leg_bruised_critical,
                right_leg_bruised_critical, right_arm_bruised_critical,
                left_arm_bruised_critical, torso_bruised_critical, voidgaze]
-    pill:     [sandrot, clumsiness, thin_blood]
+    pill:     [slough, clumsiness, thin_blood]
     special:  [vinethorns]
 
 4)  pipe:     [disfigurement, migraine]

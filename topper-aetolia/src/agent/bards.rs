@@ -99,6 +99,10 @@ impl BardClassState {
         self.tempo = None;
     }
 
+    pub fn is_on_tempo(&self) -> bool {
+        self.tempo.is_some()
+    }
+
     pub fn half_beat_pickup(&mut self) {
         self.half_beat = HalfbeatState::HalfBeat(0);
     }

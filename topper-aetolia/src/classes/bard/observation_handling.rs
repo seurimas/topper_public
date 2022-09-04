@@ -56,11 +56,7 @@ pub fn handle_weaving_action(
                     me.assume_bard(&|bard: &mut BardClassState| {
                         bard.dithering = RUNEBAND_DITHER;
                     });
-                    if !me.is(FType::Destiny) {
-                        apply_or_infer_balance(me, (BType::Equil, 2.0), &observations);
-                    } else {
-                        me.set_flag(FType::Destiny, false);
-                    }
+                    use_destiny_eq(me, &observations);
                 },
             );
             for_agent(
@@ -90,11 +86,7 @@ pub fn handle_weaving_action(
                     me.assume_bard(&|bard: &mut BardClassState| {
                         bard.dithering = GLOBES_DITHER;
                     });
-                    if !me.is(FType::Destiny) {
-                        apply_or_infer_balance(me, (BType::Equil, 2.0), &observations);
-                    } else {
-                        me.set_flag(FType::Destiny, false);
-                    }
+                    use_destiny_eq(me, &observations);
                 },
             );
             for_agent(
@@ -147,11 +139,7 @@ pub fn handle_weaving_action(
                     me.assume_bard(&|bard: &mut BardClassState| {
                         bard.dithering = BLADESTORM_DITHER;
                     });
-                    if !me.is(FType::Destiny) {
-                        apply_or_infer_balance(me, (BType::Equil, 2.0), &observations);
-                    } else {
-                        me.set_flag(FType::Destiny, false);
-                    }
+                    use_destiny_eq(me, &observations);
                 },
             );
             for_agent(
@@ -250,6 +238,14 @@ pub fn handle_weaving_action(
         ),
         "Anelace" => {
             let stabbed = combat_action.annotation.eq("stab");
+            if stabbed {
+                attack_afflictions(
+                    agent_states,
+                    &combat_action.target,
+                    vec![FType::Hollow, FType::Narcolepsy],
+                    &observations,
+                );
+            }
             for_agent(
                 agent_states,
                 &combat_action.caster,
@@ -267,17 +263,10 @@ pub fn handle_weaving_action(
                             bard.dithering = ANELACE_DITHER;
                         });
                         me.wield_state.weave(ANELACE);
+                        use_destiny_eq(me, &observations);
                     }
                 },
             );
-            if stabbed {
-                attack_afflictions(
-                    agent_states,
-                    &combat_action.target,
-                    vec![FType::Hollow, FType::Narcolepsy],
-                    &observations,
-                );
-            }
         }
         "UnweavedHands" | "UnweavedBelt" => {
             let unweaved = combat_action.annotation.clone().to_ascii_lowercase();
@@ -318,6 +307,7 @@ pub fn handle_weaving_action(
                         me.assume_bard(&|bard| {
                             bard.dithering = BOUNDARY_DITHER;
                         });
+                        use_destiny_eq(me, &observations);
                     },
                 );
             }
@@ -325,6 +315,14 @@ pub fn handle_weaving_action(
         _ => {}
     }
     Ok(())
+}
+
+fn use_destiny_eq(me: &mut AgentState, observations: &Vec<AetObservation>) {
+    if !me.is(FType::Destiny) {
+        apply_or_infer_balance(me, (BType::Equil, 2.0), observations);
+    } else {
+        me.set_flag(FType::Destiny, false);
+    }
 }
 
 pub fn handle_performance_action(
@@ -446,7 +444,7 @@ pub fn handle_performance_action(
             attack_afflictions(
                 agent_states,
                 &combat_action.target,
-                vec![FType::Vomiting, FType::Misery],
+                vec![FType::Clumsiness, FType::Misery],
                 after,
             );
             for_agent(

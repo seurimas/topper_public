@@ -7,14 +7,6 @@ lazy_static! {
     static ref ABILITY_MAPPING: HashMap<(String, String), (String, String)> = {
         let mut mapping = HashMap::new();
         mapping.insert(
-            ("Warding".to_string(), "Fitness".to_string()),
-            ("Savagery".to_string(), "Fitness".to_string()),
-        );
-        mapping.insert(
-            ("Riving".to_string(), "Fitness".to_string()),
-            ("Battlefury".to_string(), "Fitness".to_string()),
-        );
-        mapping.insert(
             ("Ancestry".to_string(), "Intercept".to_string()),
             ("Deathlore".to_string(), "Shield".to_string()),
         );

@@ -119,7 +119,7 @@ Crippled
 Blisters
 Slickness
 Heartflutter
-Sandrot
+Slough
 Plodding
 Idiocy
 Stormtouched

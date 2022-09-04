@@ -371,25 +371,6 @@ impl ActiveTransition for SpinecutAction {
     }
 }
 
-pub struct FitnessAction {
-    pub caster: String,
-}
-
-impl FitnessAction {
-    pub fn new(caster: String) -> Self {
-        FitnessAction { caster }
-    }
-}
-
-impl ActiveTransition for FitnessAction {
-    fn simulate(&self, _timeline: &AetTimeline) -> Vec<ProbableEvent> {
-        Vec::new()
-    }
-    fn act(&self, _timeline: &AetTimeline) -> ActivateResult {
-        Ok("fitness".to_string())
-    }
-}
-
 /**
  * AetObservations
  **/
@@ -809,7 +790,7 @@ fn get_stack<'s>(
 }
 
 fn want_fitness(me: &AgentState) -> bool {
-    me.balanced(BType::ClassCure2)
+    me.balanced(BType::Fitness)
         && me.is(FType::Asthma)
         && (me.is(FType::Hellsight) || me.is(FType::Slickness))
 }

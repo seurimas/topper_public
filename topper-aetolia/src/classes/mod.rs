@@ -29,6 +29,25 @@ use serde::{Deserialize, Serialize};
 
 use self::mirrors::normalize_combat_action;
 
+pub struct FitnessAction {
+    pub caster: String,
+}
+
+impl FitnessAction {
+    pub fn new(caster: String) -> Self {
+        FitnessAction { caster }
+    }
+}
+
+impl ActiveTransition for FitnessAction {
+    fn simulate(&self, _timeline: &AetTimeline) -> Vec<ProbableEvent> {
+        Vec::new()
+    }
+    fn act(&self, _timeline: &AetTimeline) -> ActivateResult {
+        Ok("fitness".to_string())
+    }
+}
+
 #[derive(Debug, Serialize, Clone, Display, TryFromPrimitive, PartialEq)]
 #[repr(u8)]
 pub enum Class {
@@ -418,6 +437,19 @@ pub fn handle_combat_action(
             _ => Ok(()),
         },
         "Hunting" => match combat_action.skill.as_ref() {
+            "Fitness" => {
+                let observations = after.clone();
+                let first_person = agent_states.me.eq(&combat_action.caster);
+                for_agent(
+                    agent_states,
+                    &combat_action.caster,
+                    &move |me: &mut AgentState| {
+                        apply_or_infer_cures(me, vec![FType::Asthma], &observations, first_person);
+                        apply_or_infer_balance(me, (BType::Fitness, 20.0), &observations);
+                    },
+                );
+                Ok(())
+            }
             "Regenerate" => {
                 let observations = after.clone();
                 for_agent(
