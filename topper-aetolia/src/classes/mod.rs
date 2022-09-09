@@ -71,9 +71,12 @@ pub enum Class {
     Lord,
     // Mirrors
     Revenant,     // Templar
-    Warden,       // Warden
+    Warden,       // Carnifex
     Earthcaller,  // Luminary
     Oneiromancer, // Indorani
+    Alchemist,    // Shaman
+    Tidesage,     // Teradrim
+    Akkari,       // Praenomen
 }
 
 impl Class {
@@ -109,6 +112,9 @@ impl Class {
             "Warden" => Some(Class::Warden),
             "Earthcaller" => Some(Class::Earthcaller),
             "Oneiromancer" => Some(Class::Oneiromancer),
+            "Tidesage" => Some(Class::Tidesage),
+            "Alchemist" => Some(Class::Alchemist),
+            "Akkari" => Some(Class::Akkari),
             _ => None,
         }
     }
@@ -132,7 +138,7 @@ impl Class {
             Class::Archivists => "Archivists",
             Class::Sciomancer => "Sciomancer",
             Class::Syssin => "Syssin",
-            // Bloodloch
+            // Neutral
             Class::Shapeshifter => "Shapeshifter",
             Class::Wayfarer => "Wayfarer",
             Class::Bard => "Bard",
@@ -142,12 +148,21 @@ impl Class {
             Class::Warden => "Warden",
             Class::Earthcaller => "Earthcaller",
             Class::Oneiromancer => "Oneiromancer",
+            Class::Tidesage => "Tidesage",
+            Class::Alchemist => "Alchemist",
+            Class::Akkari => "Akkari",
             _ => "Unknown",
         }
     }
     pub fn is_mirror(&self) -> bool {
         match self {
-            Class::Revenant | Class::Warden | Class::Earthcaller | Class::Oneiromancer => true,
+            Class::Revenant
+            | Class::Warden
+            | Class::Earthcaller
+            | Class::Oneiromancer
+            | Class::Tidesage
+            | Class::Alchemist
+            | Class::Akkari => true,
             _ => false,
         }
     }
@@ -157,6 +172,9 @@ impl Class {
             Class::Warden => Class::Carnifex,
             Class::Earthcaller => Class::Luminary,
             Class::Oneiromancer => Class::Indorani,
+            Class::Tidesage => Class::Teradrim,
+            Class::Alchemist => Class::Shaman,
+            Class::Akkari => Class::Praenomen,
             _ => self.clone(),
         }
     }
@@ -192,6 +210,8 @@ pub fn get_skill_class(category: &String) -> Option<Class> {
         "Warding" | "Ancestry" | "Communion" => Some(Class::Warden),
         "Oneiromancy" | "Hyalincuru" | "Contracts" => Some(Class::Oneiromancer),
         "Subjugation" | "Apocalyptia" | "Tectonics" => Some(Class::Earthcaller),
+        "Alchemy" | "Experimentation" | "Botany" => Some(Class::Alchemist),
+        "Ascendance" | "Dictum" | "Discipline" => Some(Class::Akkari),
         _ => None,
     }
 }
