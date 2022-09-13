@@ -77,6 +77,7 @@ pub enum Class {
     Alchemist,    // Shaman
     Tidesage,     // Teradrim
     Akkari,       // Praenomen
+    Ravager,      // Zealot
 }
 
 impl Class {
@@ -115,6 +116,7 @@ impl Class {
             "Tidesage" => Some(Class::Tidesage),
             "Alchemist" => Some(Class::Alchemist),
             "Akkari" => Some(Class::Akkari),
+            "Ravager" => Some(Class::Ravager),
             _ => None,
         }
     }
@@ -151,6 +153,7 @@ impl Class {
             Class::Tidesage => "Tidesage",
             Class::Alchemist => "Alchemist",
             Class::Akkari => "Akkari",
+            Class::Ravager => "Ravager",
             _ => "Unknown",
         }
     }
@@ -162,7 +165,8 @@ impl Class {
             | Class::Oneiromancer
             | Class::Tidesage
             | Class::Alchemist
-            | Class::Akkari => true,
+            | Class::Akkari
+            | Class::Ravager => true,
             _ => false,
         }
     }
@@ -175,6 +179,7 @@ impl Class {
             Class::Tidesage => Class::Teradrim,
             Class::Alchemist => Class::Shaman,
             Class::Akkari => Class::Praenomen,
+            Class::Ravager => Class::Zealot,
             _ => self.clone(),
         }
     }
@@ -212,6 +217,7 @@ pub fn get_skill_class(category: &String) -> Option<Class> {
         "Subjugation" | "Apocalyptia" | "Tectonics" => Some(Class::Earthcaller),
         "Alchemy" | "Experimentation" | "Botany" => Some(Class::Alchemist),
         "Ascendance" | "Dictum" | "Discipline" => Some(Class::Akkari),
+        "Brutality" | "Ravaging" | "Egotism" => Some(Class::Ravager),
         _ => None,
     }
 }
