@@ -212,6 +212,7 @@ pub enum AetObservation {
     Fall(String),
     Stand(String),
     Sent(String),
+    Illusion,
 }
 
 pub trait AetTimelineStateTrait {
@@ -234,6 +235,7 @@ pub trait AetTimelineStateTrait {
     fn apply_observation<DB: AetDatabaseModule>(
         &mut self,
         observation: &AetObservation,
+        lines: &Vec<(String, u32)>,
         before: &Vec<AetObservation>,
         after: &Vec<AetObservation>,
         db: Option<&DB>,
@@ -328,11 +330,12 @@ impl AetTimelineStateTrait for AetTimelineState {
     fn apply_observation<DB: AetDatabaseModule>(
         &mut self,
         observation: &AetObservation,
+        lines: &Vec<(String, u32)>,
         before: &Vec<AetObservation>,
         after: &Vec<AetObservation>,
         db: Option<&DB>,
     ) -> Result<(), String> {
-        apply_observation(self, observation, before, after, db)
+        apply_observation(self, observation, lines, before, after, db)
     }
 
     fn apply_gmcp<DB: AetDatabaseModule>(
@@ -360,11 +363,18 @@ impl AetTimelineStateTrait for AetTimelineState {
             .flatten()
             .cloned()
             .collect::<Vec<AetObservation>>();
+        let lines = &slice.lines;
         let mut after = observations.clone();
+        let mut is_illusion = false;
         for observation in observations.iter() {
-            let obs_results = self.apply_observation(observation, &before, &after, db);
-            if let Err(error) = obs_results {
-                println!("Bad observation: {:?} ({})", observation, error);
+            if *observation == AetObservation::Illusion {
+                is_illusion = !is_illusion;
+            }
+            if !is_illusion {
+                let obs_results = self.apply_observation(observation, lines, &before, &after, db);
+                if let Err(error) = obs_results {
+                    println!("Bad observation: {:?} ({})", observation, error);
+                }
             }
             if after.len() > 0 {
                 let next = after.remove(0);

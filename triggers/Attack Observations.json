@@ -36,6 +36,24 @@
     "observation_name": "Parry"
   },
   {
+    "regex": "^With a predatory growl, (\\w+) opposes? the attack (to|on) (\\w+) (head|torso|left arm|right arm|left leg|right leg), denying it purchase.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "GroupAsTarget": 4
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Parry"
+  },
+  {
     "regex": "^(\\w+)'?s? (left arm|right arm|left leg|right leg) is badly crippled under the dhurive.$",
     "args": [
       {

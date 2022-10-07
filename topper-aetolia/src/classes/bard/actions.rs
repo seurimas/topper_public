@@ -1,6 +1,6 @@
 use serde::*;
 
-use crate::{observables::*, timeline::*, types::*};
+use crate::{classes::group::*, observables::*, timeline::*, types::*};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy)]
 pub enum Weavable {
@@ -97,6 +97,7 @@ impl ActiveTransition for WeavingAction {
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy)]
 pub enum WeavingAttack {
     Tearing,
+    Patchwork,
     Soundblast,
     Globes,
     Swindle,
@@ -208,10 +209,18 @@ impl WeavingAttackAction {
             attack: WeavingAttack::Tearing,
         }
     }
+    pub fn patchwork(caster: String, target: String) -> Self {
+        WeavingAttackAction {
+            caster,
+            target,
+            attack: WeavingAttack::Patchwork,
+        }
+    }
 
     pub fn get_skill(&self) -> &str {
         match self.attack {
             WeavingAttack::Tearing => "Tearing",
+            WeavingAttack::Patchwork => "Patchwork",
             WeavingAttack::Soundblast => "Soundblast",
             WeavingAttack::Globes => "Globes",
             WeavingAttack::Swindle => "Swindle",
@@ -242,6 +251,7 @@ impl ActiveTransition for WeavingAttackAction {
     fn act(&self, timeline: &AetTimeline) -> ActivateResult {
         Ok(match &self.attack {
             WeavingAttack::Tearing => format!("weave tearing {}", self.target),
+            WeavingAttack::Patchwork => format!("weave patchwork {}", self.target),
             WeavingAttack::Soundblast => format!("weave soundblast {}", self.target),
             WeavingAttack::Globes => format!("weave globes {}", self.target),
             WeavingAttack::Swindle => format!("weave swindle {}", self.target),
@@ -423,7 +433,7 @@ impl ActiveTransition for PerformanceAttackAction {
         vec![]
     }
     fn act(&self, timeline: &AetTimeline) -> ActivateResult {
-        Ok(match &self.attack {
+        let action = match &self.attack {
             PerformanceAttack::TempoOne(venom) => format!("tempo {} {}", self.target, venom),
             PerformanceAttack::TempoTwo(venom_one, venom_two) => format!(
                 "tempo {} {};;envenom falchion with {}",
@@ -445,7 +455,26 @@ impl ActiveTransition for PerformanceAttackAction {
             PerformanceAttack::Sock => format!("sock {}", self.target),
             PerformanceAttack::Hiltblow => format!("hiltblow {}", self.target),
             PerformanceAttack::Cadence => format!("cadence {}", self.target),
-        })
+        };
+        if should_call_venoms(timeline) {
+            let called = match &self.attack {
+                PerformanceAttack::TempoOne(venom) => call_venom(&self.target, venom),
+                PerformanceAttack::TempoTwo(venom_one, venom_two) => {
+                    call_venoms(&self.target, venom_one, venom_two)
+                }
+
+                PerformanceAttack::TempoThree(venom_one, venom_two, venom_three) => {
+                    call_triple_venoms(&self.target, venom_one, venom_two, venom_three)
+                }
+                PerformanceAttack::Needle(venom) => call_venom(&self.target, venom),
+                PerformanceAttack::Harry(venom) => call_venom(&self.target, venom),
+                PerformanceAttack::Bravado(venom) => call_venom(&self.target, venom),
+                _ => "".to_string(),
+            };
+            Ok(format!("{};;{}", called, action))
+        } else {
+            Ok(action)
+        }
     }
 }
 

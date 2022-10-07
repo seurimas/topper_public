@@ -1,6 +1,7 @@
 use super::*;
 use crate::agent::*;
 use crate::alpha_beta::ActionPlanner;
+use crate::classes::group::*;
 use crate::classes::*;
 use crate::curatives::get_cure_depth;
 use crate::db::AetDatabaseModule;
@@ -11,33 +12,8 @@ use crate::types::*;
 use regex::Regex;
 use std::collections::HashMap;
 
-fn check_config_str(timeline: &AetTimeline, value: &String) -> String {
-    timeline.state.get_my_hint(value).unwrap_or("n".to_string())
-}
-
-fn check_config(timeline: &AetTimeline, value: &String) -> bool {
-    timeline
-        .state
-        .get_my_hint(value)
-        .unwrap_or("false".to_string())
-        .eq(&"true")
-}
-
-fn check_config_int(timeline: &AetTimeline, value: &String) -> i32 {
-    timeline
-        .state
-        .get_my_hint(value)
-        .unwrap_or("0".to_string())
-        .parse::<i32>()
-        .unwrap()
-}
-
 fn use_one_rag(timeline: &AetTimeline) -> bool {
     check_config(timeline, &"ONE_RAG".to_string())
-}
-
-fn should_call_venoms(timeline: &AetTimeline) -> bool {
-    check_config(timeline, &"VENOM_CALLING".to_string())
 }
 
 fn should_void(timeline: &AetTimeline) -> bool {
@@ -130,8 +106,6 @@ lazy_static! {
         FType::Paresis,
         FType::Asthma,
         FType::Clumsiness,
-        FType::Squelched,
-        FType::Disfigurement,
         FType::Slickness,
         FType::Stupidity,
         FType::Anorexia,
@@ -227,7 +201,7 @@ lazy_static! {
         VenomPlan::OnTree(FType::Paresis),
         VenomPlan::Stick(FType::Asthma),
         VenomPlan::IfDo(
-            FType::Weariness,
+            FType::Slickness,
             Box::new(VenomPlan::Stick(FType::Stupidity)),
         ),
         VenomPlan::IfNotDo(
@@ -567,7 +541,11 @@ pub fn get_top_hypno<'s>(
 }
 
 fn should_bind(me: &AgentState, target: &AgentState, strategy: &String) -> bool {
-    if !target.is(FType::Asleep) || target.is(FType::WritheBind) {
+    if !target.is(FType::Asleep)
+        || target.is(FType::WritheBind)
+        || target.lock_duration().is_none()
+        || target.aff_count() < 9
+    {
         false
     } else {
         true
@@ -669,9 +647,6 @@ fn go_for_thin_blood(_timeline: &AetTimeline, you: &AgentState, _strategy: &Stri
         && (!you.is(FType::Fangbarrier)
             || !you.can_tree(true)
             || you.get_balance(BType::Tree) > 3.0)
-        && (you.aff_count() >= 4
-            || !you.is(FType::Fangbarrier)
-            || you.get_balance(BType::Renew) > 8.0)
 }
 
 pub fn should_lock(
@@ -699,15 +674,6 @@ pub fn should_lock(
         && (!you.can_tree(true) || you.get_balance(BType::Tree) > 2.5)
         && lockers.len() < 3
         && lockers.len() > 0
-        && (you.aff_count() >= 4 || you.get_balance(BType::Renew) > 4.0 || strategy.eq("aggro"))
-}
-
-pub fn call_venom(target: &String, v1: &String) -> String {
-    format!("wt Afflicting {}: {}", target, v1)
-}
-
-pub fn call_venoms(target: &String, v1: &String, v2: &String) -> String {
-    format!("wt Afflicting {}: {}, {}", target, v1, v2)
 }
 
 pub fn get_flay_action(timeline: &AetTimeline, target: &String, def: String, v1: String) -> String {
@@ -872,6 +838,8 @@ pub fn choose_venoms(
             } else {
                 return vec!["scytherus"];
             }
+        } else if you.is(FType::Hypersomnia) {
+            add_delphs(&timeline, &me, &you, &strategy, &mut venoms, count);
         }
         let mut buffer = get_venoms(THIN_BUFFER_STACK.to_vec(), 2, &you);
         if strategy.eq("thin") {
@@ -928,9 +896,6 @@ pub fn choose_venoms(
             let hypno_buffers = get_venoms(hypno_buffers, buffer_count, &you);
             add_buffers(&mut venoms, &hypno_buffers);
         }
-    }
-    if you.is(FType::Hypersomnia) {
-        add_delphs(&timeline, &me, &you, &strategy, &mut venoms, count);
     }
     venoms
 }
@@ -1021,8 +986,8 @@ pub fn get_balance_attack<'s>(
                 return Box::new(DoublestabAction::new(
                     who_am_i.to_string(),
                     target.to_string(),
-                    v1.to_string(),
                     v2.to_string(),
+                    v1.to_string(),
                 ));
             } else if you.is(FType::Fangbarrier) {
                 return Box::new(FlayAction::fangbarrier(

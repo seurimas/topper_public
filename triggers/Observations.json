@@ -510,5 +510,10 @@
     "regex": "^Your fingers begin to trail with light.$",
     "args": [],
     "observation_name": "Undithered"
+  },
+  {
+    "regex": "^\\*\\* Illusion \\*\\*",
+    "args": [],
+    "observation_name": "Illusion"
   }
 ]

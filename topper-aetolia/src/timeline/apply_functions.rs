@@ -7,12 +7,14 @@ use crate::curatives::{
     PILL_DEFENCES, SALVE_CURE_ORDERS, SMOKE_CURE_ORDERS,
 };
 use crate::db::AetDatabaseModule;
+use crate::non_agent::AetNonAgent;
 use crate::timeline::*;
 use crate::types::*;
 use log::warn;
 use regex::Regex;
 use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
+use topper_core::observations::strip_ansi;
 use topper_core::timeline::db::DatabaseModule;
 use topper_core::timeline::CType;
 
@@ -23,6 +25,7 @@ mod apply_tests;
 pub fn apply_observation(
     timeline: &mut AetTimelineState,
     observation: &AetObservation,
+    lines: &Vec<(String, u32)>,
     before: &Vec<AetObservation>,
     after: &Vec<AetObservation>,
     db: Option<&impl AetDatabaseModule>,
@@ -248,6 +251,46 @@ pub fn apply_observation(
                     );
                 });
             }
+            "Allies" => {
+                let mut tta = -3;
+                let mut allies = Vec::new();
+                for (line, _num) in lines {
+                    if tta == -3 && !line.contains("You claim these people as allies") {
+                        continue;
+                    }
+                    tta += 1;
+                    if tta >= 0 {
+                        if line.contains("--") {
+                            break;
+                        }
+                        allies.push(strip_ansi(line));
+                    }
+                }
+                timeline.non_agent_states.insert(
+                    format!("{}_allies", timeline.me),
+                    AetNonAgent::Players(allies),
+                );
+            }
+            "Enemies" => {
+                let mut tta = -3;
+                let mut enemies = Vec::new();
+                for (line, _num) in lines {
+                    if tta == -3 && !line.contains("You claim these people as foes") {
+                        continue;
+                    }
+                    tta += 1;
+                    if tta >= 0 {
+                        if line.contains("--") {
+                            break;
+                        }
+                        enemies.push(strip_ansi(line));
+                    }
+                }
+                timeline.non_agent_states.insert(
+                    format!("{}_enemies", timeline.me),
+                    AetNonAgent::Players(enemies),
+                );
+            }
             _ => {}
         },
         AetObservation::Stripped(defense) => {
@@ -440,6 +483,21 @@ pub fn apply_venom(who: &mut AgentState, venom: &String, relapse: bool) -> Resul
         who.set_flag(FType::Asleep, true);
     } else if venom == "delphinium" {
         who.set_flag(FType::Instawake, false);
+    } else if venom == "wasi" {
+        // Revenant
+        who.set_flag(FType::Rebounding, false);
+    } else if venom == "azu" && !who.is(FType::Crippled) {
+        // Revenant
+        who.set_flag(FType::Crippled, true);
+    } else if venom == "azu" && who.is(FType::Crippled) {
+        // Revenant
+        who.set_flag(FType::PhysicalDisruption, true);
+    } else if venom == "dirne" && !who.is(FType::PhysicalDisruption) {
+        // Revenant
+        who.set_flag(FType::PhysicalDisruption, true);
+    } else if venom == "dirne" && who.is(FType::PhysicalDisruption) {
+        // Revenant
+        who.set_flag(FType::MentalDisruption, true);
     } else {
         return Err(format!("Could not determine effect of {}", venom));
     }
@@ -452,11 +510,9 @@ pub fn apply_venom(who: &mut AgentState, venom: &String, relapse: bool) -> Resul
 }
 
 lazy_static! {
-    static ref CALLED_VENOM: Regex = Regex::new(r"(\w+)").unwrap();
-}
-
-lazy_static! {
-    static ref CALLED_VENOMS_TWO: Regex = Regex::new(r"(\w+),? (\w+)").unwrap();
+    pub static ref CALLED_VENOM: Regex = Regex::new(r"(\w+)").unwrap();
+    pub static ref CALLED_VENOMS_TWO: Regex = Regex::new(r"(\w+),? (\w+)").unwrap();
+    pub static ref CALLED_VENOMS_THREE: Regex = Regex::new(r"(\w+),? (\w+),? (\w+)").unwrap();
 }
 
 pub fn apply_weapon_hits(

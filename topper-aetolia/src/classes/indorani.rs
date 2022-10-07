@@ -31,6 +31,32 @@ pub fn handle_combat_action(
     after: &Vec<AetObservation>,
 ) -> Result<(), String> {
     match combat_action.skill.as_ref() {
+        "Chilled" => {
+            for_agent(agent_states, &combat_action.caster, &|you| {
+                if you.is(FType::Insulation) {
+                    you.set_flag(FType::Insulation, false);
+                } else if !you.is(FType::Shivering) {
+                    you.set_flag(FType::Shivering, true);
+                } else if !you.is(FType::Frozen) {
+                    you.set_flag(FType::Frozen, true);
+                }
+            });
+        }
+        "Croned" => {
+            let broken_limb = match combat_action.annotation.as_ref() {
+                "left arm" => FType::LeftArmBroken,
+                "right arm" => FType::RightArmBroken,
+                "left leg" => FType::LeftLegBroken,
+                "right leg" => FType::RightLegBroken,
+                _ => FType::SIZE, // I don't want to panic
+            };
+            attack_afflictions(
+                agent_states,
+                &combat_action.caster,
+                vec![broken_limb],
+                after,
+            );
+        }
         "Sun" | "Moon" => {
             if !combat_action.annotation.eq("dodge") {
                 let observations = after.clone();
@@ -59,6 +85,29 @@ pub fn handle_combat_action(
                             )
                         }),
                     );
+                } else {
+                    let hints = agent_states
+                        .get_player_hint(&combat_action.caster, &"CALLED_VENOMS".to_string())
+                        .unwrap_or("".to_string());
+                    for_agent(agent_states, &combat_action.target, &move |you| {
+                        let mut afflictions = Vec::new();
+                        if let Some(captures) = CALLED_VENOMS_TWO.captures(&hints) {
+                            afflictions.push(captures.get(1).unwrap().as_str().to_string());
+                            afflictions.push(captures.get(2).unwrap().as_str().to_string());
+                        } else if let Some(captures) = CALLED_VENOM.captures(&hints) {
+                            afflictions.push(captures.get(1).unwrap().as_str().to_string());
+                        }
+                        for affliction in afflictions {
+                            if let Some(affliction) = FType::from_name(&affliction) {
+                                if sun && SUN_AFFS.contains(&affliction) {
+                                    you.set_flag(affliction, true);
+                                }
+                                if !sun && MOON_AFFS.contains(&affliction) {
+                                    you.set_flag(affliction, true);
+                                }
+                            }
+                        }
+                    })
                 }
             }
         }

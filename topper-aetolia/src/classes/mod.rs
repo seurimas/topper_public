@@ -10,6 +10,7 @@ pub mod archivist;
 pub mod ascendril;
 pub mod bard;
 pub mod carnifex;
+pub mod group;
 pub mod indorani;
 pub mod lords;
 pub mod luminary;
@@ -308,6 +309,13 @@ pub fn handle_combat_action(
             return handle_combat_action(&combat_action.normalized(), agent_states, before, after);
         }
     }
+    if !combat_action.target.is_empty() && !combat_action.caster.eq(&combat_action.target) {
+        let my_room = agent_states.borrow_me().room_id;
+        for_agent(agent_states, &combat_action.target, &|me| {
+            me.register_hit();
+            me.room_id = my_room;
+        });
+    }
     match combat_action.category.as_ref() {
         "Geometrics" | "Numerology" | "Bioessence" => {
             archivist::handle_combat_action(combat_action, agent_states, before, after)
@@ -462,6 +470,18 @@ pub fn handle_combat_action(
             }
             _ => Ok(()),
         },
+        "Relic" => match combat_action.skill.as_ref() {
+            "Tailstrike" => {
+                attack_afflictions(
+                    agent_states,
+                    &combat_action.target,
+                    vec![FType::Slickness],
+                    after,
+                );
+                Ok(())
+            }
+            _ => Ok(()),
+        },
         "Hunting" => match combat_action.skill.as_ref() {
             "Fitness" => {
                 let observations = after.clone();
@@ -484,25 +504,6 @@ pub fn handle_combat_action(
                     &move |me: &mut AgentState| {
                         me.regenerate();
                         apply_or_infer_balance(me, (BType::Regenerate, 15.0), &observations);
-                    },
-                );
-                Ok(())
-            }
-            "Renew" => {
-                let observations = after.clone();
-                let perspective = agent_states.get_perspective(&combat_action);
-                for_agent(
-                    agent_states,
-                    &combat_action.caster,
-                    &move |me: &mut AgentState| {
-                        me.observe_flag(FType::Impairment, false);
-                        apply_or_infer_balance(me, (BType::Renew, 20.0), &observations);
-                        apply_or_strike_random_cure(
-                            me,
-                            &observations,
-                            perspective,
-                            (1, RANDOM_CURES.to_vec()),
-                        );
                     },
                 );
                 Ok(())

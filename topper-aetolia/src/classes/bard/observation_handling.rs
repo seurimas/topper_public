@@ -7,6 +7,7 @@ const BLADES_COUNT: usize = 3;
 // All values assume onyx.
 const RUNEBAND_DITHER: usize = 2;
 const MANABARBS_DITHER: usize = 2;
+const PATCHWORK_DITHER: usize = 2;
 const GLOBES_DITHER: usize = 0;
 const BARBS_DITHER: usize = 2;
 const BLADESTORM_DITHER: usize = 2;
@@ -75,6 +76,17 @@ pub fn handle_weaving_action(
                     if let Some(aff) = me.bard_board.runebanded(&RUNEBAND_AFFS) {
                         me.set_flag(aff, true);
                     };
+                },
+            );
+        }
+        "Patchwork" => {
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &|me: &mut AgentState| {
+                    me.assume_bard(&|bard: &mut BardClassState| {
+                        bard.dithering = PATCHWORK_DITHER;
+                    });
                 },
             );
         }

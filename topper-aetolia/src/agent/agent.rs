@@ -11,6 +11,7 @@ pub struct AgentState {
     pub balances: [CType; BType::SIZE as usize],
     pub stats: [CType; SType::SIZE as usize],
     pub max_stats: [CType; SType::SIZE as usize],
+    pub aggro: AggroState,
     pub flags: FlagSet,
     pub limb_damage: LimbSet,
     pub hypno_state: HypnoState,
@@ -30,6 +31,7 @@ pub struct AgentState {
 
 impl BaseAgentState for AgentState {
     fn wait(&mut self, duration: i32) {
+        self.aggro.wait(duration);
         self.relapses.wait(duration);
         self.resin_state.wait(duration);
         self.class_state.wait(duration);
@@ -452,10 +454,6 @@ impl AgentState {
         earliest_escape.map(|escape| (escape as f32) / BALANCE_SCALE)
     }
 
-    pub fn can_renew(&self, ignore_bal: bool) -> bool {
-        ignore_bal || self.balanced(BType::Renew)
-    }
-
     pub fn can_touch(&self) -> bool {
         !self.is(FType::Paresis)
             && !self.is(FType::Paralysis)
@@ -692,5 +690,13 @@ impl AgentState {
         } else {
             None
         }
+    }
+
+    pub fn get_aggro(&self) -> i32 {
+        self.aggro.get_aggro()
+    }
+
+    pub fn register_hit(&mut self) {
+        self.aggro.register_hit();
     }
 }

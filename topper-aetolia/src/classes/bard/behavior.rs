@@ -4,7 +4,9 @@ use topper_bt::unpowered::*;
 use crate::{
     bt::*,
     classes::get_venoms_from_plan,
+    classes::group::*,
     items::{UnwieldAction, WieldAction},
+    observables::PlainAction,
     types::*,
 };
 
@@ -26,6 +28,8 @@ pub enum BardBehavior {
     VenomAttack(BardVenomAttack),
     Anelace,
     ColdRead,
+    PatchAggroedAlly,
+    AudienceAggroedAlly,
     SingSong(Song),
     PlaySong(Song),
 }
@@ -185,6 +189,45 @@ impl UnpoweredFunction for BardBehavior {
                     return UnpoweredFunctionState::Failed;
                 }
             }
+            BardBehavior::PatchAggroedAlly => {
+                let me = model.state.borrow_me();
+                if me
+                    .check_if_bard(&|bard| bard.dithering > 0)
+                    .unwrap_or(false)
+                {
+                    return UnpoweredFunctionState::Failed;
+                } else if !controller.has_qeb() {
+                    return UnpoweredFunctionState::Failed;
+                } else if !assure_unwielded(&me, model, controller, false) {
+                    return UnpoweredFunctionState::Failed;
+                }
+                let best_ally = get_aggroed_ally(controller);
+                if let Some((ally, _aggro)) = &best_ally {
+                    controller
+                        .plan
+                        .add_to_qeb(Box::new(WeavingAttackAction::patchwork(
+                            model.who_am_i(),
+                            ally.clone(),
+                        )));
+                } else {
+                    println!("NO ALLIES");
+                    return UnpoweredFunctionState::Failed;
+                }
+            }
+            BardBehavior::AudienceAggroedAlly => {
+                let best_ally = get_aggroed_ally(controller);
+                if let Some((ally, _aggro)) = &best_ally {
+                    controller
+                        .plan
+                        .add_to_front_of_qeb(Box::new(PlainAction::new(format!(
+                            "audience {}",
+                            ally
+                        ))));
+                } else {
+                    println!("NO ALLIES");
+                    return UnpoweredFunctionState::Failed;
+                }
+            }
             BardBehavior::ColdRead => {
                 if let Some(target) = &controller.target {
                     controller.plan.add_to_qeb(Box::new(ColdReadAction::new(
@@ -234,6 +277,21 @@ impl UnpoweredFunction for BardBehavior {
     }
 }
 
+fn get_aggroed_ally(controller: &mut BehaviorController) -> Option<(String, i32)> {
+    let mut best_ally: Option<(String, i32)> = None;
+    for (ally, aggro) in controller.allies.iter() {
+        if *aggro
+            > best_ally
+                .as_ref()
+                .map(|(_, ally_aggro)| *ally_aggro)
+                .unwrap_or(-1)
+        {
+            best_ally = Some((ally.clone(), *aggro));
+        }
+    }
+    best_ally
+}
+
 fn assure_unwielded(
     me: &AgentState,
     model: &BehaviorModel,
@@ -241,6 +299,20 @@ fn assure_unwielded(
     prefer_left: bool,
 ) -> bool {
     if !me.wield_state.empty_hand() {
+        if me
+            .check_if_bard(&|bard: &BardClassState| bard.instrument_song.is_some())
+            .unwrap_or(false)
+        {
+            if let (Some(left), Some(right)) =
+                (me.wield_state.get_left(), me.wield_state.get_right())
+            {
+                if prefer_left && left.contains("fife") && !right.contains("fife") {
+                    return assure_unwielded(me, model, controller, false);
+                } else if !prefer_left && right.contains("fife") && !left.contains("fife") {
+                    return assure_unwielded(me, model, controller, true);
+                }
+            }
+        }
         if me.can_wield(prefer_left, !prefer_left) {
             controller.plan.add_to_qeb(Box::new(UnwieldAction::unwield(
                 model.who_am_i(),
@@ -265,6 +337,18 @@ fn assure_wielded(
     wielded: &str,
     prefer_left: bool,
 ) -> bool {
+    if me
+        .check_if_bard(&|bard: &BardClassState| bard.instrument_song.is_some())
+        .unwrap_or(false)
+    {
+        if let (Some(left), Some(right)) = (me.wield_state.get_left(), me.wield_state.get_right()) {
+            if prefer_left && left.contains("fife") && !right.contains("fife") {
+                return assure_wielded(me, model, controller, wielded, false);
+            } else if !prefer_left && right.contains("fife") && !left.contains("fife") {
+                return assure_wielded(me, model, controller, wielded, true);
+            }
+        }
+    }
     if !me.wield_state.is_wielding(wielded) {
         if me.can_wield(prefer_left, !prefer_left) {
             controller

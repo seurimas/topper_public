@@ -1,0 +1,38 @@
+[
+    {
+        "regex": "^You claim these people as allies:$",
+        "args": [
+            {
+                "Literal": "Allies"
+            },
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": ""
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "ListStart"
+    },
+    {
+        "regex": "^You claim these people as foes:$",
+        "args": [
+            {
+                "Literal": "Enemies"
+            },
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": ""
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "ListStart"
+    }
+]

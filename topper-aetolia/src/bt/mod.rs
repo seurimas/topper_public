@@ -1,7 +1,7 @@
 mod behavior;
 mod predicate;
 mod sub_trees;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 pub use behavior::*;
 pub use predicate::*;
@@ -39,6 +39,7 @@ pub struct BehaviorController {
     pub aff_priorities: Option<Vec<VenomPlan>>,
     pub plan_tags: HashSet<String>,
     pub target: Option<String>,
+    pub allies: HashMap<String, i32>,
 }
 
 impl BehaviorController {

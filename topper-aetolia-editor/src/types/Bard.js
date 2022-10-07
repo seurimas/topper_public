@@ -135,6 +135,10 @@ export const BARD_BEHAVIOR = {
     }, {
         "name": "ColdRead",
     }, {
+        "name": "AudienceAggroedAlly",
+    }, {
+        "name": "PatchAggroedAlly",
+    }, {
         name: 'WeaveAttack',
         fields: ['WeavingAttack'],
     }, {

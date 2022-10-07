@@ -6,7 +6,7 @@ import { getJsonOutput } from './reducer_selectors';
 
 export const JsonOutput = ({ treeName }) => {
     const dispatch = useDispatch();
-    const jsonOutput = useSelector(getJsonOutput(treeName)).replace(/"None"/, null);
+    const jsonOutput = useSelector(getJsonOutput(treeName)).replace(/"None"/g, null);
     const load = (event) => dispatch(loadJson(treeName, event.target.value));
     return (
         <TextField label={treeName} fullWidth multiline value={jsonOutput} onChange={load} />

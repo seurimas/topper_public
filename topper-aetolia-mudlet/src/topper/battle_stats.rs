@@ -99,6 +99,11 @@ impl PlayerStats {
         let mut balances = HashMap::new();
         balances.insert("Tree".to_string(), state.get_balance(BType::Tree));
         balances.insert("Focus".to_string(), state.get_balance(BType::Focus));
+        balances.insert("Fitness".to_string(), state.get_balance(BType::Fitness));
+        balances.insert(
+            "ClassCure1".to_string(),
+            state.get_balance(BType::ClassCure1),
+        );
         balances.insert(
             "Rebounding".to_string(),
             state.get_balance(BType::Rebounding),

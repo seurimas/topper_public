@@ -1,4 +1,5 @@
 pub mod agent;
+pub mod aggro;
 pub mod bards;
 pub mod branching;
 pub mod general;
@@ -10,6 +11,7 @@ pub mod shapeshifter;
 pub mod syssin;
 pub mod zealot;
 pub use agent::*;
+pub use aggro::*;
 pub use bards::*;
 pub use branching::*;
 pub use general::*;

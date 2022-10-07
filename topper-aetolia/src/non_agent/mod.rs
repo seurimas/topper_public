@@ -5,6 +5,7 @@ use serde::Deserialize;
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub enum AetNonAgent {
     Room(Room),
+    Players(Vec<String>),
 }
 
 impl AetNonAgent {

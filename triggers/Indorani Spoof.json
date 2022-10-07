@@ -61,5 +61,47 @@
       }
     ],
     "observation_name": "DiscernedAfflict"
+  },
+  {
+    "regex": "^The crone withers (\\w+)'s (left leg|right leg|left arm|right arm) into uselessness.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Domination"
+      },
+      {
+        "Literal": "Croned"
+      },
+      {
+        "GroupAsTarget": 2
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^Specks of frost form on (\\w+) as \\w+ shivers with fear.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Domination"
+      },
+      {
+        "Literal": "Chilled"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
   }
 ]

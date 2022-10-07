@@ -1,8 +1,13 @@
+use std::collections::HashMap;
+
 use topper_bt::unpowered::*;
 
 use super::*;
 
-use crate::{bt::*, classes::VenomPlan, db::*, defense::*, observables::*, timeline::*, types::*};
+use crate::{
+    bt::*, classes::VenomPlan, db::*, defense::*, non_agent::AetNonAgent, observables::*,
+    timeline::*, types::*,
+};
 
 pub fn get_stack<'s>(
     timeline: &AetTimeline,
@@ -31,10 +36,31 @@ pub fn get_action_plan(
     strategy: &String,
     db: Option<&impl AetDatabaseModule>,
 ) -> ActionPlan {
+    println!("Non-agents: {:?}", timeline.state.non_agent_states);
     let mut controller = BehaviorController {
         plan: ActionPlan::new(me),
         target: Some(target.clone()),
         aff_priorities: get_stack(timeline, target, strategy, db),
+        allies: timeline
+            .state
+            .non_agent_states
+            .get(&format!("{}_allies", me))
+            .map(|ally_list| {
+                if let AetNonAgent::Players(ally_list) = ally_list {
+                    let mut ally_aggros = HashMap::new();
+                    let my_room = timeline.state.borrow_me().room_id;
+                    for ally in ally_list {
+                        let ally_state = timeline.state.borrow_agent(ally);
+                        if ally_state.room_id == my_room {
+                            ally_aggros.insert(ally.clone(), ally_state.get_aggro());
+                        }
+                    }
+                    ally_aggros
+                } else {
+                    panic!("Non-player list in allies spot!")
+                }
+            })
+            .unwrap_or_default(),
         ..Default::default()
     };
     let tree_name = if strategy.eq("class") {

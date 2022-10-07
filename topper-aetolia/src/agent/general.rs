@@ -22,7 +22,6 @@ pub enum BType {
     Smoke,
     Focus,
     Tree,
-    Renew,
     Regenerate,
 
     // Misc
