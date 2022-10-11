@@ -247,7 +247,7 @@ impl TopperHandler<BattleStats> for AetTopper {
                 &topper_msg,
                 (
                     &self.me(),
-                    &self.timeline_module.timeline,
+                    &mut self.timeline_module.timeline,
                     &self.database_module,
                 ),
             )?)

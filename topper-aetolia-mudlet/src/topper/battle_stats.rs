@@ -174,7 +174,7 @@ pub struct BattleStats {
     pub my_stats: PlayerStats,
     pub target_stats: Option<PlayerStats>,
     pub plan: String,
-    pub hypno: String,
+    pub class_state: String,
 }
 
 fn format_self_limbs(state: &AgentState) -> String {
@@ -227,8 +227,8 @@ pub fn get_battle_stats(
     } else {
         "".to_string()
     };
-    let hypno_str = if my_stats.class.eq("Syssin") {
-        format!(
+    let class_state = match my_stats.class.as_ref() {
+        "Syssin" => format!(
             "{}: {:?}",
             get_hypno_stack_name(
                 &timeline,
@@ -241,9 +241,14 @@ pub fn get_battle_stats(
                 plan.as_ref().unwrap_or(&"".to_string()),
                 Some(db),
             ),
-        )
-    } else {
-        "".to_string()
+        ),
+        "Bard" => topper_aetolia::classes::bard::get_class_state(
+            &timeline,
+            target.as_ref().unwrap_or(&"".to_string()),
+            plan.as_ref().unwrap_or(&"".to_string()),
+            Some(db),
+        ),
+        _ => "".to_string(),
     };
     for timeslice in timeline.slices.iter().rev() {
         for observation in timeslice.observations.iter().flatten().rev() {
@@ -283,6 +288,6 @@ pub fn get_battle_stats(
         my_stats,
         target_stats,
         plan: plan_str,
-        hypno: hypno_str,
+        class_state,
     }
 }

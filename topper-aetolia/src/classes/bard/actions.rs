@@ -299,6 +299,19 @@ impl PerformanceAttack {
             _ => false,
         }
     }
+
+    pub fn gets_rebounded(&self) -> bool {
+        match self {
+            Self::TempoOne(_)
+            | Self::TempoTwo(_, _)
+            | Self::TempoThree(_, _, _)
+            | Self::Harry(_)
+            | Self::Bravado(_)
+            | Self::Cadence
+            | Self::Hiltblow => true,
+            _ => false,
+        }
+    }
 }
 
 pub struct PerformanceAttackAction {
@@ -458,17 +471,25 @@ impl ActiveTransition for PerformanceAttackAction {
         };
         if should_call_venoms(timeline) {
             let called = match &self.attack {
-                PerformanceAttack::TempoOne(venom) => call_venom(&self.target, venom),
+                PerformanceAttack::TempoOne(venom) => {
+                    call_venom(&self.target, venom, Some("Rhythm"))
+                }
                 PerformanceAttack::TempoTwo(venom_one, venom_two) => {
-                    call_venoms(&self.target, venom_one, venom_two)
+                    call_venoms(&self.target, venom_one, venom_two, Some("Rhythm"))
                 }
 
                 PerformanceAttack::TempoThree(venom_one, venom_two, venom_three) => {
-                    call_triple_venoms(&self.target, venom_one, venom_two, venom_three)
+                    call_triple_venoms(
+                        &self.target,
+                        venom_one,
+                        venom_two,
+                        venom_three,
+                        Some("Rhythm"),
+                    )
                 }
-                PerformanceAttack::Needle(venom) => call_venom(&self.target, venom),
-                PerformanceAttack::Harry(venom) => call_venom(&self.target, venom),
-                PerformanceAttack::Bravado(venom) => call_venom(&self.target, venom),
+                PerformanceAttack::Needle(venom) => call_venom(&self.target, venom, None),
+                PerformanceAttack::Harry(venom) => call_venom(&self.target, venom, None),
+                PerformanceAttack::Bravado(venom) => call_venom(&self.target, venom, None),
                 _ => "".to_string(),
             };
             Ok(format!("{};;{}", called, action))

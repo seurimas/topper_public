@@ -683,7 +683,7 @@ pub fn get_flay_action(timeline: &AetTimeline, target: &String, def: String, v1:
         format!("stand;;envenom whip with {};;flay {}", v1, target)
     };
     let action = if should_call_venoms(timeline) && !v1.eq_ignore_ascii_case("") {
-        format!("{};;{}", call_venom(target, &v1), action)
+        format!("{};;{}", call_venom(target, &v1, None), action)
     } else {
         action
     };
@@ -703,7 +703,7 @@ pub fn get_dstab_action(
         format!("stand;;dstab {} {} {};;dash d", target, v1, v2)
     };
     if should_call_venoms(timeline) {
-        format!("{};;{}", call_venoms(target, v1, v2), action)
+        format!("{};;{}", call_venoms(target, v1, v2, None), action)
     } else {
         action
     }
@@ -716,7 +716,7 @@ pub fn get_dstab_asp_action(timeline: &AetTimeline, target: &String, v1: &String
         format!("wipe dirk;;stand;;dstab {} {};;dash d", target, v1)
     };
     if should_call_venoms(timeline) {
-        format!("{};;{}", call_venom(target, v1), action)
+        format!("{};;{}", call_venom(target, v1, None), action)
     } else {
         action
     }
@@ -729,7 +729,7 @@ pub fn get_slit_action(timeline: &AetTimeline, target: &String, v1: &String) -> 
         format!("stand;;slit {} {};;dash d", target, v1)
     };
     if should_call_venoms(timeline) {
-        format!("{};;{}", call_venom(target, v1), action)
+        format!("{};;{}", call_venom(target, v1, None), action)
     } else {
         action
     }

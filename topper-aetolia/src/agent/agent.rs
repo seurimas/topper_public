@@ -37,6 +37,7 @@ impl BaseAgentState for AgentState {
         self.class_state.wait(duration);
         self.dodge_state.wait(duration);
         self.pipe_state.wait(duration);
+        self.bard_board.wait(duration);
         if let Some((cured_limb, regenerating, first_person)) = self.limb_damage.wait(duration) {
             if !first_person {
                 match self.get_restore_cure(cured_limb) {

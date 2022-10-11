@@ -168,6 +168,27 @@
         "observation_name": "Proc"
     },
     {
+        "regex": "^(\\w+) glances (\\w+) up and down, deciding (\\w+) are beneath (\\w+).$",
+        "args": [
+            {
+                "GroupAsTarget": 2
+            },
+            {
+                "Literal": "Performance"
+            },
+            {
+                "Literal": "Ridicule"
+            },
+            {
+                "Literal": "hard"
+            },
+            {
+                "GroupAsTarget": 1
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
         "regex": "^With a final, flourishing note, (\\w+)'?s? powerful song awakens the inner emotions of those around .*.$",
         "args": [
             {

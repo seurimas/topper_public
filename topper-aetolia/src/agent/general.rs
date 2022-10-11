@@ -931,6 +931,7 @@ impl ClassState {
                 zenith.wait(duration);
                 pyromania.wait(duration);
             }
+            ClassState::Bard(bard_class_state) => bard_class_state.wait(duration),
             _ => {}
         }
     }

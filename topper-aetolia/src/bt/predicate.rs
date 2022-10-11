@@ -206,8 +206,8 @@ impl UnpoweredFunction for AetPredicate {
             AetPredicate::CannotCure(target, aff) => {
                 if let Some(target) = target.get_target(model, controller) {
                     let mut afflicted = target.clone();
-                    afflicted.set_flag(FType::Paresis, true);
-                    let cure_depth = get_cure_depth(&afflicted, FType::Paresis);
+                    afflicted.set_flag(*aff, true);
+                    let cure_depth = get_cure_depth(&afflicted, *aff);
                     if cure_depth.time > 100 {
                         return UnpoweredFunctionState::Complete;
                     }

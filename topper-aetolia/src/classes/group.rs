@@ -21,16 +21,45 @@ pub fn check_config_int(timeline: &AetTimeline, value: &String) -> i32 {
         .unwrap()
 }
 
-pub fn call_venom(target: &String, v1: &String) -> String {
-    format!("wt Afflicting {}: {}", target, v1)
+pub fn call_venom(target: &String, v1: &String, annotation: Option<&'static str>) -> String {
+    format!(
+        "wt {} {}: {}",
+        annotation.unwrap_or("Afflicting"),
+        target,
+        v1
+    )
 }
 
-pub fn call_venoms(target: &String, v1: &String, v2: &String) -> String {
-    format!("wt Afflicting {}: {}, {}", target, v1, v2)
+pub fn call_venoms(
+    target: &String,
+    v1: &String,
+    v2: &String,
+    annotation: Option<&'static str>,
+) -> String {
+    format!(
+        "wt {} {}: {}, {}",
+        annotation.unwrap_or("Afflicting"),
+        target,
+        v1,
+        v2
+    )
 }
 
-pub fn call_triple_venoms(target: &String, v1: &String, v2: &String, v3: &String) -> String {
-    format!("wt Afflicting {}: {}, {}, {}", target, v1, v2, v3)
+pub fn call_triple_venoms(
+    target: &String,
+    v1: &String,
+    v2: &String,
+    v3: &String,
+    annotation: Option<&'static str>,
+) -> String {
+    format!(
+        "wt {} {}: {}, {}, {}",
+        annotation.unwrap_or("Afflicting"),
+        target,
+        v1,
+        v2,
+        v3
+    )
 }
 
 pub fn should_call_venoms(timeline: &AetTimeline) -> bool {

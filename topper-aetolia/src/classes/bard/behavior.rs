@@ -106,6 +106,9 @@ impl UnpoweredFunction for BardBehavior {
                     controller.aff_priorities.as_ref(),
                 ) {
                     let you = model.state.borrow_agent(target);
+                    if *venom_attack != BardVenomAttack::Needle && you.is(FType::Rebounding) {
+                        return UnpoweredFunctionState::Failed;
+                    }
                     let venom_count = match venom_attack {
                         BardVenomAttack::Tempo => 3,
                         _ => 1,
@@ -152,6 +155,11 @@ impl UnpoweredFunction for BardBehavior {
                     }
                 }
                 if let Some(target) = &controller.target {
+                    if performance_attack.gets_rebounded()
+                        && model.state.borrow_agent(target).is(FType::Rebounding)
+                    {
+                        return UnpoweredFunctionState::Failed;
+                    }
                     controller
                         .plan
                         .add_to_qeb(Box::new(PerformanceAttackAction::new(

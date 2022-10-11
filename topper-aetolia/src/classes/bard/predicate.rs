@@ -4,7 +4,7 @@ use topper_core::timeline::CType;
 
 use crate::{bt::*, classes::VENOM_AFFLICTS, timeline::apply_functions::apply_venom, types::*};
 
-use super::{actions::*, GLOBE_AFFS};
+use super::actions::*;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub enum BardPredicate {

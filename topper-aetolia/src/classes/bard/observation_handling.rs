@@ -12,23 +12,13 @@ const GLOBES_DITHER: usize = 0;
 const BARBS_DITHER: usize = 2;
 const BLADESTORM_DITHER: usize = 2;
 const ANELACE_DITHER: usize = 2;
+const HEADSTITCH_DITHER: usize = 1;
 const NULLSTONE_DITHER: usize = 1;
 const BOUNDARY_DITHER: usize = 3;
 const IRONCOLLAR_DITHER: usize = 2;
 
 pub const NULLSTONE: &str = "a stone of annulment";
 pub const ANELACE: &str = "a sharp anelace";
-
-pub const GLOBE_AFFS: [FType; 3] = [FType::Dizziness, FType::Confusion, FType::Perplexed];
-const RUNEBAND_AFFS: [FType; 7] = [
-    FType::Stupidity,
-    FType::Paranoia,
-    FType::RingingEars,
-    FType::Loneliness,
-    FType::Exhausted,
-    FType::Laxity,
-    FType::Clumsiness,
-];
 
 lazy_static! {
     static ref PIERCE_ORDER: Vec<FType> = vec![
@@ -73,7 +63,7 @@ pub fn handle_weaving_action(
                 agent_states,
                 &combat_action.caster,
                 &|me: &mut AgentState| {
-                    if let Some(aff) = me.bard_board.runebanded(&RUNEBAND_AFFS) {
+                    if let Some(aff) = me.bard_board.runebanded() {
                         me.set_flag(aff, true);
                     };
                 },
@@ -88,6 +78,23 @@ pub fn handle_weaving_action(
                         bard.dithering = PATCHWORK_DITHER;
                     });
                 },
+            );
+        }
+        "Headstitch" => {
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &|me: &mut AgentState| {
+                    me.assume_bard(&|bard: &mut BardClassState| {
+                        bard.dithering = HEADSTITCH_DITHER;
+                    });
+                },
+            );
+            attack_afflictions(
+                agent_states,
+                &combat_action.target,
+                vec![FType::Besilence, FType::Deadening],
+                after,
             );
         }
         "Globes" => {
@@ -116,7 +123,7 @@ pub fn handle_weaving_action(
                     &combat_action.caster,
                     &|me: &mut AgentState| {
                         me.bard_board.globes_state = GlobesState::Floating(1);
-                        if let Some(aff) = me.bard_board.globed(&GLOBE_AFFS) {
+                        if let Some(aff) = me.bard_board.globed() {
                             me.set_flag(aff, true);
                         };
                     },
@@ -126,7 +133,7 @@ pub fn handle_weaving_action(
                     agent_states,
                     &combat_action.caster,
                     &|me: &mut AgentState| {
-                        while let Some(aff) = me.bard_board.globed(&GLOBE_AFFS) {
+                        while let Some(aff) = me.bard_board.globed() {
                             me.set_flag(aff, true);
                         }
                     },
@@ -136,7 +143,7 @@ pub fn handle_weaving_action(
                     agent_states,
                     &combat_action.caster,
                     &|me: &mut AgentState| {
-                        if let Some(aff) = me.bard_board.globed(&GLOBE_AFFS) {
+                        if let Some(aff) = me.bard_board.globed() {
                             me.set_flag(aff, true);
                         };
                     },

@@ -36,7 +36,6 @@ pub fn get_action_plan(
     strategy: &String,
     db: Option<&impl AetDatabaseModule>,
 ) -> ActionPlan {
-    println!("Non-agents: {:?}", timeline.state.non_agent_states);
     let mut controller = BehaviorController {
         plan: ActionPlan::new(me),
         target: Some(target.clone()),
@@ -83,4 +82,19 @@ pub fn get_attack(
 ) -> String {
     let action_plan = get_action_plan(&timeline, &timeline.who_am_i(), &target, &strategy, db);
     action_plan.get_inputs(&timeline)
+}
+
+pub fn get_class_state(
+    timeline: &AetTimeline,
+    target: &String,
+    strategy: &String,
+    db: Option<&impl AetDatabaseModule>,
+) -> String {
+    let you = timeline.state.borrow_agent(target);
+    let runeband = if let Some(next_runeband) = you.bard_board.next_runeband() {
+        format!("<magenta>{}", next_runeband)
+    } else {
+        "<gray>No RB".to_string()
+    };
+    format!("{}", runeband)
 }

@@ -1,6 +1,8 @@
 use regex::Regex;
 use std::collections::HashMap;
-use topper_aetolia::timeline::{AetObservation, AetTimeSlice, AetTimeline, CombatAction};
+use topper_aetolia::timeline::{
+    for_agent, AetObservation, AetTimeSlice, AetTimeline, CombatAction,
+};
 use topper_core::observations::strip_ansi;
 use topper_core::timeline::db::DatabaseModule;
 use topper_core::timeline::CType;
@@ -173,11 +175,11 @@ impl GroupData for Vec<(&String, &Aggro)> {
 }
 
 impl<'s> TopperModule<'s, AetTimeSlice, BattleStats> for GroupModule {
-    type Siblings = (&'s String, &'s AetTimeline, &'s AetMudletDatabaseModule);
+    type Siblings = (&'s String, &'s mut AetTimeline, &'s AetMudletDatabaseModule);
     fn handle_message(
         &mut self,
         message: &TopperMessage<AetTimeSlice>,
-        (me, timeline, db): Self::Siblings,
+        (me, mut timeline, db): Self::Siblings,
     ) -> Result<TopperResponse<BattleStats>, String> {
         let mut calls = None;
         match message {
@@ -230,11 +232,12 @@ impl<'s> TopperModule<'s, AetTimeSlice, BattleStats> for GroupModule {
                             .or_default();
                         target.in_room = false;
                     } else if let Some(captures) = NO_SUCH_TARGET.captures(&line) {
-                        let target = self
-                            .aggro
-                            .entry(capitalize(captures.get(1).unwrap().as_str().to_string()))
-                            .or_default();
+                        let target_name = capitalize(captures.get(1).unwrap().as_str().to_string());
+                        let target = self.aggro.entry(target_name.clone()).or_default();
                         target.in_room = false;
+                        for_agent(&mut timeline.state, &target_name, &|me| {
+                            me.room_id = 0;
+                        });
                     } else if let Some(captures) = WHO_LINE.captures(&line) {
                         let target = self
                             .aggro

@@ -45,7 +45,7 @@ pub fn handle_combat_action(
                 &hints,
             );
         }
-        "Duplicity" => {
+        "Duality" => {
             let observations = after.clone();
             let first_person = combat_action.caster.eq(&agent_states.me);
             let hints =

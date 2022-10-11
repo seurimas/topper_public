@@ -4,6 +4,17 @@ use serde::*;
 
 use super::*;
 
+pub const GLOBE_AFFS: [FType; 3] = [FType::Dizziness, FType::Confusion, FType::Perplexed];
+pub const RUNEBAND_AFFS: [FType; 7] = [
+    FType::Stupidity,
+    FType::Paranoia,
+    FType::RingingEars,
+    FType::Loneliness,
+    FType::Exhausted,
+    FType::Laxity,
+    FType::Clumsiness,
+];
+
 #[derive(Debug, Deserialize, Serialize, Display, Clone, Copy, EnumString, PartialEq, Eq, Hash)]
 pub enum Song {
     Origin,
@@ -71,7 +82,7 @@ pub struct BardClassState {
 const SONG_TIMEOUT: CType = (10.0 * BALANCE_SCALE) as CType;
 
 impl BardClassState {
-    fn wait(&mut self, duration: i32) {
+    pub fn wait(&mut self, duration: i32) {
         if self.voice_timeout <= duration {
             self.voice_song = None;
         }
@@ -280,7 +291,7 @@ impl BardBoard {
         self.needle_venom.is_some() && self.needle_timer <= 0
     }
 
-    pub fn globed(&mut self, affs: &[FType]) -> Option<FType> {
+    pub fn globed(&mut self) -> Option<FType> {
         match self.globes_state {
             GlobesState::Floating(count) => {
                 if count > 1 {
@@ -288,31 +299,39 @@ impl BardBoard {
                 } else {
                     self.globes_state = GlobesState::None;
                 }
-                Some(affs[affs.len() - count])
+                Some(GLOBE_AFFS[GLOBE_AFFS.len() - count])
             }
             _ => None,
         }
     }
 
-    pub fn runebanded(&mut self, affs: &[FType]) -> Option<FType> {
+    pub fn next_runeband(&self) -> Option<FType> {
+        match self.runeband_state {
+            RunebandState::Normal(aff_idx) => Some(RUNEBAND_AFFS[aff_idx]),
+            RunebandState::Reverse(aff_idx) => Some(RUNEBAND_AFFS[aff_idx]),
+            _ => None,
+        }
+    }
+
+    pub fn runebanded(&mut self) -> Option<FType> {
         match self.runeband_state {
             RunebandState::Normal(aff_idx) => {
-                let new_idx = if aff_idx >= affs.len() - 1 {
+                let new_idx = if aff_idx >= RUNEBAND_AFFS.len() - 1 {
                     0
                 } else {
                     aff_idx + 1
                 };
                 self.runeband_state = RunebandState::Normal(new_idx);
-                Some(affs[aff_idx])
+                Some(RUNEBAND_AFFS[aff_idx])
             }
             RunebandState::Reverse(aff_idx) => {
                 let new_idx = if aff_idx == 0 {
-                    affs.len() - 1
+                    RUNEBAND_AFFS.len() - 1
                 } else {
                     aff_idx - 1
                 };
                 self.runeband_state = RunebandState::Reverse(new_idx);
-                Some(affs[aff_idx])
+                Some(RUNEBAND_AFFS[aff_idx])
             }
             _ => None,
         }

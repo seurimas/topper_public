@@ -486,16 +486,16 @@ pub fn apply_venom(who: &mut AgentState, venom: &String, relapse: bool) -> Resul
     } else if venom == "wasi" {
         // Revenant
         who.set_flag(FType::Rebounding, false);
-    } else if venom == "azu" && !who.is(FType::Crippled) {
+    } else if (venom == "azu" || venom == "cripple") && !who.is(FType::Crippled) {
         // Revenant
         who.set_flag(FType::Crippled, true);
-    } else if venom == "azu" && who.is(FType::Crippled) {
+    } else if (venom == "azu" || venom == "cripple") && who.is(FType::Crippled) {
         // Revenant
         who.set_flag(FType::PhysicalDisruption, true);
-    } else if venom == "dirne" && !who.is(FType::PhysicalDisruption) {
+    } else if (venom == "dirne" || venom == "disrupt") && !who.is(FType::PhysicalDisruption) {
         // Revenant
         who.set_flag(FType::PhysicalDisruption, true);
-    } else if venom == "dirne" && who.is(FType::PhysicalDisruption) {
+    } else if (venom == "dirne" || venom == "disrupt") && who.is(FType::PhysicalDisruption) {
         // Revenant
         who.set_flag(FType::MentalDisruption, true);
     } else {
