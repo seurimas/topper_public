@@ -336,6 +336,27 @@
     "observation_name": "Proc"
   },
   {
+    "regex": "^Overwhelmed by (\\w+) thoughts, (\\w+) dramatically flings (\\w+) to the ground.$",
+    "args": [
+      {
+        "GroupAsTarget": 2
+      },
+      {
+        "Literal": "Aff"
+      },
+      {
+        "Literal": "self_loathing"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
     "regex": "^(\\w+) appears? dizzy and falls? over.$",
     "args": [
       {

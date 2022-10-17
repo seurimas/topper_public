@@ -6,6 +6,7 @@ use crate::{
     classes::get_venoms_from_plan,
     classes::group::*,
     items::{UnwieldAction, WieldAction},
+    non_agent::AetTimelineRoomExt,
     observables::PlainAction,
     types::*,
 };
@@ -32,6 +33,8 @@ pub enum BardBehavior {
     AudienceAggroedAlly,
     SingSong(Song),
     PlaySong(Song),
+    SingOrPlaySong(Song),
+    Induce(Emotion),
 }
 
 impl UnpoweredFunction for BardBehavior {
@@ -46,6 +49,16 @@ impl UnpoweredFunction for BardBehavior {
         match self {
             BardBehavior::Weave(weavable) => {
                 let me = model.state.borrow_me();
+                if *weavable == Weavable::Boundary {
+                    if let Some(room) = model.state.get_my_room() {
+                        if room.has_tag("boundary") {
+                            return UnpoweredFunctionState::Failed;
+                        }
+                    } else {
+                        println!("No valid room!");
+                        return UnpoweredFunctionState::Failed;
+                    }
+                }
                 if me
                     .check_if_bard(&|bard| bard.dithering > 0)
                     .unwrap_or(false)
@@ -70,10 +83,32 @@ impl UnpoweredFunction for BardBehavior {
                     return UnpoweredFunctionState::Failed;
                 } else if !controller.has_qeb() {
                     return UnpoweredFunctionState::Failed;
-                } else if !assure_unwielded(&me, model, controller, false) {
-                    return UnpoweredFunctionState::Failed;
                 }
-                if let Some(target) = &controller.target {
+                if let Some(target) = controller.target.clone() {
+                    if *weave_attack == WeavingAttack::Heartcage {
+                        let you = model.state.borrow_agent(&target);
+                        if !you.is(FType::Fallen) {
+                            return UnpoweredFunctionState::Failed;
+                        } else if !you.bard_board.iron_collar_state.is_active() {
+                            return UnpoweredFunctionState::Failed;
+                        } else if you.bard_board.emotion_state.primary.is_none() {
+                            return UnpoweredFunctionState::Failed;
+                        } else if you
+                            .bard_board
+                            .emotion_state
+                            .get_emotion_level(you.bard_board.emotion_state.primary.unwrap())
+                            < 50
+                        {
+                            return UnpoweredFunctionState::Failed;
+                        } else if let Some(room) = model.state.get_my_room() {
+                            if !room.has_tag("boundary") {
+                                return UnpoweredFunctionState::Failed;
+                            }
+                        }
+                    }
+                    if !assure_unwielded(&me, model, controller, false) {
+                        return UnpoweredFunctionState::Failed;
+                    }
                     controller
                         .plan
                         .add_to_qeb(Box::new(WeavingAttackAction::new(
@@ -89,11 +124,6 @@ impl UnpoweredFunction for BardBehavior {
             BardBehavior::VenomAttack(venom_attack) => {
                 if !controller.has_qeb() {
                     return UnpoweredFunctionState::Failed;
-                } else if *venom_attack != BardVenomAttack::Needle {
-                    let me = model.state.borrow_me();
-                    if !assure_wielded(&me, model, controller, "falchion", true) {
-                        return UnpoweredFunctionState::Failed;
-                    }
                 }
                 if *venom_attack == BardVenomAttack::Bravado {
                     let me = model.state.borrow_me();
@@ -101,13 +131,22 @@ impl UnpoweredFunction for BardBehavior {
                         return UnpoweredFunctionState::Failed;
                     }
                 }
-                if let (Some(target), Some(venom_plan)) = (
-                    controller.target.as_ref(),
-                    controller.aff_priorities.as_ref(),
-                ) {
-                    let you = model.state.borrow_agent(target);
+                if let (Some(target), Some(venom_plan)) =
+                    (controller.target.clone(), controller.aff_priorities.clone())
+                {
+                    let me = model.state.borrow_me();
+                    let you = model.state.borrow_agent(&target);
                     if *venom_attack != BardVenomAttack::Needle && you.is(FType::Rebounding) {
                         return UnpoweredFunctionState::Failed;
+                    } else if *venom_attack != BardVenomAttack::Needle
+                        && me.check_if_bard(&|me| me.is_on_tempo()).unwrap_or_default()
+                    {
+                        return UnpoweredFunctionState::Failed;
+                    } else if *venom_attack != BardVenomAttack::Needle {
+                        let me = model.state.borrow_me();
+                        if !assure_wielded(&me, model, controller, "falchion", true) {
+                            return UnpoweredFunctionState::Failed;
+                        }
                     }
                     let venom_count = match venom_attack {
                         BardVenomAttack::Tempo => 3,
@@ -275,6 +314,66 @@ impl UnpoweredFunction for BardBehavior {
                     .add_to_qeb(Box::new(SongAction::play(model.who_am_i(), *play_song)));
                 controller.used_balance = true;
                 controller.used_equilibrium = true;
+            }
+            BardBehavior::SingOrPlaySong(play_song) => {
+                let me = model.state.borrow_me();
+                let mut playing = true;
+                if me
+                    .check_if_bard(&|bard| bard.instrument_song.is_some())
+                    .unwrap_or(false)
+                {
+                    playing = false;
+                } else if !assure_wielded(&me, model, controller, "fife", false) {
+                    playing = false;
+                }
+                if !playing
+                    && model
+                        .state
+                        .borrow_me()
+                        .check_if_bard(&|bard| bard.voice_song.is_some())
+                        .unwrap_or(false)
+                {
+                    return UnpoweredFunctionState::Failed;
+                } else if me
+                    .check_if_bard(&|bard| {
+                        bard.instrument_song == Some(*play_song)
+                            || bard.voice_song == Some(*play_song)
+                    })
+                    .unwrap_or(false)
+                {
+                    return UnpoweredFunctionState::Failed;
+                }
+                if playing {
+                    controller
+                        .plan
+                        .add_to_qeb(Box::new(SongAction::play(model.who_am_i(), *play_song)));
+                } else {
+                    controller
+                        .plan
+                        .add_to_qeb(Box::new(SongAction::sing(model.who_am_i(), *play_song)));
+                }
+                controller.used_balance = true;
+                controller.used_equilibrium = true;
+            }
+            BardBehavior::Induce(emotion) => {
+                let me = model.state.borrow_me();
+                if !me
+                    .check_if_bard(&|bard| {
+                        bard.instrument_song.is_some() || bard.voice_song.is_some()
+                    })
+                    .unwrap_or(false)
+                {
+                    return UnpoweredFunctionState::Failed;
+                }
+                if let Some(target) = &controller.target {
+                    controller.plan.add_to_qeb(Box::new(InduceAction::new(
+                        model.who_am_i(),
+                        target.clone(),
+                        *emotion,
+                    )));
+                } else {
+                    return UnpoweredFunctionState::Failed;
+                }
             }
         }
         UnpoweredFunctionState::Complete

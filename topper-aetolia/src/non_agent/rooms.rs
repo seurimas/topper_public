@@ -72,8 +72,8 @@ impl Room {
         self.tags.remove(&tag.to_string());
     }
 
-    pub fn has_tag(&self, tag: &str) {
-        self.tags.contains(&tag.to_string());
+    pub fn has_tag(&self, tag: &str) -> bool {
+        self.tags.contains(&tag.to_string())
     }
 }
 

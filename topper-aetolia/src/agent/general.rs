@@ -802,26 +802,18 @@ impl WieldState {
         };
     }
 
-    pub fn unweave(&mut self, weaved_item: &str) {
+    pub fn unweave(&mut self, predicate: impl Fn(&String) -> bool) {
         *self = match self {
             WieldState::Normal {
                 left: old_left,
                 right: old_right,
             } => {
-                if old_left
-                    .as_ref()
-                    .map(|old_left| old_left.eq_ignore_ascii_case(weaved_item))
-                    .unwrap_or_default()
-                {
+                if old_left.as_ref().map(&predicate).unwrap_or_default() {
                     WieldState::Normal {
                         left: None,
                         right: old_right.clone(),
                     }
-                } else if old_right
-                    .as_ref()
-                    .map(|old_right| old_right.eq_ignore_ascii_case(weaved_item))
-                    .unwrap_or_default()
-                {
+                } else if old_right.as_ref().map(&predicate).unwrap_or_default() {
                     WieldState::Normal {
                         left: old_left.clone(),
                         right: None,
@@ -834,7 +826,7 @@ impl WieldState {
                 }
             }
             WieldState::TwoHanded(item) => {
-                if item.eq_ignore_ascii_case(weaved_item) {
+                if predicate(item) {
                     WieldState::Normal {
                         left: None,
                         right: None,

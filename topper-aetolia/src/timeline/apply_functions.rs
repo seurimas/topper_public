@@ -173,7 +173,7 @@ pub fn apply_observation(
                     .filter_map(|item| match item {
                         AetObservation::ListItem(list_type, is_primary, emotion, _) => {
                             if is_primary.eq("Primary") {
-                                emotion.parse().ok()
+                                Emotion::try_from_name(emotion)
                             } else {
                                 None
                             }

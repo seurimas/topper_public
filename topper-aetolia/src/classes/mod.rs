@@ -571,6 +571,13 @@ pub fn handle_combat_action(
                 });
                 Ok(())
             }
+            "self_loathing" => {
+                for_agent(agent_states, &combat_action.caster, &|you| {
+                    you.observe_flag(FType::SelfLoathing, true);
+                    you.toggle_flag(FType::Fallen, true);
+                });
+                Ok(())
+            }
             "broken legs" => {
                 for_agent(agent_states, &combat_action.caster, &|you| {
                     you.toggle_flag(FType::Fallen, true);

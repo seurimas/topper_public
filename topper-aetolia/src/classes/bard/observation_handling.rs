@@ -8,6 +8,7 @@ const BLADES_COUNT: usize = 3;
 const RUNEBAND_DITHER: usize = 2;
 const MANABARBS_DITHER: usize = 2;
 const PATCHWORK_DITHER: usize = 2;
+const HOROLOGE_DITHER: usize = 2;
 const GLOBES_DITHER: usize = 0;
 const BARBS_DITHER: usize = 2;
 const BLADESTORM_DITHER: usize = 2;
@@ -15,9 +16,13 @@ const ANELACE_DITHER: usize = 2;
 const HEADSTITCH_DITHER: usize = 1;
 const NULLSTONE_DITHER: usize = 1;
 const BOUNDARY_DITHER: usize = 3;
+const THURIBLE_DITHER: usize = 4;
+const HEARTCAGE_DITHER: usize = 5;
 const IRONCOLLAR_DITHER: usize = 2;
 
 pub const NULLSTONE: &str = "a stone of annulment";
+pub const HOROLOGE: &str = "a faded hourglass";
+pub const THURIBLE: &str = "a golden thurible";
 pub const ANELACE: &str = "a sharp anelace";
 
 lazy_static! {
@@ -150,6 +155,35 @@ pub fn handle_weaving_action(
                 );
             }
         }
+        "Deglobed" => {
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &|me: &mut AgentState| {
+                    me.assume_bard(&|mut me| {
+                        if me.dithering > 0 {
+                            me.dithering -= 1;
+                        }
+                    });
+                },
+            );
+            for_agent(
+                agent_states,
+                &combat_action.target,
+                &|me: &mut AgentState| {
+                    me.bard_board.globed();
+                },
+            );
+        }
+        "Deruneband" => {
+            for_agent(
+                agent_states,
+                &combat_action.target,
+                &|me: &mut AgentState| {
+                    me.bard_board.runeband_state = RunebandState::Inactive;
+                },
+            );
+        }
         "Bladestorm" => {
             for_agent(
                 agent_states,
@@ -166,6 +200,7 @@ pub fn handle_weaving_action(
                 &combat_action.target,
                 &|me: &mut AgentState| {
                     me.bard_board.blades_count = BLADES_COUNT;
+                    me.bard_board.runeband_state.reverse();
                 },
             );
         }
@@ -184,6 +219,7 @@ pub fn handle_weaving_action(
                 &combat_action.target,
                 &|me: &mut AgentState| {
                     me.set_flag(FType::Manabarbs, true);
+                    me.set_balance(BType::Manabarbs, 8.);
                 },
             );
         }
@@ -198,7 +234,6 @@ pub fn handle_weaving_action(
                             apply_venom(me, &venom, false);
                         }
                     }
-                    me.bard_board.runeband_state.reverse();
                     if final_blade {
                         me.bard_board.blades_count = 0;
                     } else if me.bard_board.blades_count > 0 {
@@ -223,6 +258,7 @@ pub fn handle_weaving_action(
                 &combat_action.target,
                 &|me: &mut AgentState| {
                     me.bard_board.iron_collar_state = IronCollarState::Locking;
+                    me.bard_board.runeband_state.reverse();
                 },
             );
         }
@@ -245,6 +281,35 @@ pub fn handle_weaving_action(
                 );
             }
         }
+        "Thurible" => for_agent(
+            agent_states,
+            &combat_action.caster,
+            &|me: &mut AgentState| {
+                me.assume_bard(&|bard: &mut BardClassState| {
+                    bard.dithering = THURIBLE_DITHER;
+                });
+                me.wield_state.weave(THURIBLE);
+            },
+        ),
+        "Heartcage" => for_agent(
+            agent_states,
+            &combat_action.caster,
+            &|me: &mut AgentState| {
+                me.assume_bard(&|bard: &mut BardClassState| {
+                    bard.dithering = HEARTCAGE_DITHER;
+                });
+            },
+        ),
+        "Horologe" => for_agent(
+            agent_states,
+            &combat_action.caster,
+            &|me: &mut AgentState| {
+                me.assume_bard(&|bard: &mut BardClassState| {
+                    bard.dithering = HOROLOGE_DITHER;
+                });
+                me.wield_state.weave(HOROLOGE);
+            },
+        ),
         "Nullstone" => for_agent(
             agent_states,
             &combat_action.caster,
@@ -257,6 +322,7 @@ pub fn handle_weaving_action(
         ),
         "Anelace" => {
             let stabbed = combat_action.annotation.eq("stab");
+            let already_has_two = combat_action.annotation.eq("two");
             if stabbed {
                 attack_afflictions(
                     agent_states,
@@ -264,30 +330,32 @@ pub fn handle_weaving_action(
                     vec![FType::Hollow, FType::Narcolepsy],
                     &observations,
                 );
-            }
-            for_agent(
-                agent_states,
-                &combat_action.caster,
-                &move |me: &mut AgentState| {
-                    if stabbed {
+            } else if already_has_two {
+                for_agent(
+                    agent_states,
+                    &combat_action.caster,
+                    &move |me: &mut AgentState| {
                         me.assume_bard(&|bard: &mut BardClassState| {
-                            if bard.anelaces > 0 {
-                                bard.anelaces -= 1;
-                            }
-                        });
-                        me.wield_state.unweave(ANELACE);
-                    } else {
+                            bard.anelaces += 1;
+                        })
+                    },
+                );
+            } else {
+                for_agent(
+                    agent_states,
+                    &combat_action.caster,
+                    &move |me: &mut AgentState| {
                         me.assume_bard(&|bard: &mut BardClassState| {
                             bard.anelaces += 1;
                             bard.dithering = ANELACE_DITHER;
                         });
                         me.wield_state.weave(ANELACE);
                         use_destiny_eq(me, &observations);
-                    }
-                },
-            );
+                    },
+                );
+            }
         }
-        "UnweavedHands" | "UnweavedBelt" => {
+        "UnweavedHands" | "UnweavedBelt" | "UnweavedGround" => {
             let unweaved = combat_action.annotation.clone().to_ascii_lowercase();
             let in_hands = combat_action.skill.eq("UnweavedHands");
             for_agent(
@@ -305,7 +373,19 @@ pub fn handle_weaving_action(
                         _ => {}
                     };
                     if in_hands {
-                        me.wield_state.unweave(&unweaved);
+                        me.wield_state.unweave(|item_name| {
+                            if item_name.starts_with("anelace") && unweaved == ANELACE {
+                                true
+                            } else if item_name.starts_with("hourglass") && unweaved == HOROLOGE {
+                                true
+                            } else if item_name.starts_with("thurible") && unweaved == THURIBLE {
+                                true
+                            } else if item_name.starts_with("nullstone") && unweaved == NULLSTONE {
+                                true
+                            } else {
+                                item_name.eq_ignore_ascii_case(&unweaved)
+                            }
+                        });
                     }
                 },
             );
@@ -424,25 +504,50 @@ pub fn handle_performance_action(
             if combat_action.annotation.eq("angry") {
                 attack_afflictions(
                     agent_states,
-                    &combat_action.target,
-                    vec![FType::Hatred],
+                    &combat_action.caster,
+                    vec![FType::Berserking],
                     after,
                 );
             } else {
                 attack_afflictions(
                     agent_states,
                     &combat_action.target,
-                    vec![FType::Berserking],
+                    vec![FType::Hatred],
                     after,
                 );
+                let after = observations.clone();
+                for_agent(
+                    agent_states,
+                    &combat_action.caster,
+                    &move |me: &mut AgentState| {
+                        apply_or_infer_balance(me, (BType::Balance, 2.8), &after);
+                    },
+                );
+                for_agent(
+                    agent_states,
+                    &combat_action.target,
+                    &move |me: &mut AgentState| {
+                        if !me.bard_board.dumbness_known()
+                            && me.bard_board.emotion_state.primary != Some(Emotion::Anger)
+                        {
+                            let mut dumbness = false;
+                            for observation in &observations {
+                                match observation {
+                                    AetObservation::Proc(combat_action) => {
+                                        if combat_action.skill == "Quip"
+                                            && combat_action.annotation == "angry"
+                                        {
+                                            dumbness = true;
+                                        }
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            me.bard_board.observe_dumbness(dumbness);
+                        }
+                    },
+                );
             }
-            for_agent(
-                agent_states,
-                &combat_action.caster,
-                &move |me: &mut AgentState| {
-                    apply_or_infer_balance(me, (BType::Balance, 2.8), &observations);
-                },
-            );
         }
         "Sock" => {
             attack_afflictions(
@@ -633,6 +738,28 @@ pub fn handle_songcalling_action(
                 },
             );
         }
+        ("Induce", emotion) => {
+            for_agent(
+                agent_states,
+                &combat_action.target,
+                &|me: &mut AgentState| {
+                    if let Some(emotion) = Emotion::try_from_name(emotion) {
+                        me.bard_board.induce(emotion);
+                    }
+                },
+            );
+        }
+        ("Induced", _) => {
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &|me: &mut AgentState| {
+                    if let Some(emotion) = me.bard_board.emotion_state.primary {
+                        me.set_flag(emotion.get_aff(), true);
+                    }
+                },
+            );
+        }
         ("AudienceSong", "end") => {
             for_agent(
                 agent_states,
@@ -682,6 +809,11 @@ pub fn handle_songcalling_action(
                 vec![FType::Generosity],
                 after,
             );
+        }
+        ("Discordanced", aff_name) => {
+            if let Some(aff) = FType::from_name(&aff_name.to_string()) {
+                attack_afflictions(agent_states, &combat_action.caster, vec![aff], after);
+            }
         }
         (song_name, "end") => {
             if let Some(song) = song_name.parse().ok() {

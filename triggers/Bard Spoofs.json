@@ -84,10 +84,31 @@
         "observation_name": "Proc"
     },
     {
+        "regex": "^(\\w+)'s mental state is overwhelmed as (\\w+) revels in (\\w+) burgeoning emotions.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Songcalling"
+            },
+            {
+                "Literal": "Induced"
+            },
+            {
+                "Literal": ""
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
         "regex": "^Your daggers held within the sky vanish into wisps of smoke.$",
         "args": [
             {
-                "Literal": "Rhyot"
+                "GroupAsTarget": 1
             },
             {
                 "Literal": "Weaving"
@@ -184,6 +205,27 @@
             },
             {
                 "GroupAsTarget": 1
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^The insult drives (\\w+) particularly mad, whose face fills with anger.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Performance"
+            },
+            {
+                "Literal": "Quip"
+            },
+            {
+                "Literal": "angry"
+            },
+            {
+                "Literal": ""
             }
         ],
         "observation_name": "Proc"
@@ -450,7 +492,7 @@
                 "Literal": "Songcalling"
             },
             {
-                "Literal": "Discordance"
+                "Literal": "Discordanced"
             },
             {
                 "GroupAsTarget": 2
@@ -504,6 +546,27 @@
         "observation_name": "Proc"
     },
     {
+        "regex": "^The shifting runes within the band capture (you)r attention.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Weaving"
+            },
+            {
+                "Literal": "Runebanded"
+            },
+            {
+                "Literal": ""
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
         "regex": "^The illusionary globes spinning around (\\w+) flare in size, then crash (dizzingly |)into .* body.$",
         "args": [
             {
@@ -523,6 +586,48 @@
             }
         ],
         "observation_name": "Proc"
+    },
+    {
+        "regex": "^Zipping through the air, an illusionary globe from (\\w+) flies into (\\w+)'?s? open hand.$",
+        "args": [
+            {
+                "GroupAsTarget": 2
+            },
+            {
+                "Literal": "Weaving"
+            },
+            {
+                "Literal": "Deglobed"
+            },
+            {
+                "Literal": ""
+            },
+            {
+                "GroupAsTarget": 1
+            }
+        ],
+        "observation_name": "CombatAction"
+    },
+    {
+        "regex": "^The shifting band of runes around (\\w+) has crumbled in (\\w+)'?s? absence.$",
+        "args": [
+            {
+                "GroupAsTarget": 2
+            },
+            {
+                "Literal": "Weaving"
+            },
+            {
+                "Literal": "Deruneband"
+            },
+            {
+                "Literal": ""
+            },
+            {
+                "GroupAsTarget": 1
+            }
+        ],
+        "observation_name": "CombatAction"
     },
     {
         "regex": "^An iron collar snaps shut around (\\w+)'?s? throat, sealing itself together.$",
@@ -588,7 +693,7 @@
         "observation_name": "Proc"
     },
     {
-        "regex": "^(A sharp anelace) breaks into shimmering light in (you)r hands as it crumbles apart.$",
+        "regex": "^(A sharp anelace|A faded hourglass|A golden thurible|A stone of annulment) breaks into shimmering light in (you)r hands as it crumbles apart.$",
         "args": [
             {
                 "GroupAsTarget": 2
@@ -609,7 +714,7 @@
         "observation_name": "Proc"
     },
     {
-        "regex": "^(A sharp anelace) breaks into shimmering light in (you)r weaponbelt as it crumbles apart.$",
+        "regex": "^(A sharp anelace|A faded hourglass|A golden thurible|A stone of annulment) breaks into shimmering light in (you)r weaponbelt as it crumbles apart.$",
         "args": [
             {
                 "GroupAsTarget": 2
@@ -619,6 +724,27 @@
             },
             {
                 "Literal": "UnweavedBelt"
+            },
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^(A sharp anelace|A faded hourglass|A golden thurible|A stone of annulment) breaks into shimmering light as it crumbles apart.$",
+        "args": [
+            {
+                "GroupAsTarget": 2
+            },
+            {
+                "Literal": "Weaving"
+            },
+            {
+                "Literal": "UnweavedGround"
             },
             {
                 "GroupAsTarget": 1

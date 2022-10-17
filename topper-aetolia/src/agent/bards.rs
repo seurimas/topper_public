@@ -79,7 +79,9 @@ pub struct BardClassState {
     pub anelaces: usize,
 }
 
-const SONG_TIMEOUT: CType = (10.0 * BALANCE_SCALE) as CType;
+const VOICE_SONG_TIMEOUT: CType = (8.0 * BALANCE_SCALE) as CType;
+const INSTRUMENT_SONG_TIMEOUT: CType = (6.0 * BALANCE_SCALE) as CType;
+const NEEDLE_TIMEOUT: CType = (4.0 * BALANCE_SCALE) as CType;
 
 impl BardClassState {
     pub fn wait(&mut self, duration: i32) {
@@ -129,10 +131,10 @@ impl BardClassState {
     pub fn start_song(&mut self, song: Song, played: bool) {
         if played {
             self.instrument_song = Some(song);
-            self.instrument_timeout = SONG_TIMEOUT;
+            self.instrument_timeout = INSTRUMENT_SONG_TIMEOUT;
         } else {
             self.voice_song = Some(song);
-            self.voice_timeout = SONG_TIMEOUT;
+            self.voice_timeout = VOICE_SONG_TIMEOUT;
         }
     }
 
@@ -179,6 +181,20 @@ impl RunebandState {
         match self {
             Self::Inactive => false,
             _ => true,
+        }
+    }
+
+    pub fn is_forward(&self) -> bool {
+        match self {
+            Self::Normal(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_reversed(&self) -> bool {
+        match self {
+            Self::Reverse(_) => true,
+            _ => false,
         }
     }
 }
@@ -241,6 +257,45 @@ pub enum Emotion {
     Disgust,
 }
 
+impl Emotion {
+    pub fn try_from_name(name: &str) -> Option<Self> {
+        match name {
+            "sadness" | "sad" => Some(Emotion::Sadness),
+            "happiness" | "happy" => Some(Emotion::Happiness),
+            "surprise" | "surprised" => Some(Emotion::Surprise),
+            "anger" | "angry" => Some(Emotion::Anger),
+            "stress" | "stressed" => Some(Emotion::Stress),
+            "fear" | "fearful" => Some(Emotion::Fear),
+            "disgust" => Some(Emotion::Disgust),
+            _ => None,
+        }
+    }
+
+    pub fn name(&self) -> &str {
+        match self {
+            Emotion::Sadness => "sadness",
+            Emotion::Happiness => "happiness",
+            Emotion::Surprise => "surprise",
+            Emotion::Anger => "anger",
+            Emotion::Stress => "stress",
+            Emotion::Fear => "fear",
+            Emotion::Disgust => "disgust",
+        }
+    }
+
+    pub fn get_aff(&self) -> FType {
+        match self {
+            Emotion::Sadness => FType::Shyness,
+            Emotion::Happiness => FType::Perplexed,
+            Emotion::Surprise => FType::Dizziness,
+            Emotion::Anger => FType::Hatred,
+            Emotion::Stress => FType::Masochism,
+            Emotion::Fear => FType::SelfLoathing,
+            Emotion::Disgust => FType::Besilence,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct EmotionState {
     pub awakened: bool,
@@ -268,6 +323,7 @@ pub struct BardBoard {
     pub blades_count: usize,
     pub needle_venom: Option<String>,
     pub needle_timer: CType,
+    pub dumb: Option<bool>,
 }
 
 impl BardBoard {
@@ -277,7 +333,7 @@ impl BardBoard {
 
     pub fn needle_with(&mut self, venom: &String) {
         self.needle_venom = Some(venom.clone());
-        self.needle_timer = 350;
+        self.needle_timer = NEEDLE_TIMEOUT;
     }
 
     pub fn needled(&mut self) -> Option<String> {
@@ -288,7 +344,14 @@ impl BardBoard {
     }
 
     pub fn needling(&self) -> bool {
-        self.needle_venom.is_some() && self.needle_timer <= 0
+        self.needle_venom.is_some() && self.needle_timer <= BALANCE_SCALE as CType
+    }
+
+    pub fn next_globe(&self) -> Option<FType> {
+        match self.globes_state {
+            GlobesState::Floating(count) => Some(GLOBE_AFFS[GLOBE_AFFS.len() - count]),
+            _ => None,
+        }
     }
 
     pub fn globed(&mut self) -> Option<FType> {
@@ -343,9 +406,25 @@ impl BardBoard {
         self.emotion_state.primary = None;
     }
 
+    pub fn induce(&mut self, primary: Emotion) {
+        self.emotion_state.primary = Some(primary);
+    }
+
     pub fn set_emotions(&mut self, primary: Option<Emotion>, levels: &Vec<(Emotion, CType)>) {
         self.emotion_state.awakened = levels.len() > 0;
         self.emotion_state.levels = levels.clone();
         self.emotion_state.primary = primary;
+    }
+
+    pub fn dumbness_known(&self) -> bool {
+        self.dumb.is_some()
+    }
+
+    pub fn is_dumb(&self, default: bool) -> bool {
+        self.dumb.unwrap_or(default)
+    }
+
+    pub fn observe_dumbness(&mut self, dumb: bool) {
+        self.dumb = Some(dumb);
     }
 }

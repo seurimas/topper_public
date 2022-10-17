@@ -295,6 +295,7 @@ impl PerformanceAttack {
             | Self::Harry(_)
             | Self::Bravado(_)
             | Self::Cadence
+            | Self::Pierce
             | Self::Hiltblow => true,
             _ => false,
         }
@@ -533,6 +534,38 @@ impl ActiveTransition for SongAction {
         } else {
             format!("sing song of {}", self.song)
         })
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+pub struct InduceAction {
+    pub caster: String,
+    pub target: String,
+    pub emotion: Emotion,
+}
+
+impl InduceAction {
+    pub fn new(caster: String, target: String, emotion: Emotion) -> Self {
+        InduceAction {
+            caster,
+            target,
+            emotion,
+        }
+    }
+}
+
+impl ActiveTransition for InduceAction {
+    fn simulate(&self, timeline: &AetTimeline) -> Vec<ProbableEvent> {
+        ProbableEvent::certain(vec![CombatAction::observation(
+            &self.caster,
+            "Songcalling",
+            "Induce",
+            self.emotion.name(),
+            &self.target,
+        )])
+    }
+    fn act(&self, timeline: &AetTimeline) -> ActivateResult {
+        Ok(format!("induce {} in {}", self.emotion.name(), self.target))
     }
 }
 

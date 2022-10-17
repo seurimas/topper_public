@@ -90,11 +90,60 @@ pub fn get_class_state(
     strategy: &String,
     db: Option<&impl AetDatabaseModule>,
 ) -> String {
+    let me = timeline.state.borrow_me();
     let you = timeline.state.borrow_agent(target);
     let runeband = if let Some(next_runeband) = you.bard_board.next_runeband() {
-        format!("<magenta>{}", next_runeband)
+        format!("<magenta>{} ", next_runeband)
     } else {
-        "<gray>No RB".to_string()
+        "<gray>No RB ".to_string()
     };
-    format!("{}", runeband)
+    let globes = if let Some(next_globe) = you.bard_board.next_globe() {
+        format!("<blue>{} ", next_globe)
+    } else {
+        "<gray>G0 ".to_string()
+    };
+    let dumbness = if !you.bard_board.is_dumb(true) {
+        format!("<red>SMART ")
+    } else {
+        format!("")
+    };
+    let (anelace, halfbeat, dithering, singing, playing) = me
+        .check_if_bard(&|me| {
+            let anelace = if me.anelaces > 0 {
+                format!("<green>A{} ", me.anelaces)
+            } else {
+                format!("<red>A0 ")
+            };
+            let halfbeat = if me.half_beat.active() {
+                format!("<green>½ ")
+            } else {
+                format!("<yellow>X ")
+            };
+            let dithering = if me.dithering > 0 {
+                format!("<red>D{} ", me.dithering)
+            } else {
+                format!("<green>D0")
+            };
+            let singing = if let Some(song) = me.voice_song {
+                format!(
+                    "<magenta>{}({}) ",
+                    song,
+                    me.voice_timeout as f32 / BALANCE_SCALE
+                )
+            } else {
+                format!("")
+            };
+            let playing = if let Some(song) = me.instrument_song {
+                format!(
+                    "<magenta>{}({}) ",
+                    song,
+                    me.instrument_timeout as f32 / BALANCE_SCALE
+                )
+            } else {
+                format!("")
+            };
+            (anelace, halfbeat, dithering, singing, playing)
+        })
+        .unwrap_or_default();
+    format!("{dumbness}{globes}{runeband}{anelace}{dithering}\n{halfbeat}{singing}{playing}")
 }

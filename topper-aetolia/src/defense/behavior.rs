@@ -2,7 +2,10 @@ use serde::*;
 use topper_bt::unpowered::*;
 use topper_core::timeline::db::DummyDatabaseModule;
 
-use crate::{bt::*, classes::ParryAction};
+use crate::{
+    bt::*,
+    classes::{FitnessAction, ParryAction},
+};
 
 use super::{get_needed_parry, get_needed_refills};
 
@@ -10,6 +13,7 @@ use super::{get_needed_parry, get_needed_refills};
 pub enum DefenseBehavior {
     Parry,
     Repipe,
+    Fitness,
 }
 
 impl UnpoweredFunction for DefenseBehavior {
@@ -39,6 +43,14 @@ impl UnpoweredFunction for DefenseBehavior {
                 let refill_actions = get_needed_refills(&model.state.borrow_me());
                 for action in refill_actions {
                     controller.plan.add_to_qeb(Box::new(action));
+                }
+            }
+            DefenseBehavior::Fitness => {
+                let me = model.state.borrow_me();
+                if me.lock_duration().is_some() {
+                    controller
+                        .plan
+                        .add_to_qeb(Box::new(FitnessAction::new(model.who_am_i())));
                 }
             }
         }

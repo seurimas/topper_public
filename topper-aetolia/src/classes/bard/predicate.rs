@@ -13,18 +13,27 @@ pub enum BardPredicate {
     InHalfBeat,
     InWholeBeat,
     Runebanded,
+    RunebandForward,
+    RunebandReversed,
+    RunebandAffIs(FType),
+    Dumb(bool),
     IronCollared,
     Globed,
+    GlobeAffIs(FType),
+    GlobeAffIsValid,
     GlobeAffIsPriority,
     Awakened,
+    Induced,
     PrimaryEmotion(Emotion),
     EmotionLevel(Emotion, CType),
     Bladestorm,
     HasAnelace(Option<usize>),
     Needled(Option<String>),
+    NeedlePending,
     NeedlingFor(FType),
     Singing(Option<Song>),
     Playing(Option<Song>),
+    SingingOrPlaying(Option<Song>),
 }
 
 impl TargetPredicate for BardPredicate {
@@ -52,8 +61,20 @@ impl TargetPredicate for BardPredicate {
                     .check_if_bard(&|bard| bard.anelaces > min.unwrap_or(0))
                     .unwrap_or(false),
                 BardPredicate::Runebanded => target.bard_board.runeband_state.is_active(),
+                BardPredicate::RunebandForward => target.bard_board.runeband_state.is_forward(),
+                BardPredicate::RunebandReversed => target.bard_board.runeband_state.is_reversed(),
+                BardPredicate::RunebandAffIs(aff) => {
+                    target.bard_board.next_runeband() == Some(*aff)
+                }
+                BardPredicate::Dumb(default) => target.bard_board.is_dumb(*default),
                 BardPredicate::IronCollared => target.bard_board.iron_collar_state.is_active(),
                 BardPredicate::Globed => target.bard_board.globes_state.is_active(),
+                BardPredicate::GlobeAffIs(aff) => target.bard_board.next_globe() == Some(*aff),
+                BardPredicate::GlobeAffIsValid => target
+                    .bard_board
+                    .next_globe()
+                    .map(|aff| !target.is(aff))
+                    .unwrap_or(false),
                 BardPredicate::GlobeAffIsPriority => match target.bard_board.globes_state {
                     GlobesState::None => false,
                     GlobesState::Floating(aff_num) => {
@@ -73,12 +94,16 @@ impl TargetPredicate for BardPredicate {
                     }
                 },
                 BardPredicate::Awakened => target.bard_board.emotion_state.awakened,
+                BardPredicate::Induced => target.bard_board.emotion_state.primary.is_some(),
                 BardPredicate::PrimaryEmotion(emotion) => {
                     target.bard_board.emotion_state.primary == Some(*emotion)
                 }
-                BardPredicate::EmotionLevel(_, _) => todo!(),
+                BardPredicate::EmotionLevel(emotion, minimum) => {
+                    target.bard_board.emotion_state.get_emotion_level(*emotion) >= *minimum
+                }
                 BardPredicate::Bladestorm => target.bard_board.blades_count > 0,
                 BardPredicate::Needled(None) => target.bard_board.needle_venom.is_some(),
+                BardPredicate::NeedlePending => target.bard_board.needling(),
                 BardPredicate::NeedlingFor(aff) => {
                     if !target.bard_board.needling() {
                         false
@@ -110,6 +135,16 @@ impl TargetPredicate for BardPredicate {
                     .unwrap_or(false),
                 BardPredicate::Playing(None) => target
                     .check_if_bard(&|bard| bard.instrument_song.is_some())
+                    .unwrap_or(false),
+                BardPredicate::SingingOrPlaying(Some(song)) => target
+                    .check_if_bard(&|bard| {
+                        bard.instrument_song == Some(*song) || bard.voice_song == Some(*song)
+                    })
+                    .unwrap_or(false),
+                BardPredicate::SingingOrPlaying(None) => target
+                    .check_if_bard(&|bard| {
+                        bard.instrument_song.is_some() || bard.voice_song.is_some()
+                    })
                     .unwrap_or(false),
             }
         } else {
