@@ -73,6 +73,11 @@ pub fn handle_simple_cure_action(
                         .is_some()
                     {
                         me.pipe_state.puff_all(&herb);
+                    } else if first_person {
+                        me.observe_flag(FType::Addiction, false);
+                        me.pipe_state.puff(&herb);
+                    } else if me.is(FType::Addiction) {
+                        me.pipe_state.puff_all(&herb);
                     } else {
                         me.pipe_state.puff(&herb);
                     }

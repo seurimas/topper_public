@@ -10,6 +10,7 @@ const MANABARBS_DITHER: usize = 2;
 const PATCHWORK_DITHER: usize = 2;
 const HOROLOGE_DITHER: usize = 2;
 const GLOBES_DITHER: usize = 0;
+const TEARING_DITHER: usize = 2;
 const BARBS_DITHER: usize = 2;
 const BLADESTORM_DITHER: usize = 2;
 const ANELACE_DITHER: usize = 2;
@@ -19,6 +20,8 @@ const BOUNDARY_DITHER: usize = 3;
 const THURIBLE_DITHER: usize = 4;
 const HEARTCAGE_DITHER: usize = 5;
 const IRONCOLLAR_DITHER: usize = 2;
+const IMPETUS_DITHER: usize = 3;
+const SWINDLE_DITHER: usize = 4;
 
 pub const NULLSTONE: &str = "a stone of annulment";
 pub const HOROLOGE: &str = "a faded hourglass";
@@ -289,6 +292,34 @@ pub fn handle_weaving_action(
                     bard.dithering = THURIBLE_DITHER;
                 });
                 me.wield_state.weave(THURIBLE);
+            },
+        ),
+        "Impetus" => for_agent(
+            agent_states,
+            &combat_action.caster,
+            &|me: &mut AgentState| {
+                me.assume_bard(&|bard: &mut BardClassState| {
+                    bard.dithering = IMPETUS_DITHER;
+                    bard.begin_impetus();
+                });
+            },
+        ),
+        "Swindle" => for_agent(
+            agent_states,
+            &combat_action.caster,
+            &|me: &mut AgentState| {
+                me.assume_bard(&|bard: &mut BardClassState| {
+                    bard.dithering = SWINDLE_DITHER;
+                });
+            },
+        ),
+        "Tearing" => for_agent(
+            agent_states,
+            &combat_action.caster,
+            &|me: &mut AgentState| {
+                me.assume_bard(&|bard: &mut BardClassState| {
+                    bard.dithering = TEARING_DITHER;
+                });
             },
         ),
         "Heartcage" => for_agent(

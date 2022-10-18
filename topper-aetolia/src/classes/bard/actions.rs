@@ -10,6 +10,7 @@ pub enum Weavable {
     Goblet,
     Anelace,
     Thurible,
+    Impetus,
 }
 
 pub struct WeavingAction {
@@ -57,6 +58,12 @@ impl WeavingAction {
             weaved: Weavable::Thurible,
         }
     }
+    pub fn impetus(caster: String) -> Self {
+        WeavingAction {
+            caster,
+            weaved: Weavable::Impetus,
+        }
+    }
 
     pub fn get_skill(&self) -> &str {
         match self.weaved {
@@ -66,6 +73,7 @@ impl WeavingAction {
             Weavable::Horologe => "Horologe",
             Weavable::Nullstone => "Nullstone",
             Weavable::Thurible => "Thurible",
+            Weavable::Impetus => "Impetus",
         }
     }
 }
@@ -90,6 +98,7 @@ impl ActiveTransition for WeavingAction {
             Weavable::Horologe => "weave horologe".to_string(),
             Weavable::Nullstone => "weave nullstone".to_string(),
             Weavable::Thurible => "weave thurible".to_string(),
+            Weavable::Impetus => "weave impetus".to_string(),
         })
     }
 }
@@ -269,6 +278,7 @@ impl ActiveTransition for WeavingAttackAction {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub enum PerformanceAttack {
+    TempoNaked,
     TempoOne(String),
     TempoTwo(String, String),
     TempoThree(String, String, String),
@@ -289,7 +299,8 @@ pub enum PerformanceAttack {
 impl PerformanceAttack {
     pub fn needs_weapon(&self) -> bool {
         match self {
-            Self::TempoOne(_)
+            Self::TempoNaked
+            | Self::TempoOne(_)
             | Self::TempoTwo(_, _)
             | Self::TempoThree(_, _, _)
             | Self::Harry(_)
@@ -300,10 +311,28 @@ impl PerformanceAttack {
             _ => false,
         }
     }
+    pub fn must_stand(&self) -> bool {
+        match self {
+            Self::TempoNaked
+            | Self::TempoOne(_)
+            | Self::TempoTwo(_, _)
+            | Self::TempoThree(_, _, _)
+            | Self::Harry(_)
+            | Self::Bravado(_)
+            | Self::Cadence
+            | Self::Pierce
+            | Self::Hiltblow
+            | Self::Crackshot
+            | Self::Sock
+            | Self::Seduce => true,
+            _ => false,
+        }
+    }
 
     pub fn gets_rebounded(&self) -> bool {
         match self {
-            Self::TempoOne(_)
+            Self::TempoNaked
+            | Self::TempoOne(_)
             | Self::TempoTwo(_, _)
             | Self::TempoThree(_, _, _)
             | Self::Harry(_)
@@ -355,6 +384,13 @@ impl PerformanceAttackAction {
             caster,
             target,
             attack: PerformanceAttack::TempoOne(venom),
+        }
+    }
+    pub fn tempo_naked(caster: String, target: String) -> Self {
+        PerformanceAttackAction {
+            caster,
+            target,
+            attack: PerformanceAttack::TempoNaked,
         }
     }
     pub fn tempo_two(caster: String, target: String, venom_one: String, venom_two: String) -> Self {
@@ -448,6 +484,7 @@ impl ActiveTransition for PerformanceAttackAction {
     }
     fn act(&self, timeline: &AetTimeline) -> ActivateResult {
         let action = match &self.attack {
+            PerformanceAttack::TempoNaked => format!("tempo {}", self.target),
             PerformanceAttack::TempoOne(venom) => format!("tempo {} {}", self.target, venom),
             PerformanceAttack::TempoTwo(venom_one, venom_two) => format!(
                 "tempo {} {};;envenom falchion with {}",

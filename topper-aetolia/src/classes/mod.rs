@@ -572,9 +572,30 @@ pub fn handle_combat_action(
                 Ok(())
             }
             "self_loathing" => {
+                let flings = combat_action.annotation.eq("flings");
+                let count = if combat_action.annotation.eq("first") {
+                    2
+                } else if combat_action.annotation.eq("furrow") {
+                    3
+                } else {
+                    // Fling restarts it
+                    1
+                };
                 for_agent(agent_states, &combat_action.caster, &|you| {
-                    you.observe_flag(FType::SelfLoathing, true);
-                    you.toggle_flag(FType::Fallen, true);
+                    you.observe_flag_count(FType::SelfLoathing, count);
+                    if count == 2 {
+                        you.set_balance(BType::SelfLoathing, 8.)
+                    } else if count == 3 {
+                        you.set_balance(BType::SelfLoathing, 4.)
+                    } else if count == 1 {
+                        you.set_balance(BType::SelfLoathing, 24.)
+                    }
+                    if you.bard_board.emotion_state.primary == Some(Emotion::Fear) {
+                        you.set_flag(FType::Worrywart, true);
+                    }
+                    if flings {
+                        you.toggle_flag(FType::Fallen, true);
+                    }
                 });
                 Ok(())
             }

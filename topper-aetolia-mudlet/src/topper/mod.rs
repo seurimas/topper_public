@@ -234,7 +234,7 @@ impl TopperHandler<BattleStats> for AetTopper {
             .then(self.battlestats_module.handle_message(
                 &topper_msg,
                 (
-                    &self.timeline_module.timeline,
+                    &mut self.timeline_module.timeline,
                     &self.core_module.target,
                     &self.database_module,
                 ),

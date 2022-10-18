@@ -83,6 +83,18 @@ impl BaseAgentState for AgentState {
         if self.is(FType::Manabarbs) && self.balanced(BType::Manabarbs) {
             self.set_flag(FType::Manabarbs, false);
         }
+        if self.is(FType::SelfLoathing) {
+            let observed = self.get_count(FType::SelfLoathing);
+            if (observed <= 2 && self.get_balance(BType::SelfLoathing) < 3.)
+                || (observed <= 1 && self.get_balance(BType::SelfLoathing) < 7.)
+            {
+                println!(
+                    "Tracking lost on self_loathing tick {} somehow...",
+                    observed
+                );
+                self.observe_flag(FType::SelfLoathing, false);
+            }
+        }
     }
     fn get_base_state() -> Self {
         let mut val = AgentState::default();
@@ -240,6 +252,9 @@ impl AgentState {
         if value && flag == FType::Paresis {
             self.set_balance(BType::ParesisParalysis, 4.0);
         }
+        if value && flag == FType::SelfLoathing {
+            self.set_balance(BType::SelfLoathing, 12.0);
+        }
         match flag {
             FType::Zenith => {
                 if value {
@@ -273,6 +288,14 @@ impl AgentState {
             self.branch_state.strike_aff(flag, true);
         }
         self.tick_flag_up(flag);
+    }
+
+    // The flag is observed to be a certain value (true or false).
+    pub fn observe_flag_count(&mut self, flag: FType, count: u8) {
+        if !self.is(flag) {
+            self.branch_state.strike_aff(flag, true);
+        }
+        self.set_count(flag, count);
     }
 
     pub fn tick_flag_up(&mut self, flag: FType) {
@@ -490,8 +513,19 @@ impl AgentState {
             || self.is(FType::WritheBind)
     }
 
+    pub fn stuck_fallen(&self) -> bool {
+        self.is(FType::Fallen) && !self.can_stand()
+    }
+
     pub fn can_stand(&self) -> bool {
-        !self.is(FType::LeftLegBroken) && !self.is(FType::RightLegBroken)
+        !self.is(FType::LeftLegBroken)
+            && !self.is(FType::RightLegBroken)
+            && !self.is(FType::Frozen)
+            && !self.is(FType::Paralysis)
+    }
+
+    pub fn arms_free(&self) -> bool {
+        !self.is(FType::LeftArmBroken) && !self.is(FType::RightArmBroken)
     }
 
     pub fn push_toxin(&mut self, venom: String) {

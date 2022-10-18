@@ -8,7 +8,7 @@ use crate::{
     curatives::first_aid::FirstAidPriorities,
 };
 
-pub trait AetDatabaseModule {
+pub trait AetDatabaseModule: DatabaseModule {
     fn get_class(&self, who: &String) -> Option<Class>;
 
     fn set_class(&self, who: &String, class: Class);

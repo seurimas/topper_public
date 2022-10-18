@@ -62,6 +62,15 @@ pub fn get_action_plan(
             .unwrap_or_default(),
         ..Default::default()
     };
+    if let Some(db) = db {
+        if let Some(impetus_weapon) = db.get_hint(&IMPETUS_WEAPON_HINT.to_string()) {
+            controller.hint_plan(IMPETUS_WEAPON_HINT.to_string(), impetus_weapon);
+        }
+
+        if let Some(fast_weapon) = db.get_hint(&FAST_WEAPON_HINT.to_string()) {
+            controller.hint_plan(FAST_WEAPON_HINT.to_string(), fast_weapon);
+        }
+    }
     let tree_name = if strategy.eq("class") {
         format!("bard/base")
     } else {
@@ -145,5 +154,54 @@ pub fn get_class_state(
             (anelace, halfbeat, dithering, singing, playing)
         })
         .unwrap_or_default();
-    format!("{dumbness}{globes}{runeband}{anelace}{dithering}\n{halfbeat}{singing}{playing}")
+    let ironcollar = if you.bard_board.iron_collar_state.is_active() {
+        "<white>COLLAR "
+    } else {
+        ""
+    };
+    let self_loathing = if you.is(FType::SelfLoathing) {
+        format!("<green>SL ({}) ", you.get_balance(BType::SelfLoathing))
+    } else {
+        "".to_string()
+    };
+    let needle = if you.bard_board.needle_venom.is_some() {
+        format!("<red>needle ({}) ", you.bard_board.needle_timer)
+    } else {
+        "".to_string()
+    };
+    let primary = if let Some(emotion) = you.bard_board.emotion_state.primary {
+        format!(
+            "<magenta>{} ({})",
+            emotion.name(),
+            you.bard_board.emotion_state.get_emotion_level(emotion)
+        )
+    } else {
+        "".to_string()
+    };
+    let pipelocks = if you.is(FType::Perplexed) {
+        let empties = you.pipe_state.get_empties();
+        if empties.len() > 0 {
+            format!("<green>{}", empties.join("/"))
+        } else {
+            format!("")
+        }
+    } else {
+        format!("")
+    };
+    let missing_hints = if let Some(db) = db {
+        let impetus = if let Some(impetus_weapon) = db.get_hint(&IMPETUS_WEAPON_HINT.to_string()) {
+            ""
+        } else {
+            "<red>Missing IMPETUS_WEAPON hint, use `thint IMPETUS_WEAPON <falchion###>`"
+        };
+        let fast = if let Some(fast_weapon) = db.get_hint(&FAST_WEAPON_HINT.to_string()) {
+            ""
+        } else {
+            "<red>Missing IMPETUS_WEAPON hint, use `thint IMPETUS_WEAPON <falchion###>`"
+        };
+        format!("{} {}", impetus, fast)
+    } else {
+        "<red>DB??".to_string()
+    };
+    format!("{dumbness}{globes}{runeband}{anelace}{dithering}\n{needle}{halfbeat}{singing}{playing}\n{ironcollar}{self_loathing}{primary}{pipelocks}\n{missing_hints}")
 }

@@ -13,6 +13,7 @@ pub struct Pipe {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PipeState {
     UnknownFilled,
+    UnknownFilledPuffs(usize),
     UnknownUnfilled,
     Known(Pipe),
 }
@@ -56,7 +57,15 @@ impl PipeState {
                 false
             }
             Self::UnknownUnfilled => {
-                *self = Self::UnknownFilled;
+                *self = Self::UnknownFilledPuffs(9);
+                true
+            }
+            Self::UnknownFilledPuffs(puffs) => {
+                if *puffs > 1 {
+                    *self = Self::UnknownFilledPuffs(*puffs - 1);
+                } else {
+                    *self = Self::UnknownUnfilled
+                }
                 true
             }
             _ => true,
@@ -73,6 +82,14 @@ impl PipeState {
             _ => {
                 *self = Self::UnknownUnfilled;
             }
+        }
+    }
+
+    fn is_empty(&self) -> bool {
+        match self {
+            Self::Known(pipe) => pipe.puffs <= 0,
+            Self::UnknownFilled | Self::UnknownFilledPuffs(_) => false,
+            Self::UnknownUnfilled => true,
         }
     }
 
@@ -164,5 +181,19 @@ impl PipesState {
             refills.push(("reishi".to_string(), id));
         }
         refills
+    }
+
+    pub fn get_empties(&self) -> Vec<String> {
+        let mut empties = Vec::new();
+        if self.yarrow.is_empty() {
+            empties.push("yarrow".to_string());
+        }
+        if self.willow.is_empty() {
+            empties.push("willow".to_string());
+        }
+        if self.reishi.is_empty() {
+            empties.push("reishi".to_string());
+        }
+        empties
     }
 }

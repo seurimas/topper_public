@@ -15,6 +15,9 @@ use super::{BehaviorController, BehaviorModel};
 pub enum AetBehavior {
     UnstackAffs(Vec<FType>),
     PushAff(FType),
+    TagPlan(String),
+    HintPlan(String, String),
+    CopyHint(String, String),
     PlainQebBehavior(String),
     DefenseBehavior(DefenseBehavior),
     BardBehavior(BardBehavior),
@@ -34,6 +37,22 @@ impl UnpoweredFunction for AetBehavior {
                 if let Some(priorities) = &mut controller.aff_priorities {
                     priorities.retain(|aff| !unstacked.contains(&aff.affliction()));
                     return UnpoweredFunctionState::Complete;
+                } else {
+                    UnpoweredFunctionState::Failed
+                }
+            }
+            AetBehavior::TagPlan(tag) => {
+                controller.tag_plan(tag.clone());
+                UnpoweredFunctionState::Complete
+            }
+            AetBehavior::HintPlan(hint_name, hint) => {
+                controller.hint_plan(hint_name.clone(), hint.clone());
+                UnpoweredFunctionState::Complete
+            }
+            AetBehavior::CopyHint(source_name, target_name) => {
+                if let Some(hint) = controller.get_hint(source_name) {
+                    controller.hint_plan(target_name.clone(), hint.clone());
+                    UnpoweredFunctionState::Complete
                 } else {
                     UnpoweredFunctionState::Failed
                 }

@@ -17,6 +17,7 @@ pub enum BardPredicate {
     RunebandReversed,
     RunebandAffIs(FType),
     Dumb(bool),
+    ImpetusReady,
     IronCollared,
     Globed,
     GlobeAffIs(FType),
@@ -29,6 +30,7 @@ pub enum BardPredicate {
     Bladestorm,
     HasAnelace(Option<usize>),
     Needled(Option<String>),
+    NeedleAlmostPending,
     NeedlePending,
     NeedlingFor(FType),
     Singing(Option<Song>),
@@ -56,6 +58,9 @@ impl TargetPredicate for BardPredicate {
                     .unwrap_or(false),
                 BardPredicate::InWholeBeat => target
                     .check_if_bard(&|bard| bard.half_beat.resting())
+                    .unwrap_or(false),
+                BardPredicate::ImpetusReady => target
+                    .check_if_bard(&|bard| bard.impetus_ready())
                     .unwrap_or(false),
                 BardPredicate::HasAnelace(min) => target
                     .check_if_bard(&|bard| bard.anelaces > min.unwrap_or(0))
@@ -103,6 +108,7 @@ impl TargetPredicate for BardPredicate {
                 }
                 BardPredicate::Bladestorm => target.bard_board.blades_count > 0,
                 BardPredicate::Needled(None) => target.bard_board.needle_venom.is_some(),
+                BardPredicate::NeedleAlmostPending => target.bard_board.almost_needling(),
                 BardPredicate::NeedlePending => target.bard_board.needling(),
                 BardPredicate::NeedlingFor(aff) => {
                     if !target.bard_board.needling() {

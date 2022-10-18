@@ -75,13 +75,15 @@ pub struct BardClassState {
     pub instrument_song: Option<Song>,
     pub voice_timeout: CType,
     pub instrument_timeout: CType,
+    pub impetus_timer: CType,
     pub half_beat: HalfbeatState,
     pub anelaces: usize,
 }
 
+const IMPETUS_TIMEOUT: CType = (30.0 * BALANCE_SCALE) as CType;
 const VOICE_SONG_TIMEOUT: CType = (8.0 * BALANCE_SCALE) as CType;
 const INSTRUMENT_SONG_TIMEOUT: CType = (6.0 * BALANCE_SCALE) as CType;
-const NEEDLE_TIMEOUT: CType = (4.0 * BALANCE_SCALE) as CType;
+const NEEDLE_TIMEOUT: CType = (3.25 * BALANCE_SCALE) as CType;
 
 impl BardClassState {
     pub fn wait(&mut self, duration: i32) {
@@ -90,6 +92,14 @@ impl BardClassState {
         }
         if self.instrument_timeout <= duration {
             self.instrument_song = None;
+        }
+        let mut tempo_timeout = false;
+        if let Some((count, timer)) = &mut self.tempo {
+            *timer += duration;
+            tempo_timeout = *timer > (2.0 * BALANCE_SCALE) as CType;
+        }
+        if tempo_timeout {
+            self.tempo = None;
         }
         self.voice_timeout -= duration;
         self.instrument_timeout -= duration;
@@ -144,6 +154,14 @@ impl BardClassState {
         } else if self.instrument_song == Some(song) {
             self.instrument_song = None;
         }
+    }
+
+    pub fn begin_impetus(&mut self) {
+        self.impetus_timer = IMPETUS_TIMEOUT;
+    }
+
+    pub fn impetus_ready(&self) -> bool {
+        self.impetus_timer > 0
     }
 }
 
@@ -345,6 +363,10 @@ impl BardBoard {
 
     pub fn needling(&self) -> bool {
         self.needle_venom.is_some() && self.needle_timer <= BALANCE_SCALE as CType
+    }
+
+    pub fn almost_needling(&self) -> bool {
+        self.needle_venom.is_some() && self.needle_timer <= (2. * BALANCE_SCALE) as CType
     }
 
     pub fn next_globe(&self) -> Option<FType> {

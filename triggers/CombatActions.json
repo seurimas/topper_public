@@ -336,6 +336,48 @@
     "observation_name": "Proc"
   },
   {
+    "regex": "^(\\w+) appears lost in thought for a moment.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Aff"
+      },
+      {
+        "Literal": "self_loathing"
+      },
+      {
+        "Literal": "first"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^(\\w+) furrows \\w+ brow as \\w+ undergoes some inner turmoil.$",
+    "args": [
+      {
+        "GroupAsTarget": 2
+      },
+      {
+        "Literal": "Aff"
+      },
+      {
+        "Literal": "self_loathing"
+      },
+      {
+        "Literal": "furrow"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
     "regex": "^Overwhelmed by (\\w+) thoughts, (\\w+) dramatically flings (\\w+) to the ground.$",
     "args": [
       {
@@ -348,7 +390,70 @@
         "Literal": "self_loathing"
       },
       {
+        "Literal": "flings"
+      },
+      {
         "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^(You) feel the tingle of a deep loathing within you.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Aff"
+      },
+      {
+        "Literal": "self_loathing"
+      },
+      {
+        "Literal": "first"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^(You)r stomach clenches coldly as your thoughts linger upon your mind.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Aff"
+      },
+      {
+        "Literal": "self_loathing"
+      },
+      {
+        "Literal": "furrow"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^Overwhelmed, the loathing within takes over (you)r entire self. You dramatically fling yourself to the ground.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Aff"
+      },
+      {
+        "Literal": "self_loathing"
+      },
+      {
+        "Literal": "flings"
       },
       {
         "Literal": ""

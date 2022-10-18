@@ -42,6 +42,7 @@ pub enum BType {
     Rebounding,
     Void,
     ParesisParalysis,
+    SelfLoathing,
     Manabarbs,
 
     UNKNOWN,
@@ -151,6 +152,9 @@ pub enum FType {
     Halfbeat,
     Discordance,
 
+    // Bard uncurable
+    Manabarbs, // Don't count as an affliction, it's not in database.
+
     // Antipsychotic
     Sadness, // MUST BE FIRST AFFLICTION
     Confusion,
@@ -181,7 +185,6 @@ pub enum FType {
     Hollow,
     Narcolepsy,
     Perplexed,
-    SelfLoathing,
 
     // Decongestant
     Baldness,
@@ -382,9 +385,6 @@ pub enum FType {
     Shadowbrand,
     Shadowsphere,
 
-    // Bard uncurable
-    Manabarbs,
-
     // Special
     Disrupted,
     Fear,
@@ -412,6 +412,7 @@ pub enum FType {
     Allergies,
     Ablaze,
     SappedStrength,
+    SelfLoathing,
     FULL,
     // Afflictions stored elsewhere
     HeadMangled,

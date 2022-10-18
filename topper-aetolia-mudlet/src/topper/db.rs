@@ -268,6 +268,7 @@ fn update_stack<T: Serialize + Clone>(
 
 lazy_static! {
     static ref INSPECT: Regex = Regex::new(r"^inspect (\w+) (\w+)$").unwrap();
+    static ref SET_HINT: Regex = Regex::new(r"^hint (\w+) (.*)$").unwrap();
     static ref SET_HYPNOSIS: Regex = Regex::new(r"^hypnosis (\w+) (\d+) (.*)$").unwrap();
     static ref SET_PRIORITY: Regex = Regex::new(r"^priority (\w+) (\d+) (.*)$").unwrap();
 }
@@ -276,6 +277,18 @@ fn parse_inspect(message: &String) -> Option<(String, String)> {
     if let Some(captures) = INSPECT.captures(message) {
         if let (Some(tree), Some(key)) = (captures.get(1), captures.get(2)) {
             Some((tree.as_str().to_string(), key.as_str().to_string()))
+        } else {
+            None
+        }
+    } else {
+        None
+    }
+}
+
+fn parse_set_hint(message: &String) -> Option<(String, String)> {
+    if let Some(captures) = SET_HINT.captures(message) {
+        if let (Some(key), Some(value)) = (captures.get(1), captures.get(2)) {
+            Some((key.as_str().to_string(), value.as_str().to_string()))
         } else {
             None
         }
@@ -338,7 +351,11 @@ impl<'s> TopperModule<'s, AetTimeSlice, BattleStats> for AetMudletDatabaseModule
             TopperMessage::Request(TopperRequest::ModuleMsg(module, message)) => {
                 match module.as_ref() {
                     "db" => {
-                        if let Some((stack, index, hypno)) = parse_set_hypnosis(message) {
+                        if let Some((key, value)) = parse_set_hint(message) {
+                            self.insert_hint(&key, &value);
+                            println!("Hint set!");
+                            Ok(TopperResponse::silent())
+                        } else if let Some((stack, index, hypno)) = parse_set_hypnosis(message) {
                             let mut old_stack = self.get_hypno_plan(&stack).unwrap_or_default();
                             update_stack(&stack, &mut old_stack, index, &hypno, false);
                             if let Ok(stack_str) = to_string_pretty(&old_stack) {

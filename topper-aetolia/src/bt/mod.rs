@@ -36,8 +36,11 @@ pub struct BehaviorController {
     pub used_balance: bool,
     pub used_equilibrium: bool,
     pub used_secondary_balance: bool,
+    pub shifted_left_hand: bool,
+    pub shifted_right_hand: bool,
     pub aff_priorities: Option<Vec<VenomPlan>>,
     pub plan_tags: HashSet<String>,
+    pub plan_hints: HashMap<String, String>,
     pub target: Option<String>,
     pub allies: HashMap<String, i32>,
 }
@@ -49,6 +52,14 @@ impl BehaviorController {
 
     pub fn tag_plan(&mut self, tag: String) {
         self.plan_tags.insert(tag);
+    }
+
+    pub fn hint_plan(&mut self, hint_name: String, hint: String) {
+        self.plan_hints.insert(hint_name, hint);
+    }
+
+    pub fn get_hint<T: ToString>(&self, hint_name: T) -> Option<&String> {
+        self.plan_hints.get(&hint_name.to_string())
     }
 }
 

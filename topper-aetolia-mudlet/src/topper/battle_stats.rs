@@ -141,20 +141,23 @@ impl BattleStatsModule {
 
 impl<'s> TopperModule<'s, AetTimeSlice, BattleStats> for BattleStatsModule {
     type Siblings = (
-        &'s AetTimeline,
+        &'s mut AetTimeline,
         &'s Option<String>,
         &'s AetMudletDatabaseModule,
     );
     fn handle_message(
         &mut self,
         message: &TopperMessage<AetTimeSlice>,
-        (timeline, target, db): Self::Siblings,
+        (mut timeline, target, db): Self::Siblings,
     ) -> Result<TopperResponse<BattleStats>, String> {
         match message {
             TopperMessage::Request(request) => match request {
-                TopperRequest::BattleStats(_) => Ok(TopperResponse::battle_stats(
-                    get_battle_stats(timeline, target, db, &self.plan),
-                )),
+                TopperRequest::BattleStats(when) => {
+                    timeline.update_time(*when);
+                    Ok(TopperResponse::battle_stats(get_battle_stats(
+                        timeline, target, db, &self.plan,
+                    )))
+                }
                 TopperRequest::Plan(plan) => {
                     self.plan = Some(plan.to_string());
                     Ok(TopperResponse::battle_stats(get_battle_stats(
