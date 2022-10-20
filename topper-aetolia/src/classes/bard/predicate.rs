@@ -25,6 +25,7 @@ pub enum BardPredicate {
     GlobeAffIsPriority,
     Awakened,
     Induced,
+    PrimaryEmotionLevel(CType),
     PrimaryEmotion(Emotion),
     EmotionLevel(Emotion, CType),
     Bladestorm,
@@ -102,6 +103,13 @@ impl TargetPredicate for BardPredicate {
                 BardPredicate::Induced => target.bard_board.emotion_state.primary.is_some(),
                 BardPredicate::PrimaryEmotion(emotion) => {
                     target.bard_board.emotion_state.primary == Some(*emotion)
+                }
+                BardPredicate::PrimaryEmotionLevel(minimum) => {
+                    if let Some(emotion) = target.bard_board.emotion_state.primary {
+                        target.bard_board.emotion_state.get_emotion_level(emotion) >= *minimum
+                    } else {
+                        false
+                    }
                 }
                 BardPredicate::EmotionLevel(emotion, minimum) => {
                     target.bard_board.emotion_state.get_emotion_level(*emotion) >= *minimum

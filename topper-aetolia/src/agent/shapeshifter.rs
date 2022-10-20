@@ -34,12 +34,12 @@ pub enum Howl {
     Lulling,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub struct HowlingState {
     pub snarling: bool,
     pub echoing: bool,
     pub boneshaking: bool,
     pub attuning: bool,
-    pub howls: [Howl; 3],
+    pub howls: [Option<Howl>; 3],
     pub time_since: CType,
 }

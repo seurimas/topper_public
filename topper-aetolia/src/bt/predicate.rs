@@ -12,6 +12,8 @@ use crate::types::*;
 use super::BehaviorController;
 use super::BehaviorModel;
 
+pub const QUEUE_TIME: f32 = 0.25;
+
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy)]
 pub enum AetTarget {
     Me,
@@ -49,6 +51,10 @@ pub enum AetPredicate {
     CannotCure(AetTarget, FType),
     Buffered(AetTarget, FType),
     Locked(AetTarget, bool),
+    ReboundingWindow(AetTarget, CType),
+    HasBalanceEquilibrium(AetTarget),
+    HasBalance(AetTarget),
+    HasEquilibrium(AetTarget),
     BardPredicate(AetTarget, BardPredicate),
 }
 
@@ -227,6 +233,40 @@ impl UnpoweredFunction for AetPredicate {
             AetPredicate::Buffered(target, aff) => {
                 if let Some(target) = target.get_target(model, controller) {
                     if get_cure_depth(target, *aff).cures > 1 {
+                        return UnpoweredFunctionState::Complete;
+                    }
+                }
+                UnpoweredFunctionState::Failed
+            }
+            AetPredicate::ReboundingWindow(target, minimum) => {
+                if let Some(target) = target.get_target(model, controller) {
+                    if target.get_balance(BType::Rebounding) > (*minimum as f32 / BALANCE_SCALE) {
+                        return UnpoweredFunctionState::Complete;
+                    }
+                }
+                UnpoweredFunctionState::Failed
+            }
+            AetPredicate::HasBalance(target) => {
+                if let Some(target) = target.get_target(model, controller) {
+                    if target.get_balance(BType::Balance) < QUEUE_TIME {
+                        return UnpoweredFunctionState::Complete;
+                    }
+                }
+                UnpoweredFunctionState::Failed
+            }
+            AetPredicate::HasEquilibrium(target) => {
+                if let Some(target) = target.get_target(model, controller) {
+                    if target.get_balance(BType::Equil) < QUEUE_TIME {
+                        return UnpoweredFunctionState::Complete;
+                    }
+                }
+                UnpoweredFunctionState::Failed
+            }
+            AetPredicate::HasBalanceEquilibrium(target) => {
+                if let Some(target) = target.get_target(model, controller) {
+                    if target.get_balance(BType::Balance) < QUEUE_TIME
+                        && target.get_balance(BType::Equil) < QUEUE_TIME
+                    {
                         return UnpoweredFunctionState::Complete;
                     }
                 }

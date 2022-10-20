@@ -525,7 +525,15 @@ impl AgentState {
     }
 
     pub fn arms_free(&self) -> bool {
-        !self.is(FType::LeftArmBroken) && !self.is(FType::RightArmBroken)
+        self.arm_free_left() && self.arm_free_right()
+    }
+
+    pub fn arm_free_left(&self) -> bool {
+        !self.is(FType::LeftArmBroken)
+    }
+
+    pub fn arm_free_right(&self) -> bool {
+        !self.is(FType::RightArmBroken)
     }
 
     pub fn push_toxin(&mut self, venom: String) {

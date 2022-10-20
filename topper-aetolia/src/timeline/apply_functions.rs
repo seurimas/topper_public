@@ -37,6 +37,10 @@ pub fn apply_observation(
         AetObservation::CombatAction(combat_action) => {
             if let (Some(db), Some(class)) = (db, get_skill_class(&combat_action.category)) {
                 db.set_class(&combat_action.caster, class);
+                for_agent(timeline, &combat_action.caster, &|me| {
+                    me.class_state
+                        .initialize_for_normalized_class(class.normal());
+                });
             }
             handle_combat_action(combat_action, timeline, before, after)?;
         }
@@ -91,6 +95,18 @@ pub fn apply_observation(
                 }
             }
             timeline.set_flag_for_agent(who, affliction, true)?;
+        }
+        AetObservation::Balance(balance, duration) => {
+            let who_am_i = timeline.me.clone();
+            for_agent(timeline, &who_am_i, &|me: &mut AgentState| {
+                me.set_balance(BType::from_name(&balance), *duration);
+            });
+        }
+        AetObservation::BalanceBack(balance) => {
+            let who_am_i = timeline.me.clone();
+            for_agent(timeline, &who_am_i, &|me: &mut AgentState| {
+                me.set_balance(BType::from_name(&balance), 0.0);
+            });
         }
         AetObservation::Dodges(who) => {
             for_agent(timeline, who, &|me: &mut AgentState| {
@@ -765,8 +781,9 @@ pub fn apply_or_infer_balance(
     for observation in observations.iter() {
         match observation {
             AetObservation::Balance(btype, duration) => {
-                who.set_balance(BType::from_name(&btype), *duration);
-                return;
+                if BType::from_name(&btype) == expected_value.0 {
+                    return;
+                }
             }
             _ => {}
         }
@@ -782,8 +799,9 @@ pub fn apply_or_infer_combo_balance(
     for observation in observations.iter() {
         match observation {
             AetObservation::Balance(btype, duration) => {
-                who.set_balance(BType::from_name(&btype), *duration);
-                return;
+                if BType::from_name(&btype) == expected_value.0 {
+                    return;
+                }
             }
             _ => {}
         }

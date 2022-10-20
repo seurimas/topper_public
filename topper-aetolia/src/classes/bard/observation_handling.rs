@@ -351,17 +351,25 @@ pub fn handle_weaving_action(
                 me.wield_state.weave(NULLSTONE);
             },
         ),
-        "Anelace" => {
-            let stabbed = combat_action.annotation.eq("stab");
-            let already_has_two = combat_action.annotation.eq("two");
-            if stabbed {
+        "Anelace" => match combat_action.annotation.as_ref() {
+            "stab" => {
+                for_agent(
+                    agent_states,
+                    &combat_action.caster,
+                    &move |me: &mut AgentState| {
+                        apply_or_infer_balance(me, (BType::Balance, 2.0), &observations);
+                    },
+                );
+            }
+            "hit" => {
                 attack_afflictions(
                     agent_states,
-                    &combat_action.target,
+                    &combat_action.caster,
                     vec![FType::Hollow, FType::Narcolepsy],
                     &observations,
                 );
-            } else if already_has_two {
+            }
+            "two" => {
                 for_agent(
                     agent_states,
                     &combat_action.caster,
@@ -371,7 +379,8 @@ pub fn handle_weaving_action(
                         })
                     },
                 );
-            } else {
+            }
+            "" => {
                 for_agent(
                     agent_states,
                     &combat_action.caster,
@@ -385,7 +394,10 @@ pub fn handle_weaving_action(
                     },
                 );
             }
-        }
+            _ => {
+                println!("Odd Anelace CombatAction: {:?}", combat_action)
+            } // should be no other cases!
+        },
         "UnweavedHands" | "UnweavedBelt" | "UnweavedGround" => {
             let unweaved = combat_action.annotation.clone().to_ascii_lowercase();
             let in_hands = combat_action.skill.eq("UnweavedHands");
@@ -610,14 +622,16 @@ pub fn handle_performance_action(
                 },
             );
         }
-        "Tempo" | "Harry" | "Bravado" => {
-            for_agent(
-                agent_states,
-                &combat_action.caster,
-                &move |me: &mut AgentState| {
-                    apply_or_infer_balance(me, (BType::Balance, 2.65), &observations);
-                },
-            );
+        "Tempo" | "Harry" | "Bravado" | "Rhythm" => {
+            if !combat_action.skill.eq("Rhythm") {
+                for_agent(
+                    agent_states,
+                    &combat_action.caster,
+                    &move |me: &mut AgentState| {
+                        apply_or_infer_balance(me, (BType::Balance, 2.65), &observations);
+                    },
+                );
+            }
             apply_weapon_hits(
                 agent_states,
                 &combat_action.caster,
@@ -626,27 +640,36 @@ pub fn handle_performance_action(
                 first_person,
                 &hints,
             );
-            if combat_action.skill.eq("Tempo") {
+            if combat_action.skill.eq("Tempo") || combat_action.skill.eq("Rhythm") {
                 let annotation = combat_action.annotation.clone();
                 for_agent(
                     agent_states,
                     &combat_action.target,
                     &move |me: &mut AgentState| {
-                        if annotation.eq("two") {
+                        if annotation.eq("one") {
                             me.observe_flag(FType::Paresis, true);
-                        } else if annotation.eq("three") {
+                        } else if annotation.eq("two") {
                             me.observe_flag(FType::Shyness, true);
-                        } else if annotation.eq("four") {
+                        } else if annotation.eq("three") {
                             me.observe_flag(FType::Besilence, true);
                         }
                     },
                 );
+                let annotation = combat_action.annotation.clone();
                 for_agent(
                     agent_states,
                     &combat_action.caster,
                     &|me: &mut AgentState| {
                         me.assume_bard(&|bard: &mut BardClassState| {
-                            bard.on_tempo();
+                            bard.on_tempo(if annotation.eq("one") {
+                                2
+                            } else if annotation.eq("two") {
+                                3
+                            } else if annotation.eq("three") {
+                                4
+                            } else {
+                                1
+                            });
                         });
                     },
                 );

@@ -105,16 +105,11 @@ impl BardClassState {
         self.instrument_timeout -= duration;
     }
 
-    pub fn on_tempo(&mut self) {
-        let tempo_count = if let Some((count, _timer)) = self.tempo {
-            count + 1
-        } else {
-            1
-        };
-        if tempo_count > 3 {
+    pub fn on_tempo(&mut self, count: usize) {
+        if count > 3 {
             self.tempo = None;
         } else {
-            self.tempo = Some((tempo_count, 0));
+            self.tempo = Some((count, 0));
         }
     }
 
@@ -347,6 +342,9 @@ pub struct BardBoard {
 impl BardBoard {
     pub fn wait(&mut self, duration: i32) {
         self.needle_timer -= duration;
+        if self.needle_timer < -100 {
+            self.needle_venom = None;
+        }
     }
 
     pub fn needle_with(&mut self, venom: &String) {

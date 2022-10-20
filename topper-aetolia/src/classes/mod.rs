@@ -49,7 +49,7 @@ impl ActiveTransition for FitnessAction {
     }
 }
 
-#[derive(Debug, Serialize, Clone, Display, TryFromPrimitive, PartialEq)]
+#[derive(Debug, Serialize, Clone, Copy, Display, TryFromPrimitive, PartialEq, Eq, Hash)]
 #[repr(u8)]
 pub enum Class {
     Carnifex,

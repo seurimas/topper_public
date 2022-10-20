@@ -53,7 +53,16 @@ impl UnpoweredFunction for BardBehavior {
         match self {
             BardBehavior::Weave(weavable) => {
                 let me = model.state.borrow_me();
-                if *weavable == Weavable::Boundary {
+                if me
+                    .check_if_bard(&|bard| bard.dithering > 0)
+                    .unwrap_or(false)
+                {
+                    return UnpoweredFunctionState::Failed;
+                } else if !me.arms_free() || me.stuck_fallen() {
+                    return UnpoweredFunctionState::Failed;
+                } else if !controller.has_qeb() {
+                    return UnpoweredFunctionState::Failed;
+                } else if *weavable == Weavable::Boundary {
                     if let Some(room) = model.state.get_my_room() {
                         if room.has_tag("boundary") {
                             return UnpoweredFunctionState::Failed;
@@ -74,16 +83,7 @@ impl UnpoweredFunction for BardBehavior {
                         return UnpoweredFunctionState::Failed;
                     }
                 }
-                if me
-                    .check_if_bard(&|bard| bard.dithering > 0)
-                    .unwrap_or(false)
-                {
-                    return UnpoweredFunctionState::Failed;
-                } else if !me.arms_free() || me.stuck_fallen() {
-                    return UnpoweredFunctionState::Failed;
-                } else if !controller.has_qeb() {
-                    return UnpoweredFunctionState::Failed;
-                } else if !assure_unwielded(&me, model, controller, false) {
+                if !assure_unwielded(&me, model, controller, false) {
                     return UnpoweredFunctionState::Failed;
                 }
                 controller
@@ -157,6 +157,8 @@ impl UnpoweredFunction for BardBehavior {
                     let you = model.state.borrow_agent(&target);
                     if *venom_attack != BardVenomAttack::Needle && you.is(FType::Rebounding) {
                         return UnpoweredFunctionState::Failed;
+                    } else if me.stuck_fallen() {
+                        return UnpoweredFunctionState::Failed;
                     } else if *venom_attack != BardVenomAttack::Needle
                         && me.check_if_bard(&|me| me.is_on_tempo()).unwrap_or_default()
                     {
@@ -166,8 +168,6 @@ impl UnpoweredFunction for BardBehavior {
                         if !assure_weapon_wielded(&me, model, controller, true) {
                             return UnpoweredFunctionState::Failed;
                         }
-                    } else if me.stuck_fallen() {
-                        return UnpoweredFunctionState::Failed;
                     }
                     let venom_count = match venom_attack {
                         BardVenomAttack::Tempo => 3,
@@ -201,24 +201,28 @@ impl UnpoweredFunction for BardBehavior {
             BardBehavior::PerformanceAttack(performance_attack) => {
                 if !controller.has_qeb() {
                     return UnpoweredFunctionState::Failed;
-                } else if performance_attack.needs_weapon() {
-                    let me = model.state.borrow_me();
-                    if me
-                        .check_if_bard(&|me: &BardClassState| me.is_on_tempo())
-                        .unwrap_or(false)
-                    {
-                        // If it's a weapon attack, we cannot use while in rhythm.
-                        return UnpoweredFunctionState::Failed;
-                    }
-                    if !assure_weapon_wielded(&me, model, controller, true) {
-                        return UnpoweredFunctionState::Failed;
-                    }
                 }
-                if let Some(target) = &controller.target {
+                if let Some(target) = &controller.target.clone() {
+                    let me = model.state.borrow_me();
                     if performance_attack.gets_rebounded()
                         && model.state.borrow_agent(target).is(FType::Rebounding)
                     {
                         return UnpoweredFunctionState::Failed;
+                    } else if performance_attack.needs_weapon()
+                        && me.check_if_bard(&|me| me.is_on_tempo()).unwrap_or_default()
+                    {
+                        return UnpoweredFunctionState::Failed;
+                    } else if performance_attack.needs_weapon() {
+                        if me
+                            .check_if_bard(&|me: &BardClassState| me.is_on_tempo())
+                            .unwrap_or(false)
+                        {
+                            // If it's a weapon attack, we cannot use while in rhythm.
+                            return UnpoweredFunctionState::Failed;
+                        }
+                        if !assure_weapon_wielded(&me, model, controller, true) {
+                            return UnpoweredFunctionState::Failed;
+                        }
                     }
                     controller
                         .plan
@@ -535,6 +539,10 @@ fn assure_wielded(
         } else {
             return false;
         }
+    } else if me.wield_state.is_wielding_left(wielded) && !me.arm_free_left() {
+        return false;
+    } else if me.wield_state.is_wielding_right(wielded) && !me.arm_free_right() {
+        return false;
     }
     true
 }

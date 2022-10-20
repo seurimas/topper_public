@@ -1,3 +1,5 @@
+use crate::classes::Class;
+
 use super::*;
 use num_enum::TryFromPrimitive;
 use serde::{Deserialize, Serialize};
@@ -736,16 +738,25 @@ pub enum WieldState {
 
 impl WieldState {
     pub fn is_wielding(&self, substring: &str) -> bool {
+        self.is_wielding_left(substring) || self.is_wielding_right(substring)
+    }
+
+    pub fn is_wielding_left(&self, substring: &str) -> bool {
         match self {
-            Self::Normal { left, right } => {
-                left.as_ref()
-                    .map(|left| left.find(substring).is_some())
-                    .unwrap_or(false)
-                    || right
-                        .as_ref()
-                        .map(|right| right.find(substring).is_some())
-                        .unwrap_or(false)
-            }
+            Self::Normal { left, right } => left
+                .as_ref()
+                .map(|left| left.find(substring).is_some())
+                .unwrap_or(false),
+            Self::TwoHanded(both) => both.find(substring).is_some(),
+        }
+    }
+
+    pub fn is_wielding_right(&self, substring: &str) -> bool {
+        match self {
+            Self::Normal { left, right } => right
+                .as_ref()
+                .map(|right| right.find(substring).is_some())
+                .unwrap_or(false),
             Self::TwoHanded(both) => both.find(substring).is_some(),
         }
     }
@@ -914,6 +925,7 @@ pub enum ClassState {
     Sentinel(SentinelClassState),
     Bard(BardClassState),
     Shifter(HowlingState),
+    Other(Class),
     Unknown,
 }
 
@@ -926,6 +938,38 @@ impl ClassState {
             }
             ClassState::Bard(bard_class_state) => bard_class_state.wait(duration),
             _ => {}
+        }
+    }
+
+    pub fn get_normalized_class(&self) -> Option<Class> {
+        match self {
+            Self::Zealot(_) => Some(Class::Zealot),
+            Self::Sentinel(_) => Some(Class::Sentinel),
+            Self::Bard(_) => Some(Class::Bard),
+            Self::Shifter(_) => Some(Class::Shapeshifter),
+            Self::Other(class) => Some(*class),
+            Self::Unknown => None,
+        }
+    }
+
+    pub fn initialize_for_normalized_class(&mut self, class: Class) {
+        if let Some(new_class_state) = match (&self, class) {
+            // Already initialized,
+            (Self::Zealot(_), Class::Zealot) => None,
+            (Self::Sentinel(_), Class::Sentinel) => None,
+            (Self::Bard(_), Class::Bard) => None,
+            (Self::Shifter(_), Class::Shapeshifter) => None,
+            // Changed.
+            (_, Class::Zealot) => Some(Self::Zealot(ZealotClassState::default())),
+            (_, Class::Sentinel) => Some(Self::Sentinel(SentinelClassState::default())),
+            (_, Class::Bard) => Some(Self::Bard(BardClassState::default())),
+            (_, Class::Shapeshifter) => Some(Self::Shifter(HowlingState::default())),
+            (_, observed) => {
+                // Other initializations should have been covered above.
+                Some(Self::Other(observed))
+            }
+        } {
+            *self = new_class_state;
         }
     }
 }

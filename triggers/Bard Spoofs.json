@@ -504,6 +504,27 @@
         "observation_name": "Proc"
     },
     {
+        "regex": "^Pulsing ominously, the weapon floods (\\w+)'s chest with an array of inverted light.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Weaving"
+            },
+            {
+                "Literal": "Anelace"
+            },
+            {
+                "Literal": "hit"
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
         "regex": "^(You) ease your grip upon your (rapier|falchion).$",
         "args": [
             {

@@ -1,5 +1,23 @@
 [
   {
+    "regex": "^(Balance|Equilibrium|Shadow) Used: (\\d+.\\d+) seconds$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "GroupAsTarget": 2
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Balance"
+  },
+  {
     "regex": "^You discern that (\\w+) has cured the effects of (.*).$",
     "args": [
       {
