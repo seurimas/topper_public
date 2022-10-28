@@ -528,6 +528,10 @@ impl AgentState {
         self.arm_free_left() && self.arm_free_right()
     }
 
+    pub fn arm_free(&self) -> bool {
+        self.arm_free_left() || self.arm_free_right()
+    }
+
     pub fn arm_free_left(&self) -> bool {
         !self.is(FType::LeftArmBroken)
     }

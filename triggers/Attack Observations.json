@@ -1,6 +1,24 @@
 [
   {
-    "regex": "^(\\w+) (parries|parry) the attack (to|on) \\w+ (head|torso|left arm|right arm|left leg|right leg) with a deft maneuver.$",
+    "regex": "^(\\w+) (parries|parry) the attack (to|on) (\\w+|\\w+ \\w+) (head|torso|left arm|right arm|left leg|right leg) with a deft maneuver.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "GroupAsTarget": 5
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Parry"
+  },
+  {
+    "regex": "^With a free hand, (\\w+) fends? off the attack (to|on) (\\w+|\\w+ \\w+) (head|torso|left arm|right arm|left leg|right leg).$",
     "args": [
       {
         "GroupAsTarget": 1
@@ -18,25 +36,7 @@
     "observation_name": "Parry"
   },
   {
-    "regex": "^With a free hand, (\\w+) fends? off the attack (to|on) (\\w+) (head|torso|left arm|right arm|left leg|right leg).$",
-    "args": [
-      {
-        "GroupAsTarget": 1
-      },
-      {
-        "GroupAsTarget": 4
-      },
-      {
-        "Literal": ""
-      },
-      {
-        "Literal": ""
-      }
-    ],
-    "observation_name": "Parry"
-  },
-  {
-    "regex": "^With a predatory growl, (\\w+) opposes? the attack (to|on) (\\w+) (head|torso|left arm|right arm|left leg|right leg), denying it purchase.$",
+    "regex": "^With a predatory growl, (\\w+) opposes? the attack (to|on) (\\w+|\\w+ \\w+) (head|torso|left arm|right arm|left leg|right leg), denying it purchase.$",
     "args": [
       {
         "GroupAsTarget": 1
@@ -162,7 +162,7 @@
     "observation_name": "Devenoms"
   },
   {
-    "regex": "^Your fangs won't penetrate the odd waxy coating protecting them.$",
+    "regex": "^Your fangs won't penetrate the odd waxy coating protecting (\\w+|\\w+ \\w+).$",
     "args": [
       {
         "Literal": ""
@@ -324,7 +324,7 @@
     "observation_name": "Absorbed"
   },
   {
-    "regex": "^(\\w+)'s face flushes as (\\w+) body purges the (\\w+) venom.",
+    "regex": "^(\\w+)'s face flushes as (\\w+|\\w+ \\w+) body purges the (\\w+) venom.",
     "args": [
       {
         "GroupAsTarget": 1

@@ -365,6 +365,8 @@ pub enum FType {
     Blackout,
     Stun,
     Asleep,
+    Shock,
+    Burnout,
 
     // Monk Uncurable
     NumbArms,

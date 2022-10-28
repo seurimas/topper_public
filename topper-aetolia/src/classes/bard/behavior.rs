@@ -79,11 +79,13 @@ impl UnpoweredFunction for BardBehavior {
                         .unwrap_or(false)
                     {
                         return UnpoweredFunctionState::Failed;
-                    } else if !assure_weapon_wielded(&me, model, controller, true) {
+                    } else if !assure_weapon_wielded_only(&me, model, controller) {
                         return UnpoweredFunctionState::Failed;
                     }
                 }
-                if !assure_unwielded(&me, model, controller, false) {
+                if *weavable != Weavable::Impetus
+                    && !assure_unwielded(&me, model, controller, false)
+                {
                     return UnpoweredFunctionState::Failed;
                 }
                 controller
@@ -157,6 +159,8 @@ impl UnpoweredFunction for BardBehavior {
                     let you = model.state.borrow_agent(&target);
                     if *venom_attack != BardVenomAttack::Needle && you.is(FType::Rebounding) {
                         return UnpoweredFunctionState::Failed;
+                    } else if you.is(FType::Shielded) {
+                        return UnpoweredFunctionState::Failed;
                     } else if me.stuck_fallen() {
                         return UnpoweredFunctionState::Failed;
                     } else if *venom_attack != BardVenomAttack::Needle
@@ -204,9 +208,14 @@ impl UnpoweredFunction for BardBehavior {
                 }
                 if let Some(target) = &controller.target.clone() {
                     let me = model.state.borrow_me();
+                    let you = model.state.borrow_agent(target);
                     if performance_attack.gets_rebounded()
-                        && model.state.borrow_agent(target).is(FType::Rebounding)
+                        && (you.is(FType::Rebounding) || you.is(FType::Shielded))
                     {
+                        return UnpoweredFunctionState::Failed;
+                    } else if performance_attack.must_stand() && me.stuck_fallen() {
+                        return UnpoweredFunctionState::Failed;
+                    } else if performance_attack.needs_arm() && !me.arm_free() {
                         return UnpoweredFunctionState::Failed;
                     } else if performance_attack.needs_weapon()
                         && me.check_if_bard(&|me| me.is_on_tempo()).unwrap_or_default()
@@ -221,6 +230,10 @@ impl UnpoweredFunction for BardBehavior {
                             return UnpoweredFunctionState::Failed;
                         }
                         if !assure_weapon_wielded(&me, model, controller, true) {
+                            return UnpoweredFunctionState::Failed;
+                        }
+                    } else if performance_attack.needs_free_hand() {
+                        if !assure_unwielded(&me, model, controller, true) {
                             return UnpoweredFunctionState::Failed;
                         }
                     }
@@ -321,7 +334,7 @@ impl UnpoweredFunction for BardBehavior {
                     .unwrap_or(false)
                 {
                     return UnpoweredFunctionState::Failed;
-                } else if me.stuck_fallen() {
+                } else if me.stuck_fallen() || !me.arm_free() {
                     return UnpoweredFunctionState::Failed;
                 }
                 controller
@@ -378,6 +391,8 @@ impl UnpoweredFunction for BardBehavior {
                         .check_if_bard(&|bard| bard.voice_song.is_some())
                         .unwrap_or(false)
                 {
+                    return UnpoweredFunctionState::Failed;
+                } else if !me.arm_free() {
                     return UnpoweredFunctionState::Failed;
                 }
                 if playing {
@@ -543,6 +558,41 @@ fn assure_wielded(
         return false;
     } else if me.wield_state.is_wielding_right(wielded) && !me.arm_free_right() {
         return false;
+    }
+    true
+}
+
+fn assure_weapon_wielded_only(
+    me: &AgentState,
+    model: &BehaviorModel,
+    controller: &mut BehaviorController,
+) -> bool {
+    let wielded = if let Some(alias) = controller.get_hint(WEAPON_HINT) {
+        alias.as_str()
+    } else {
+        "falchion"
+    };
+    if !me.can_wield(true, true) {
+        return false;
+    } else if !me.wield_state.is_wielding(wielded) {
+        controller
+            .plan
+            .add_to_qeb(Box::new(WieldAction::quick_wield(
+                model.who_am_i(),
+                wielded.to_string(),
+                true,
+            )));
+        controller
+            .plan
+            .add_to_qeb(Box::new(UnwieldAction::unwield(model.who_am_i(), false)));
+    } else if me.wield_state.is_wielding_left(wielded) {
+        controller
+            .plan
+            .add_to_qeb(Box::new(UnwieldAction::unwield(model.who_am_i(), false)));
+    } else if me.wield_state.is_wielding_right(wielded) {
+        controller
+            .plan
+            .add_to_qeb(Box::new(UnwieldAction::unwield(model.who_am_i(), true)));
     }
     true
 }

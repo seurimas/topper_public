@@ -329,6 +329,30 @@ impl PerformanceAttack {
         }
     }
 
+    pub fn needs_arm(&self) -> bool {
+        match self {
+            Self::TempoNaked
+            | Self::TempoOne(_)
+            | Self::TempoTwo(_, _)
+            | Self::TempoThree(_, _, _)
+            | Self::Harry(_)
+            | Self::Cadence
+            | Self::Pierce
+            | Self::Hiltblow
+            | Self::Crackshot
+            | Self::Sock
+            | Self::Seduce => true,
+            _ => false,
+        }
+    }
+
+    pub fn needs_free_hand(&self) -> bool {
+        match self {
+            Self::Sock => true,
+            _ => false,
+        }
+    }
+
     pub fn gets_rebounded(&self) -> bool {
         match self {
             Self::TempoNaked

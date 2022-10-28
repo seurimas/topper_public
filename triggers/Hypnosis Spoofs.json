@@ -63,7 +63,7 @@
     "observation_name": "Proc"
   },
   {
-    "regex": "^(You) draw (\\w+) out of (\\w+) hypnotic daze, your suggestions indelibly printed on (\\w+) mind.$",
+    "regex": "^(You) draw (\\w+) out of (\\w+|\\w+ \\w+) hypnotic daze, your suggestions indelibly printed on (\\w+|\\w+ \\w+) mind.$",
     "args": [
       {
         "GroupAsTarget": 1

@@ -84,7 +84,7 @@
         "observation_name": "Proc"
     },
     {
-        "regex": "^(\\w+)'s mental state is overwhelmed as (\\w+) revels in (\\w+) burgeoning emotions.$",
+        "regex": "^(\\w+)'s mental state is overwhelmed as (\\w+|\\w+ \\w+) revels in (\\w+) burgeoning emotions.$",
         "args": [
             {
                 "GroupAsTarget": 1
@@ -525,6 +525,27 @@
         "observation_name": "Proc"
     },
     {
+        "regex": "^(You) cannot weave more than two anelaces.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Weaving"
+            },
+            {
+                "Literal": "Anelace"
+            },
+            {
+                "Literal": "two"
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
         "regex": "^(You) ease your grip upon your (rapier|falchion).$",
         "args": [
             {
@@ -672,7 +693,7 @@
         "observation_name": "Proc"
     },
     {
-        "regex": "^An iron collar snaps shut in (you)r hand, clamping only air.$",
+        "regex": "^An iron collar snaps shut in (\\w+)'?s? hand, clamping only air.$",
         "args": [
             {
                 "GroupAsTarget": 1
@@ -871,6 +892,48 @@
             },
             {
                 "Literal": "end"
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^There is no boundary here encircling the location.$",
+        "args": [
+            {
+                "Literal": ""
+            },
+            {
+                "Literal": "Weaving"
+            },
+            {
+                "Literal": "Heartcage"
+            },
+            {
+                "Literal": "no_boundary"
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^(\\w+) is not bound by an iron collar.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Weaving"
+            },
+            {
+                "Literal": "Heartcage"
+            },
+            {
+                "Literal": "no_collar"
             },
             {
                 "Literal": ""

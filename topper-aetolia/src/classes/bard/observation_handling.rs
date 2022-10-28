@@ -322,15 +322,31 @@ pub fn handle_weaving_action(
                 });
             },
         ),
-        "Heartcage" => for_agent(
-            agent_states,
-            &combat_action.caster,
-            &|me: &mut AgentState| {
-                me.assume_bard(&|bard: &mut BardClassState| {
-                    bard.dithering = HEARTCAGE_DITHER;
-                });
-            },
-        ),
+        "Heartcage" => match combat_action.annotation.as_ref() {
+            "no_collar" => for_agent(
+                agent_states,
+                &combat_action.caster,
+                &|me: &mut AgentState| {
+                    me.bard_board.iron_collar_state = IronCollarState::None;
+                },
+            ),
+            "no_boundary" => {
+                if let Some(mut my_room) = agent_states.get_my_room_mut() {
+                    my_room.remove_tag("boundary");
+                }
+            }
+            "end" => {}
+            "form" => {}
+            _ => for_agent(
+                agent_states,
+                &combat_action.caster,
+                &|me: &mut AgentState| {
+                    me.assume_bard(&|bard: &mut BardClassState| {
+                        bard.dithering = HEARTCAGE_DITHER;
+                    });
+                },
+            ),
+        },
         "Horologe" => for_agent(
             agent_states,
             &combat_action.caster,

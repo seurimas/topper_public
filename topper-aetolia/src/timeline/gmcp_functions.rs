@@ -52,6 +52,21 @@ fn handle_char_vitals(
             },
         );
     }
+    if let Some(dithering) = gmcp
+        .get("dithering")
+        .and_then(|dithering| dithering.as_str())
+        .and_then(|dithering| dithering.parse::<usize>().ok())
+    {
+        for_agent(
+            timeline,
+            &timeline.me.clone(),
+            &move |me: &mut AgentState| {
+                if let ClassState::Bard(class_state) = &mut me.class_state {
+                    class_state.dithering = dithering;
+                }
+            },
+        );
+    }
 }
 
 fn handle_room_info(
