@@ -340,8 +340,8 @@ lazy_static! {
     static ref ZEALOT_STACK: Vec<VenomPlan> = vec![
         VenomPlan::Stick(FType::Clumsiness),
         VenomPlan::Stick(FType::Asthma),
-        VenomPlan::OneOf(FType::Slickness, FType::Anorexia),
         VenomPlan::OneOf(FType::Weariness, FType::Stupidity),
+        VenomPlan::OneOf(FType::Slickness, FType::Anorexia),
         VenomPlan::OneOf(FType::Allergies, FType::Vomiting),
         VenomPlan::OneOf(FType::LeftLegBroken, FType::LeftArmBroken),
         VenomPlan::OneOf(FType::RightLegBroken, FType::RightLegBroken),
@@ -368,6 +368,7 @@ lazy_static! {
         VenomPlan::Stick(FType::Paresis),
         VenomPlan::Stick(FType::Asthma),
         VenomPlan::OneOf(FType::Weariness, FType::Stupidity),
+        VenomPlan::OneOf(FType::Dizziness, FType::Peace),
         VenomPlan::OneOf(FType::Allergies, FType::Vomiting),
         VenomPlan::OneOf(FType::Haemophilia, FType::Dizziness),
         VenomPlan::OneOf(FType::Slickness, FType::Anorexia),

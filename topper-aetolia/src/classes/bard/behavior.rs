@@ -13,6 +13,7 @@ use crate::{
 
 use super::actions::*;
 
+pub const INSTRUMENT_HINT: &str = "INSTRUMENT";
 pub const WEAPON_HINT: &str = "WEAPON";
 pub const IMPETUS_WEAPON_HINT: &str = "IMPETUS_WEAPON";
 pub const FAST_WEAPON_HINT: &str = "FAST_WEAPON";
@@ -106,8 +107,8 @@ impl UnpoweredFunction for BardBehavior {
                     return UnpoweredFunctionState::Failed;
                 }
                 if let Some(target) = controller.target.clone() {
+                    let you = model.state.borrow_agent(&target);
                     if *weave_attack == WeavingAttack::Heartcage {
-                        let you = model.state.borrow_agent(&target);
                         if !you.is(FType::Fallen) {
                             return UnpoweredFunctionState::Failed;
                         } else if !you.bard_board.iron_collar_state.is_active() {
@@ -126,6 +127,9 @@ impl UnpoweredFunction for BardBehavior {
                                 return UnpoweredFunctionState::Failed;
                             }
                         }
+                    }
+                    if you.is(FType::Shielded) {
+                        return UnpoweredFunctionState::Failed;
                     }
                     if !assure_unwielded(&me, model, controller, false) {
                         return UnpoweredFunctionState::Failed;
@@ -220,6 +224,8 @@ impl UnpoweredFunction for BardBehavior {
                     } else if performance_attack.needs_weapon()
                         && me.check_if_bard(&|me| me.is_on_tempo()).unwrap_or_default()
                     {
+                        return UnpoweredFunctionState::Failed;
+                    } else if performance_attack.needs_voice() && me.is(FType::CrippledThroat) {
                         return UnpoweredFunctionState::Failed;
                     } else if performance_attack.needs_weapon() {
                         if me
@@ -351,7 +357,7 @@ impl UnpoweredFunction for BardBehavior {
                     return UnpoweredFunctionState::Failed;
                 } else if me.stuck_fallen() || !me.arms_free() {
                     return UnpoweredFunctionState::Failed;
-                } else if !assure_wielded(&me, model, controller, "fife", false) {
+                } else if !assure_instrument_wielded(&me, model, controller, false) {
                     return UnpoweredFunctionState::Failed;
                 }
                 controller
@@ -381,7 +387,7 @@ impl UnpoweredFunction for BardBehavior {
                     playing = false;
                 } else if !me.arms_free() {
                     playing = false;
-                } else if !assure_wielded(&me, model, controller, "fife", false) {
+                } else if !assure_instrument_wielded(&me, model, controller, false) {
                     playing = false;
                 }
                 if !playing
@@ -465,9 +471,11 @@ fn assure_unwielded(
             if let (Some(left), Some(right)) =
                 (me.wield_state.get_left(), me.wield_state.get_right())
             {
-                if prefer_left && left.contains("fife") && !right.contains("fife") {
+                let instrument = get_instrument(controller);
+                if prefer_left && left.contains(&instrument) && !right.contains(&instrument) {
                     return assure_unwielded(me, model, controller, false);
-                } else if !prefer_left && right.contains("fife") && !left.contains("fife") {
+                } else if !prefer_left && right.contains(&instrument) && !left.contains(&instrument)
+                {
                     return assure_unwielded(me, model, controller, true);
                 }
             }
@@ -509,9 +517,30 @@ fn assure_weapon_wielded(
     prefer_left: bool,
 ) -> bool {
     if let Some(alias) = controller.get_hint(WEAPON_HINT).cloned() {
-        assure_wielded(&me, model, controller, alias.as_str(), true)
+        assure_wielded(&me, model, controller, alias.as_str(), prefer_left)
     } else {
-        assure_wielded(&me, model, controller, "falchion", true)
+        assure_wielded(&me, model, controller, "falchion", prefer_left)
+    }
+}
+
+fn get_instrument(controller: &mut BehaviorController) -> String {
+    if let Some(alias) = controller.get_hint(INSTRUMENT_HINT).cloned() {
+        alias
+    } else {
+        "lute".to_string()
+    }
+}
+
+fn assure_instrument_wielded(
+    me: &AgentState,
+    model: &BehaviorModel,
+    controller: &mut BehaviorController,
+    prefer_left: bool,
+) -> bool {
+    if let Some(alias) = controller.get_hint(INSTRUMENT_HINT).cloned() {
+        assure_wielded(&me, model, controller, alias.as_str(), prefer_left)
+    } else {
+        assure_wielded(&me, model, controller, "lute", prefer_left)
     }
 }
 
@@ -527,9 +556,10 @@ fn assure_wielded(
         .unwrap_or(false)
     {
         if let (Some(left), Some(right)) = (me.wield_state.get_left(), me.wield_state.get_right()) {
-            if prefer_left && left.contains("fife") && !right.contains("fife") {
+            let instrument = get_instrument(controller);
+            if prefer_left && left.contains(&instrument) && !right.contains(&instrument) {
                 return assure_wielded(me, model, controller, wielded, false);
-            } else if !prefer_left && right.contains("fife") && !left.contains("fife") {
+            } else if !prefer_left && right.contains(&instrument) && !left.contains(&instrument) {
                 return assure_wielded(me, model, controller, wielded, true);
             }
         }

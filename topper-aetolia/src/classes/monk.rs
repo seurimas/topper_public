@@ -8,7 +8,11 @@ pub fn handle_combat_action(
     after: &Vec<AetObservation>,
 ) -> Result<(), String> {
     match combat_action.skill.as_ref() {
-        "temp" => {}
+        "Kipup" => {
+            for_agent(agent_states, &combat_action.caster, &|me| {
+                me.toggle_flag(FType::Fallen, false);
+            });
+        }
         _ => {}
     }
     Ok(())

@@ -70,6 +70,10 @@ pub fn get_action_plan(
         if let Some(fast_weapon) = db.get_hint(&FAST_WEAPON_HINT.to_string()) {
             controller.hint_plan(FAST_WEAPON_HINT.to_string(), fast_weapon);
         }
+
+        if let Some(instrument) = db.get_hint(&INSTRUMENT_HINT.to_string()) {
+            controller.hint_plan(INSTRUMENT_HINT.to_string(), instrument);
+        }
     }
     let tree_name = if strategy.eq("class") {
         format!("bard/base")

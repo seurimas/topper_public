@@ -940,5 +940,44 @@
             }
         ],
         "observation_name": "Proc"
+    },
+    {
+        "regex": "^(\\w+) is not bound by an iron collar.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Weaving"
+            },
+            {
+                "Literal": "Heartcage"
+            },
+            {
+                "Literal": "no_collar"
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^(\\w+) is not fallen upon the ground.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "fallen"
+            },
+            {
+                "Literal": ""
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "DiscernedCure"
     }
 ]
