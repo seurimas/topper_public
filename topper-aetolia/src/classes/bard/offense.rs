@@ -105,8 +105,12 @@ pub fn get_class_state(
 ) -> String {
     let me = timeline.state.borrow_me();
     let you = timeline.state.borrow_agent(target);
-    let runeband = if let Some(next_runeband) = you.bard_board.next_runeband() {
-        format!("<magenta>{} ", next_runeband)
+    let runeband = if let Some((next_runeband, timer)) = you.bard_board.next_runeband() {
+        format!(
+            "<magenta>{}({}) ",
+            next_runeband,
+            (timer as f32 / BALANCE_SCALE)
+        )
     } else {
         "<gray>No RB ".to_string()
     };

@@ -102,10 +102,10 @@ pub struct CureDepths {
     focus: CureDepth,
 }
 
-const PILL_TIME: CType = 150;
-const PANACEA_TIME: CType = 250;
+const PILL_TIME: CType = 120;
+const PANACEA_TIME: CType = 240;
 const SALVE_TIME: CType = 150;
-const RESTORATION_TIME: CType = 250;
+const RESTORATION_TIME: CType = 400;
 const SMOKE_TIME: CType = 150;
 
 fn get_cure_depth_locked(me: &AgentState, target_aff: FType, checked: u32) -> CureDepth {

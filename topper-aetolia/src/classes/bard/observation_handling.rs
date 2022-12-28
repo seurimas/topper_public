@@ -880,6 +880,35 @@ pub fn handle_songcalling_action(
                 after,
             );
         }
+        ("Fate", "hit") => {
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &|me: &mut AgentState| {
+                    me.bard_board.fate_state.activate();
+                },
+            );
+        }
+        ("Fate", "add") => {
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &|me: &mut AgentState| {
+                    me.bard_board
+                        .fate_state
+                        .add_exit(combat_action.target.clone());
+                },
+            );
+        }
+        ("Fate", "expire") => {
+            for_agent(
+                agent_states,
+                &combat_action.caster,
+                &|me: &mut AgentState| {
+                    me.bard_board.fate_state.deactivate();
+                },
+            );
+        }
         ("Discordanced", aff_name) => {
             if let Some(aff) = FType::from_name(&aff_name.to_string()) {
                 attack_afflictions(agent_states, &combat_action.caster, vec![aff], after);

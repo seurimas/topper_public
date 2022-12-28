@@ -115,7 +115,7 @@ fn no_affs(
         }
         return true;
     }
-    return false;
+    return true;
 }
 
 fn aff_counts(
@@ -214,7 +214,13 @@ impl UnpoweredFunction for AetPredicate {
                     let mut afflicted = target.clone();
                     afflicted.set_flag(*aff, true);
                     let cure_depth = get_cure_depth(&afflicted, *aff);
-                    if cure_depth.time > 100 {
+                    let minimum_depth =
+                        if let Some(me) = AetTarget::Me.get_target(model, controller) {
+                            100 + (BALANCE_SCALE * me.get_qeb_balance()) as CType
+                        } else {
+                            100
+                        };
+                    if cure_depth.time > minimum_depth {
                         return UnpoweredFunctionState::Complete;
                     }
                 }

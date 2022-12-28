@@ -32,11 +32,13 @@ pub enum BardPredicate {
     HasAnelace(Option<usize>),
     Needled(Option<String>),
     NeedleAlmostPending,
+    RunebandTimerNear(CType),
     NeedlePending,
     NeedlingFor(FType),
     Singing(Option<Song>),
     Playing(Option<Song>),
     SingingOrPlaying(Option<Song>),
+    Fated,
 }
 
 impl TargetPredicate for BardPredicate {
@@ -69,9 +71,11 @@ impl TargetPredicate for BardPredicate {
                 BardPredicate::Runebanded => target.bard_board.runeband_state.is_active(),
                 BardPredicate::RunebandForward => target.bard_board.runeband_state.is_forward(),
                 BardPredicate::RunebandReversed => target.bard_board.runeband_state.is_reversed(),
-                BardPredicate::RunebandAffIs(aff) => {
-                    target.bard_board.next_runeband() == Some(*aff)
-                }
+                BardPredicate::RunebandAffIs(aff) => target
+                    .bard_board
+                    .next_runeband()
+                    .map(|(rb_aff, _)| rb_aff == *aff)
+                    .unwrap_or(false),
                 BardPredicate::Dumb(default) => target.bard_board.is_dumb(*default),
                 BardPredicate::IronCollared => target.bard_board.iron_collar_state.is_active(),
                 BardPredicate::Globed => target.bard_board.globes_state.is_active(),
@@ -118,6 +122,11 @@ impl TargetPredicate for BardPredicate {
                 BardPredicate::Needled(None) => target.bard_board.needle_venom.is_some(),
                 BardPredicate::NeedleAlmostPending => target.bard_board.almost_needling(),
                 BardPredicate::NeedlePending => target.bard_board.needling(),
+                BardPredicate::RunebandTimerNear(time) => target
+                    .bard_board
+                    .runeband_timer()
+                    .map(|timer| (timer.abs_diff(*time) as CType) < (BALANCE_SCALE as CType))
+                    .unwrap_or(false),
                 BardPredicate::NeedlingFor(aff) => {
                     if !target.bard_board.needling() {
                         false
@@ -160,6 +169,8 @@ impl TargetPredicate for BardPredicate {
                         bard.instrument_song.is_some() || bard.voice_song.is_some()
                     })
                     .unwrap_or(false),
+
+                BardPredicate::Fated => target.bard_board.fate_state.is_active(),
             }
         } else {
             false

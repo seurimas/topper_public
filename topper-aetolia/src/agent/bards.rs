@@ -80,6 +80,8 @@ pub struct BardClassState {
     pub anelaces: usize,
 }
 
+const SONG_FUDGE: CType = (0.33 * BALANCE_SCALE) as CType;
+const RUNEBAND_TIMEOUT: CType = (8.0 * BALANCE_SCALE) as CType;
 const IMPETUS_TIMEOUT: CType = (30.0 * BALANCE_SCALE) as CType;
 const VOICE_SONG_TIMEOUT: CType = (8.0 * BALANCE_SCALE) as CType;
 const INSTRUMENT_SONG_TIMEOUT: CType = (6.0 * BALANCE_SCALE) as CType;
@@ -87,12 +89,6 @@ const NEEDLE_TIMEOUT: CType = (3.25 * BALANCE_SCALE) as CType;
 
 impl BardClassState {
     pub fn wait(&mut self, duration: i32) {
-        if self.voice_timeout <= duration {
-            self.voice_song = None;
-        }
-        if self.instrument_timeout <= duration {
-            self.instrument_song = None;
-        }
         let mut tempo_timeout = false;
         if let Some((count, timer)) = &mut self.tempo {
             *timer += duration;
@@ -103,6 +99,12 @@ impl BardClassState {
         }
         self.voice_timeout -= duration;
         self.instrument_timeout -= duration;
+        if self.voice_timeout <= -SONG_FUDGE {
+            self.voice_song = None;
+        }
+        if self.instrument_timeout <= -SONG_FUDGE {
+            self.instrument_song = None;
+        }
     }
 
     pub fn on_tempo(&mut self, count: usize) {
@@ -163,8 +165,8 @@ impl BardClassState {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum RunebandState {
     Inactive,
-    Normal(usize),
-    Reverse(usize),
+    Normal(usize, CType),
+    Reverse(usize, CType),
 }
 
 impl Default for RunebandState {
@@ -174,17 +176,25 @@ impl Default for RunebandState {
 }
 
 impl RunebandState {
+    pub fn wait(&mut self, time: CType) {
+        *self = match self {
+            Self::Inactive => Self::Inactive,
+            Self::Normal(aff_idx, timer) => Self::Normal(*aff_idx, *timer - time),
+            Self::Reverse(aff_idx, timer) => Self::Reverse(*aff_idx, *timer - time),
+        };
+    }
+
     pub fn initial() -> Self {
-        Self::Normal(0)
+        Self::Normal(0, RUNEBAND_TIMEOUT)
     }
 
     pub fn reverse(&mut self) {
         match &self {
-            Self::Normal(next) => {
-                *self = Self::Reverse(*next);
+            Self::Normal(next, timer) => {
+                *self = Self::Reverse(*next, *timer);
             }
-            Self::Reverse(next) => {
-                *self = Self::Normal(*next);
+            Self::Reverse(next, timer) => {
+                *self = Self::Normal(*next, *timer);
             }
             _ => {}
         }
@@ -199,14 +209,14 @@ impl RunebandState {
 
     pub fn is_forward(&self) -> bool {
         match self {
-            Self::Normal(_) => true,
+            Self::Normal(_, _) => true,
             _ => false,
         }
     }
 
     pub fn is_reversed(&self) -> bool {
         match self {
-            Self::Reverse(_) => true,
+            Self::Reverse(_, _) => true,
             _ => false,
         }
     }
@@ -234,6 +244,70 @@ impl GlobesState {
             Self::None => false,
             _ => true,
         }
+    }
+}
+
+pub const FATE_TIMEOUT: CType = (45.0 * BALANCE_SCALE) as CType;
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum FateState {
+    Inactive,
+    Active {
+        timeout: CType,
+        known_exits: Vec<String>,
+    },
+}
+
+impl FateState {
+    fn wait(&mut self, time: CType) {
+        match self {
+            Self::Active { timeout, .. } => {
+                *timeout -= time;
+                if *timeout <= 0 {
+                    *self = Self::Inactive
+                }
+            }
+            _ => {}
+        }
+    }
+
+    pub fn is_active(&self) -> bool {
+        matches!(self, Self::Active { .. })
+    }
+
+    pub fn activate(&mut self) {
+        *self = Self::Active {
+            timeout: FATE_TIMEOUT,
+            known_exits: Vec::new(),
+        }
+    }
+
+    pub fn add_exit(&mut self, exit: String) {
+        match self {
+            Self::Active {
+                timeout,
+                known_exits,
+            } => {
+                *timeout = FATE_TIMEOUT;
+                known_exits.push(exit);
+            }
+            Self::Inactive => {
+                *self = Self::Active {
+                    timeout: FATE_TIMEOUT,
+                    known_exits: vec![exit],
+                }
+            }
+        }
+    }
+
+    pub fn deactivate(&mut self) {
+        *self = Self::Inactive
+    }
+}
+
+impl Default for FateState {
+    fn default() -> Self {
+        Self::Inactive
     }
 }
 
@@ -332,6 +406,7 @@ pub struct BardBoard {
     pub emotion_state: EmotionState,
     pub runeband_state: RunebandState,
     pub globes_state: GlobesState,
+    pub fate_state: FateState,
     pub iron_collar_state: IronCollarState,
     pub blades_count: usize,
     pub needle_venom: Option<String>,
@@ -341,6 +416,8 @@ pub struct BardBoard {
 
 impl BardBoard {
     pub fn wait(&mut self, duration: i32) {
+        self.fate_state.wait(duration);
+        self.runeband_state.wait(duration);
         self.needle_timer -= duration;
         if self.needle_timer < -100 {
             self.needle_venom = None;
@@ -353,6 +430,7 @@ impl BardBoard {
     }
 
     pub fn needled(&mut self) -> Option<String> {
+        println!("Needled at {}", self.needle_timer);
         let needled = self.needle_venom.clone();
         self.needle_venom = None;
         self.needle_timer = 0;
@@ -360,7 +438,7 @@ impl BardBoard {
     }
 
     pub fn needling(&self) -> bool {
-        self.needle_venom.is_some() && self.needle_timer <= BALANCE_SCALE as CType
+        self.needle_venom.is_some() && self.needle_timer <= 0 as CType
     }
 
     pub fn almost_needling(&self) -> bool {
@@ -388,34 +466,41 @@ impl BardBoard {
         }
     }
 
-    pub fn next_runeband(&self) -> Option<FType> {
+    pub fn next_runeband(&self) -> Option<(FType, CType)> {
         match self.runeband_state {
-            RunebandState::Normal(aff_idx) => Some(RUNEBAND_AFFS[aff_idx]),
-            RunebandState::Reverse(aff_idx) => Some(RUNEBAND_AFFS[aff_idx]),
+            RunebandState::Normal(aff_idx, timer) => Some((RUNEBAND_AFFS[aff_idx], timer)),
+            RunebandState::Reverse(aff_idx, timer) => Some((RUNEBAND_AFFS[aff_idx], timer)),
             _ => None,
         }
     }
 
     pub fn runebanded(&mut self) -> Option<FType> {
         match self.runeband_state {
-            RunebandState::Normal(aff_idx) => {
+            RunebandState::Normal(aff_idx, _) => {
                 let new_idx = if aff_idx >= RUNEBAND_AFFS.len() - 1 {
                     0
                 } else {
                     aff_idx + 1
                 };
-                self.runeband_state = RunebandState::Normal(new_idx);
+                self.runeband_state = RunebandState::Normal(new_idx, RUNEBAND_TIMEOUT);
                 Some(RUNEBAND_AFFS[aff_idx])
             }
-            RunebandState::Reverse(aff_idx) => {
+            RunebandState::Reverse(aff_idx, _) => {
                 let new_idx = if aff_idx == 0 {
                     RUNEBAND_AFFS.len() - 1
                 } else {
                     aff_idx - 1
                 };
-                self.runeband_state = RunebandState::Reverse(new_idx);
+                self.runeband_state = RunebandState::Reverse(new_idx, RUNEBAND_TIMEOUT);
                 Some(RUNEBAND_AFFS[aff_idx])
             }
+            _ => None,
+        }
+    }
+
+    pub fn runeband_timer(&self) -> Option<CType> {
+        match self.runeband_state {
+            RunebandState::Normal(_, timer) | RunebandState::Reverse(_, timer) => Some(timer),
             _ => None,
         }
     }

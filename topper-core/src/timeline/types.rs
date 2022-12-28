@@ -61,7 +61,7 @@ impl<A: BaseAgentState + Clone, N: Clone> TimelineState<A, N> {
         self.get_player_hint(name, hint_type)
             .and_then(|time| time.parse::<i32>().ok())
             .map(|time| self.time - time)
-            .map(|staleness| (staleness as f32) * BALANCE_SCALE <= freshness)
+            .map(|staleness| (staleness as f32) / BALANCE_SCALE <= freshness)
             .unwrap_or(false)
     }
 

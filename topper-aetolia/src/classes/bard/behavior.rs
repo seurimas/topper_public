@@ -35,6 +35,7 @@ pub enum BardBehavior {
     Anelace,
     ColdRead,
     PatchAggroedAlly,
+    AudienceTarget,
     AudienceAggroedAlly,
     SingSong(Song),
     PlaySong(Song),
@@ -307,6 +308,16 @@ impl UnpoweredFunction for BardBehavior {
                 } else {
                     println!("NO ALLIES");
                     return UnpoweredFunctionState::Failed;
+                }
+            }
+            BardBehavior::AudienceTarget => {
+                if let Some(target) = &controller.target {
+                    controller
+                        .plan
+                        .add_to_front_of_qeb(Box::new(PlainAction::new(format!(
+                            "audience {}",
+                            target
+                        ))));
                 }
             }
             BardBehavior::AudienceAggroedAlly => {

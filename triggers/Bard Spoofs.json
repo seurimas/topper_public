@@ -252,6 +252,69 @@
         "observation_name": "Proc"
     },
     {
+        "regex": "^The eerie, impenitent evensong embraces (\\w+), creating a song-woven darkness that swathes .*.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Songcalling"
+            },
+            {
+                "Literal": "Fate"
+            },
+            {
+                "Literal": "hit"
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^A sudden breeze buffets (\\w+), dissipating the darkness following .* into the ether.$",
+        "args": [
+            {
+                "GroupAsTarget": 1
+            },
+            {
+                "Literal": "Songcalling"
+            },
+            {
+                "Literal": "Fate"
+            },
+            {
+                "Literal": "expire"
+            },
+            {
+                "Literal": ""
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
+        "regex": "^The darkness expands, turning thick and billowing, and swallowing the (\\w+) exit from (\\w+).$",
+        "args": [
+            {
+                "GroupAsTarget": 2
+            },
+            {
+                "Literal": "Songcalling"
+            },
+            {
+                "Literal": "Fate"
+            },
+            {
+                "Literal": "add"
+            },
+            {
+                "GroupAsTarget": 1
+            }
+        ],
+        "observation_name": "Proc"
+    },
+    {
         "regex": "^(You)r tantalizing song$",
         "args": [
             {
