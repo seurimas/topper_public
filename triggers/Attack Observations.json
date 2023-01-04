@@ -216,6 +216,24 @@
     "observation_name": "OtherAfflicted"
   },
   {
+    "regex": "^(\\w+) twists and turns (\\w+|\\w+ \\w+) body, dodging the attack.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Dodges"
+  },
+  {
     "regex": "^Stepping quickly out of the way, (\\w+) dodges the attack.$",
     "args": [
       {

@@ -442,7 +442,7 @@ impl BardBoard {
     }
 
     pub fn almost_needling(&self) -> bool {
-        self.needle_venom.is_some() && self.needle_timer <= (2. * BALANCE_SCALE) as CType
+        self.needle_venom.is_some() && self.needle_timer <= (1.5 * BALANCE_SCALE) as CType
     }
 
     pub fn next_globe(&self) -> Option<FType> {

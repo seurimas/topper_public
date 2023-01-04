@@ -216,9 +216,9 @@ impl UnpoweredFunction for AetPredicate {
                     let cure_depth = get_cure_depth(&afflicted, *aff);
                     let minimum_depth =
                         if let Some(me) = AetTarget::Me.get_target(model, controller) {
-                            100 + (BALANCE_SCALE * me.get_qeb_balance()) as CType
+                            110 + (BALANCE_SCALE * me.get_qeb_balance()) as CType
                         } else {
-                            100
+                            110
                         };
                     if cure_depth.time > minimum_depth {
                         return UnpoweredFunctionState::Complete;

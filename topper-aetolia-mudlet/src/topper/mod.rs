@@ -3,8 +3,10 @@ use group::GroupModule;
 use prediction::PredictionModule;
 use serde_json::from_str;
 use std::sync::mpsc::Sender;
+use std::sync::{Arc, RwLock};
 use topper_aetolia::bt::{clear_behavior_trees, DEBUG_TREES};
 use topper_aetolia::classes::get_attack;
+use topper_aetolia::defense::DEFENSE_DATABASE;
 use topper_aetolia::non_agent::{AetNonAgent, AetTimelineRoomExt};
 use topper_aetolia::timeline::*;
 use topper_aetolia::types::AgentState;
@@ -119,7 +121,7 @@ pub struct AetTopper {
     pub prediction_module: PredictionModule,
     pub group_module: GroupModule,
     pub battlestats_module: BattleStatsModule,
-    pub database_module: AetMudletDatabaseModule,
+    pub database_module: Arc<RwLock<AetMudletDatabaseModule>>,
     pub web_module: WebModule,
     pub observation_parser: ObservationParser<AetObservation>,
 }
@@ -135,9 +137,6 @@ impl Topper<AetObservation, AetPrompt, AgentState, AetNonAgent, AetMudletDatabas
     }
     fn get_core_module(&self) -> &TopperCore {
         &self.core_module
-    }
-    fn get_database(&mut self) -> &mut AetMudletDatabaseModule {
-        &mut self.database_module
     }
 }
 
@@ -161,7 +160,7 @@ impl AetTopper {
             prediction_module: PredictionModule::default(),
             group_module: GroupModule::new(&database_module),
             battlestats_module: BattleStatsModule::new(),
-            database_module,
+            database_module: Arc::new(RwLock::new(database_module)),
             web_module: WebModule::new(),
             observation_parser: ObservationParser::<AetObservation>::new_from_directory(
                 triggers_dir,
@@ -185,6 +184,12 @@ impl TopperHandler<BattleStats> for AetTopper {
     ) -> Result<TopperResponse<BattleStats>, String> {
         match topper_msg {
             TopperMessage::TimeSlice(slice) => {
+                match DEFENSE_DATABASE.as_ref().try_lock() {
+                    Ok(mut outer_mutex) => {
+                        *outer_mutex = Some(self.database_module.clone());
+                    }
+                    Err(err) => println!("Could not assign database: {:?}", err),
+                }
                 let mut new_observations = self.observation_parser.observe(&slice);
                 if self.debug_mode {
                     println!("{:?}", new_observations);
@@ -223,12 +228,18 @@ impl TopperHandler<BattleStats> for AetTopper {
             }
             _ => {}
         }
+        // We don't even do any real writes, but the signature is stuck for now. I'm not going to refactor it.
+        self.database_module
+            .write()
+            .unwrap()
+            .handle_message(&topper_msg, (self.timeline_module.timeline.who_am_i()))?;
+        let mut database_module = self.database_module.read().unwrap();
         Ok(self
             .core_module
             .handle_message(&topper_msg, ())?
             .then(
                 self.timeline_module
-                    .handle_message(&topper_msg, (&self.database_module,))?,
+                    .handle_message(&topper_msg, (&database_module,))?,
             )
             .then(self.telnet_module.handle_message(&topper_msg, ())?)
             .then(self.battlestats_module.handle_message(
@@ -236,19 +247,15 @@ impl TopperHandler<BattleStats> for AetTopper {
                 (
                     &mut self.timeline_module.timeline,
                     &self.core_module.target,
-                    &self.database_module,
+                    &database_module,
                 ),
             )?)
-            .then(
-                self.database_module
-                    .handle_message(&topper_msg, (self.timeline_module.timeline.who_am_i()))?,
-            )
             .then(self.group_module.handle_message(
                 &topper_msg,
                 (
                     &self.me(),
                     &mut self.timeline_module.timeline,
-                    &self.database_module,
+                    &database_module,
                 ),
             )?)
             .then(self.web_module.handle_message(&topper_msg, ())?)
@@ -258,7 +265,7 @@ impl TopperHandler<BattleStats> for AetTopper {
                     &self.me(),
                     &self.core_module.target,
                     &self.timeline_module.timeline,
-                    &self.database_module,
+                    &database_module,
                 ),
             )?)
             .then(self.prediction_module.handle_message(
@@ -267,7 +274,7 @@ impl TopperHandler<BattleStats> for AetTopper {
                     &self.me(),
                     &self.core_module.target,
                     &self.timeline_module.timeline,
-                    &self.database_module,
+                    &database_module,
                 ),
             )?))
     }

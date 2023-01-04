@@ -8,7 +8,9 @@ use crate::{
     curatives::first_aid::FirstAidPriorities,
 };
 
-pub trait AetDatabaseModule: DatabaseModule {
+pub const HINT_TREE: &str = "HINTS";
+
+pub trait AetDatabaseModule {
     fn get_class(&self, who: &String) -> Option<Class>;
 
     fn set_class(&self, who: &String, class: Class);
@@ -22,6 +24,10 @@ pub trait AetDatabaseModule: DatabaseModule {
         who: &String,
         priorities_name: &String,
     ) -> Option<FirstAidPriorities>;
+
+    fn insert_hint(&self, key: &String, value: &String);
+
+    fn get_hint(&self, key: &String) -> Option<String>;
 }
 
 impl<T: DatabaseModule> AetDatabaseModule for T {
@@ -56,5 +62,16 @@ impl<T: DatabaseModule> AetDatabaseModule for T {
         priorities_name: &String,
     ) -> Option<FirstAidPriorities> {
         self.get_json::<FirstAidPriorities>("first_aid", &format!("{}_{}", who, priorities_name))
+    }
+
+    fn insert_hint(&self, key: &String, value: &String) {
+        self.insert(HINT_TREE, key, value.as_bytes());
+    }
+    fn get_hint(&self, key: &String) -> Option<String> {
+        self.get(HINT_TREE, key).and_then(|bytes| {
+            std::str::from_utf8(&bytes)
+                .map(|str_ref| str_ref.to_string())
+                .ok()
+        })
     }
 }

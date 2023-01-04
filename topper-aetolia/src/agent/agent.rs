@@ -396,6 +396,39 @@ impl AgentState {
             LType::RightLegDamage => self.is(FType::RightLegDislocated),
             _ => false,
         };
+        let bruise_level = match what {
+            LType::LeftArmDamage => self.affs_count(&vec![
+                FType::LeftArmBruised,
+                FType::LeftArmBruisedModerate,
+                FType::LeftArmBruisedCritical,
+            ]),
+            LType::RightArmDamage => self.affs_count(&vec![
+                FType::RightArmBruised,
+                FType::RightArmBruisedModerate,
+                FType::RightArmBruisedCritical,
+            ]),
+            LType::LeftLegDamage => self.affs_count(&vec![
+                FType::LeftLegBruised,
+                FType::LeftLegBruisedModerate,
+                FType::LeftLegBruisedCritical,
+            ]),
+            LType::RightLegDamage => self.affs_count(&vec![
+                FType::RightLegBruised,
+                FType::RightLegBruisedModerate,
+                FType::RightLegBruisedCritical,
+            ]),
+            LType::HeadDamage => self.affs_count(&vec![
+                FType::HeadBruised,
+                FType::HeadBruisedModerate,
+                FType::HeadBruisedCritical,
+            ]),
+            LType::TorsoDamage => self.affs_count(&vec![
+                FType::TorsoBruised,
+                FType::TorsoBruisedModerate,
+                FType::TorsoBruisedCritical,
+            ]),
+            _ => 0,
+        };
         LimbState {
             damage,
             broken,
@@ -406,6 +439,7 @@ impl AgentState {
             is_parried,
             is_dislocated,
             welt,
+            bruise_level,
         }
     }
 

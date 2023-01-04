@@ -217,6 +217,7 @@ pub fn get_skill_class(category: &String) -> Option<Class> {
         "Oneiromancy" | "Hyalincuru" | "Contracts" => Some(Class::Oneiromancer),
         "Subjugation" | "Apocalyptia" | "Tectonics" => Some(Class::Earthcaller),
         "Alchemy" | "Experimentation" | "Botany" => Some(Class::Alchemist),
+        "Wavebreaking" | "Synthesis" | "Inundation" => Some(Class::Tidesage),
         "Ascendance" | "Dictum" | "Discipline" => Some(Class::Akkari),
         "Brutality" | "Ravaging" | "Egotism" => Some(Class::Ravager),
         _ => None,

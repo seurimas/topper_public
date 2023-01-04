@@ -1,3 +1,5 @@
+use std::ops::DerefMut;
+
 use serde::*;
 use topper_bt::unpowered::*;
 use topper_core::timeline::db::DummyDatabaseModule;
@@ -5,9 +7,10 @@ use topper_core::timeline::db::DummyDatabaseModule;
 use crate::{
     bt::*,
     classes::{FitnessAction, ParryAction},
+    db::AetDatabaseModule,
 };
 
-use super::{get_needed_parry, get_needed_refills};
+use super::{get_needed_parry, get_needed_refills, DEFENSE_DATABASE};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub enum DefenseBehavior {
@@ -26,19 +29,31 @@ impl UnpoweredFunction for DefenseBehavior {
         controller: &mut Self::Controller,
     ) -> UnpoweredFunctionState {
         match self {
-            DefenseBehavior::Parry => {
-                if let Some(limb) = get_needed_parry(
-                    model,
-                    &model.who_am_i(),
-                    &controller.target.clone().unwrap_or_default(),
-                    &"".to_string(),
-                    None as Option<&DummyDatabaseModule>,
-                ) {
-                    controller
-                        .plan
-                        .add_to_qeb(Box::new(ParryAction::new(model.who_am_i(), limb)));
+            DefenseBehavior::Parry => match DEFENSE_DATABASE.as_ref().try_lock() {
+                Ok(outer_guard) => {
+                    let option = outer_guard.as_ref();
+                    if let Some(inner_mutex) = option {
+                        match inner_mutex.as_ref().read() {
+                            Ok(db) => {
+                                if let Some(limb) = get_needed_parry(
+                                    model,
+                                    &model.who_am_i(),
+                                    &controller.target.clone().unwrap_or_default(),
+                                    &"".to_string(),
+                                    Some(&*db),
+                                ) {
+                                    controller.plan.add_to_qeb(Box::new(ParryAction::new(
+                                        model.who_am_i(),
+                                        limb,
+                                    )));
+                                };
+                            }
+                            Err(err) => println!("Could not parry, inner: {:?}", err),
+                        }
+                    }
                 }
-            }
+                Err(err) => println!("Could not parry: {:?}", err),
+            },
             DefenseBehavior::Repipe => {
                 let refill_actions = get_needed_refills(&model.state.borrow_me());
                 for action in refill_actions {

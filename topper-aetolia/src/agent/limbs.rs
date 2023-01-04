@@ -141,6 +141,7 @@ pub struct LimbState {
     pub is_parried: bool,
     pub is_dislocated: bool,
     pub welt: bool,
+    pub bruise_level: usize,
 }
 
 impl LimbState {

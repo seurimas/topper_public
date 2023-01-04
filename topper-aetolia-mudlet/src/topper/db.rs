@@ -16,6 +16,7 @@ use tokio;
 use topper_aetolia::classes::{Class, VenomPlan};
 use topper_aetolia::curatives::first_aid::{parse_priority_set, FirstAidPriorities};
 use topper_aetolia::db::AetDatabaseModule;
+use topper_aetolia::defense::DEFENSE_DATABASE;
 use topper_aetolia::timeline::*;
 use topper_aetolia::types::{FType, Hypnosis};
 use topper_core::timeline::db::DatabaseModule;
@@ -28,8 +29,8 @@ use super::battle_stats::BattleStats;
 pub struct AetMudletDatabaseModule {
     db: Db,
     thread: JoinHandle<()>,
-    api_sender: Sender<ApiRequest>,
-    api_receiver: Receiver<CharacterApiResponse>,
+    // api_sender: Sender<ApiRequest>,
+    // api_receiver: Receiver<CharacterApiResponse>,
 }
 
 struct ApiRequest(String);
@@ -83,8 +84,8 @@ impl AetMudletDatabaseModule {
         ) = channel();
         AetMudletDatabaseModule {
             db: open(path).unwrap(),
-            api_sender: send_request,
-            api_receiver: receive_response,
+            // api_sender: send_request,
+            // api_receiver: receive_response,
             thread: thread::spawn(move || loop {
                 while let Ok(ApiRequest(who)) = receive_request.try_recv() {
                     if let Ok(api_response) = retrieve_api(who) {
@@ -133,33 +134,33 @@ impl DatabaseModule for AetMudletDatabaseModule {
     }
 }
 
-impl AetMudletDatabaseModule {
-    fn send_api_request(&self, who: &String, priority: u64) -> bool {
-        let last_bytes = self.get("api_last", who).unwrap_or((Arc::new([0; 16])));
-        let last = u128::from_be_bytes(last_bytes.as_ref().try_into().expect("Bad length"));
-        let since = time_since_epoch(last);
-        if since.as_secs() > priority {
-            let epoch = get_epoch_time();
-            self.insert("api_last", who, (&epoch.to_be_bytes()));
-            self.api_sender.send(ApiRequest(who.to_string())).is_ok()
-        } else {
-            false
-        }
-    }
+// impl AetMudletDatabaseModule {
+//     fn send_api_request(&self, who: &String, priority: u64) -> bool {
+//         let last_bytes = self.get("api_last", who).unwrap_or((Arc::new([0; 16])));
+//         let last = u128::from_be_bytes(last_bytes.as_ref().try_into().expect("Bad length"));
+//         let since = time_since_epoch(last);
+//         if since.as_secs() > priority {
+//             let epoch = get_epoch_time();
+//             self.insert("api_last", who, (&epoch.to_be_bytes()));
+//             self.api_sender.send(ApiRequest(who.to_string())).is_ok()
+//         } else {
+//             false
+//         }
+//     }
 
-    fn drain_responses(&self) {
-        while let Ok(character) = self.api_receiver.try_recv() {
-            println!(
-                "Received response for {} ({} from {})",
-                character.name, character.class, character.city
-            );
-            if let Some(class) = Class::from_str(&character.class) {
-                self.set_class(&character.name, class);
-            }
-            self.insert_json("character", &character.name.clone(), character);
-        }
-    }
-}
+//     fn drain_responses(&self) {
+//         while let Ok(character) = self.api_receiver.try_recv() {
+//             println!(
+//                 "Received response for {} ({} from {})",
+//                 character.name, character.class, character.city
+//             );
+//             if let Some(class) = Class::from_str(&character.class) {
+//                 self.set_class(&character.name, class);
+//             }
+//             self.insert_json("character", &character.name.clone(), character);
+//         }
+//     }
+// }
 
 impl AetMudletDatabaseModule {
     fn set_venom_plan(&self, stack_name: &String, stack: Vec<VenomPlan>) {
@@ -342,10 +343,10 @@ impl<'s> TopperModule<'s, AetTimeSlice, BattleStats> for AetMudletDatabaseModule
         message: &TopperMessage<AetTimeSlice>,
         siblings: Self::Siblings,
     ) -> Result<TopperResponse<BattleStats>, String> {
-        self.drain_responses();
+        // self.drain_responses();
         match message {
             TopperMessage::Request(TopperRequest::Api(who)) => {
-                self.send_api_request(who, 300);
+                // self.send_api_request(who, 300);
                 Ok(TopperResponse::silent())
             }
             TopperMessage::Request(TopperRequest::ModuleMsg(module, message)) => {

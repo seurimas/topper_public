@@ -1,11 +1,20 @@
 pub mod behavior;
 pub mod parry;
 pub mod pipes;
+use std::sync::{Arc, Mutex, RwLock};
+
 pub use behavior::*;
 pub use parry::*;
 pub use pipes::*;
+use topper_core::timeline::db::DummyDatabaseModule;
 
-use crate::{timeline::AetTimeline, types::*};
+use crate::{db::AetDatabaseModule, timeline::AetTimeline, types::*};
+
+// A very impressive type, if I do say so myself. We are a mutable reference to a possible mutable reference vtable object...
+lazy_static! {
+    pub static ref DEFENSE_DATABASE: Arc<Mutex<Option<Arc<RwLock<dyn AetDatabaseModule + Sync + Send>>>>> =
+        Arc::new(Mutex::new(None));
+}
 
 pub fn should_regenerate(timeline: &AetTimeline, me: &String) -> bool {
     let me = timeline.state.borrow_agent(me);
