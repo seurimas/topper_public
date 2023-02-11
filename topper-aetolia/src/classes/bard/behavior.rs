@@ -294,11 +294,12 @@ impl UnpoweredFunction for BardBehavior {
                     return UnpoweredFunctionState::Failed;
                 } else if !controller.has_qeb() {
                     return UnpoweredFunctionState::Failed;
-                } else if !assure_unwielded(&me, model, controller, false) {
-                    return UnpoweredFunctionState::Failed;
                 }
                 let best_ally = get_aggroed_ally(controller);
                 if let Some((ally, _aggro)) = &best_ally {
+                    if !assure_unwielded(&me, model, controller, false) {
+                        return UnpoweredFunctionState::Failed;
+                    }
                     controller
                         .plan
                         .add_to_qeb(Box::new(WeavingAttackAction::patchwork(
@@ -306,7 +307,7 @@ impl UnpoweredFunction for BardBehavior {
                             ally.clone(),
                         )));
                 } else {
-                    println!("NO ALLIES");
+                    // println!("NO ALLIES");
                     return UnpoweredFunctionState::Failed;
                 }
             }
@@ -330,7 +331,7 @@ impl UnpoweredFunction for BardBehavior {
                             ally
                         ))));
                 } else {
-                    println!("NO ALLIES");
+                    // println!("NO ALLIES");
                     return UnpoweredFunctionState::Failed;
                 }
             }
@@ -465,7 +466,7 @@ fn get_aggroed_ally(controller: &mut BehaviorController) -> Option<(String, i32)
             best_ally = Some((ally.clone(), *aggro));
         }
     }
-    best_ally
+    best_ally.filter(|(_ally, aggro)| *aggro > 0)
 }
 
 fn assure_unwielded(

@@ -114,6 +114,7 @@ impl RelapseState {
 pub enum Hypnosis {
     Aff(FType),
     Action(String),
+    Ebbing,
     Bulimia,
     Eradicate,
     Trigger(String),

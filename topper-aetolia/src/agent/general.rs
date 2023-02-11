@@ -153,6 +153,7 @@ pub enum FType {
     Stretching,
     Halfbeat,
     Discordance,
+    Euphonia,
 
     // Bard uncurable
     Manabarbs, // Don't count as an affliction, it's not in database.
@@ -866,52 +867,73 @@ const SOFT_COOLDOWN: f32 = 2.0;
 const HARD_COOLDOWN: f32 = 6.0;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum DodgeState {
+pub enum DodgeTimer {
     Ready,
     Cooldown(CType),
 }
 
-impl Default for DodgeState {
+impl Default for DodgeTimer {
     fn default() -> Self {
-        DodgeState::Ready
+        DodgeTimer::Ready
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum DodgeType {
+    Unknown,
+    Melee,
+    Ranged,
+    Charge,
+    Upset,
+}
+
+impl Default for DodgeType {
+    fn default() -> Self {
+        Self::Unknown
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
+pub struct DodgeState {
+    pub dodge_type: DodgeType,
+    dodge_timer: DodgeTimer,
 }
 
 impl DodgeState {
     pub fn wait(&mut self, duration: CType) {
-        match self {
-            DodgeState::Ready => {}
-            DodgeState::Cooldown(remaining) => {
-                if *remaining > duration {
-                    *self = DodgeState::Cooldown(*remaining - duration);
+        match self.dodge_timer {
+            DodgeTimer::Ready => {}
+            DodgeTimer::Cooldown(remaining) => {
+                if remaining > duration {
+                    self.dodge_timer = DodgeTimer::Cooldown(remaining - duration);
                 } else {
-                    *self = DodgeState::Ready
+                    self.dodge_timer = DodgeTimer::Ready;
                 }
             }
         }
     }
     pub fn register_hit(&mut self) {
-        match self {
-            DodgeState::Ready => {
-                *self = DodgeState::Cooldown((SOFT_COOLDOWN * BALANCE_SCALE) as CType);
+        match self.dodge_timer {
+            DodgeTimer::Ready => {
+                self.dodge_timer = DodgeTimer::Cooldown((SOFT_COOLDOWN * BALANCE_SCALE) as CType);
             }
-            DodgeState::Cooldown(_) => {}
+            DodgeTimer::Cooldown(_) => {}
         }
     }
     pub fn register_dodge(&mut self) {
-        *self = DodgeState::Cooldown((HARD_COOLDOWN * BALANCE_SCALE) as CType);
+        self.dodge_timer = DodgeTimer::Cooldown((HARD_COOLDOWN * BALANCE_SCALE) as CType);
     }
     pub fn can_dodge(&self) -> bool {
-        match self {
-            DodgeState::Ready => true,
+        match self.dodge_timer {
+            DodgeTimer::Ready => true,
             _ => false,
         }
     }
     pub fn can_dodge_at(&self, qeb: f32) -> bool {
-        match self {
-            DodgeState::Ready => true,
-            DodgeState::Cooldown(cooldown) => {
-                if *cooldown < ((qeb * BALANCE_SCALE) as CType) {
+        match self.dodge_timer {
+            DodgeTimer::Ready => true,
+            DodgeTimer::Cooldown(cooldown) => {
+                if cooldown < ((qeb * BALANCE_SCALE) as CType) {
                     true
                 } else {
                     false

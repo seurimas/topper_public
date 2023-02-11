@@ -71,9 +71,11 @@ pub fn infer_suggestion(name: &String, agent_states: &mut AetTimelineState) -> H
             Hypnosis::Action(captures.get(1).unwrap().as_str().to_string())
         } else if let Some(captures) = TRIGGER.captures(&suggestion) {
             Hypnosis::Trigger(captures.get(1).unwrap().as_str().to_string())
-        } else if suggestion.eq("bulimia") {
+        } else if suggestion.eq_ignore_ascii_case("bulimia") {
             Hypnosis::Bulimia
-        } else if suggestion.eq("eradicate") {
+        } else if suggestion.eq_ignore_ascii_case("ebbing") {
+            Hypnosis::Ebbing
+        } else if suggestion.eq_ignore_ascii_case("eradicate") {
             Hypnosis::Eradicate
         } else if let Some(aff) = FType::from_name(&suggestion) {
             Hypnosis::Aff(aff)

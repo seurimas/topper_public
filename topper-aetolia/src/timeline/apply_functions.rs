@@ -457,7 +457,7 @@ pub fn apply_or_infer_suggestion(
         if let Some(affliction) = FType::from_name(affliction) {
             who.set_flag(affliction, true);
         }
-    } else if let Some(Hypnosis::Aff(_affliction)) = who.hypno_state.hypnosis_stack.get(0) {
+    } else if let Some(Hypnosis::Aff(_affliction)) = top_hypno {
         println!("Expected {:?} but got {:?}!", top_hypno, after.get(0));
     }
     Ok(())

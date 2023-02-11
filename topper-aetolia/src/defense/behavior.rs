@@ -10,13 +10,18 @@ use crate::{
     db::AetDatabaseModule,
 };
 
-use super::{get_needed_parry, get_needed_refills, DEFENSE_DATABASE};
+#[macro_use]
+use crate::with_defense_db;
+use super::{
+    get_needed_parry, get_needed_refills, get_wanted_dodge, DodgeAction, DEFENSE_DATABASE,
+};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub enum DefenseBehavior {
     Parry,
     Repipe,
     Fitness,
+    Dodge,
 }
 
 impl UnpoweredFunction for DefenseBehavior {
@@ -67,6 +72,20 @@ impl UnpoweredFunction for DefenseBehavior {
                         .plan
                         .add_to_qeb(Box::new(FitnessAction::new(model.who_am_i())));
                 }
+            }
+            DefenseBehavior::Dodge => {
+                let me = model.state.borrow_me();
+                with_defense_db!(db, {
+                    let wanted_dodge = get_wanted_dodge(model, Some(&*db));
+                    if me.dodge_state.dodge_type != wanted_dodge {
+                        controller
+                            .plan
+                            .add_to_front_of_qeb(Box::new(DodgeAction::new(
+                                model.who_am_i(),
+                                wanted_dodge,
+                            )));
+                    }
+                })
             }
         }
         UnpoweredFunctionState::Complete

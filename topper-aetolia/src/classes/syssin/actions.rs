@@ -368,6 +368,7 @@ impl SuggestAction {
     pub fn get_suggestion(&self) -> String {
         let suggestion_string = match &self.suggestion {
             Hypnosis::Aff(aff) => format!("{:?}", aff),
+            Hypnosis::Ebbing => format!("ebbing"),
             Hypnosis::Bulimia => format!("bulimia"),
             Hypnosis::Action(action) => format!("action {}", action),
             Hypnosis::Eradicate => format!("eradicate"),
