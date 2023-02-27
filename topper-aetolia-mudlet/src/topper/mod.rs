@@ -17,6 +17,7 @@ use topper_core_mudlet::topper::{
     TelnetModule, TimelineModule, Topper, TopperCore, TopperHandler, TopperMessage, TopperModule,
     TopperRequest, TopperResponse,
 };
+pub mod basher;
 pub mod battle_stats;
 mod behavior_trees;
 pub mod db;
@@ -24,6 +25,7 @@ pub mod first_aid;
 pub mod group;
 pub mod prediction;
 pub mod web_ui;
+use crate::topper::basher::BasherModule;
 use crate::topper::behavior_trees::initialize_load_tree_func;
 use crate::topper::prediction::prioritize_cures;
 
@@ -120,6 +122,7 @@ pub struct AetTopper {
     pub battle_module: BattleModule,
     pub prediction_module: PredictionModule,
     pub group_module: GroupModule,
+    pub basher_module: BasherModule,
     pub battlestats_module: BattleStatsModule,
     pub database_module: Arc<RwLock<AetMudletDatabaseModule>>,
     pub web_module: WebModule,
@@ -158,6 +161,7 @@ impl AetTopper {
             telnet_module: TelnetModule::new(send_lines),
             battle_module: BattleModule::default(),
             prediction_module: PredictionModule::default(),
+            basher_module: BasherModule::new(),
             group_module: GroupModule::new(&database_module),
             battlestats_module: BattleStatsModule::new(),
             database_module: Arc::new(RwLock::new(database_module)),
@@ -251,6 +255,14 @@ impl TopperHandler<BattleStats> for AetTopper {
                 ),
             )?)
             .then(self.group_module.handle_message(
+                &topper_msg,
+                (
+                    &self.me(),
+                    &mut self.timeline_module.timeline,
+                    &database_module,
+                ),
+            )?)
+            .then(self.basher_module.handle_message(
                 &topper_msg,
                 (
                     &self.me(),

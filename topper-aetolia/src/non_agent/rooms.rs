@@ -45,6 +45,7 @@ impl Direction {
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct Room {
     pub players: HashSet<String>,
+    pub denizens: HashSet<i64>,
     pub exits: HashMap<Direction, i64>,
     tags: HashSet<String>,
 }
@@ -53,6 +54,7 @@ impl Default for Room {
     fn default() -> Self {
         Room {
             players: HashSet::new(),
+            denizens: HashSet::new(),
             exits: HashMap::new(),
             tags: HashSet::new(),
         }
