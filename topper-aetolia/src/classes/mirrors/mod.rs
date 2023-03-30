@@ -33,6 +33,10 @@ lazy_static! {
             ("Subjugation".to_string(), "Ribcage".to_string()),
             ("Spirituality".to_string(), "Aura".to_string()),
         );
+        mapping.insert(
+            ("Sporulation".to_string(), "Ensnare".to_string()),
+            ("Gravitation".to_string(), "Grip".to_string()),
+        );
         revenant::add_mappings(&mut mapping);
         ravager::add_mappings(&mut mapping);
         mapping

@@ -13,6 +13,7 @@ use crate::{
 
 use super::actions::*;
 
+pub const USE_INSTRUMENT_HINT: &str = "USE_INSTRUMENT";
 pub const INSTRUMENT_HINT: &str = "INSTRUMENT";
 pub const WEAPON_HINT: &str = "WEAPON";
 pub const IMPETUS_WEAPON_HINT: &str = "IMPETUS_WEAPON";
@@ -395,6 +396,12 @@ impl UnpoweredFunction for BardBehavior {
                 if me
                     .check_if_bard(&|bard| bard.instrument_song.is_some())
                     .unwrap_or(false)
+                {
+                    playing = false;
+                } else if !(controller
+                    .get_hint(USE_INSTRUMENT_HINT)
+                    .unwrap_or(&"FALSE".to_string()))
+                .eq_ignore_ascii_case("true")
                 {
                     playing = false;
                 } else if !me.arms_free() {

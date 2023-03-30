@@ -52,6 +52,7 @@ pub enum AetPredicate {
     Buffered(AetTarget, FType),
     Locked(AetTarget, bool),
     ReboundingWindow(AetTarget, CType),
+    HintSet(String, String),
     HasBalanceEquilibrium(AetTarget),
     HasBalance(AetTarget),
     HasEquilibrium(AetTarget),
@@ -281,6 +282,17 @@ impl UnpoweredFunction for AetPredicate {
             AetPredicate::BardPredicate(target, bard_predicate) => {
                 if bard_predicate.check(target, model, controller) {
                     UnpoweredFunctionState::Complete
+                } else {
+                    UnpoweredFunctionState::Failed
+                }
+            }
+            AetPredicate::HintSet(hint, value) => {
+                if let Some(hint) = controller.get_hint(hint) {
+                    if hint.eq_ignore_ascii_case(value) {
+                        UnpoweredFunctionState::Complete
+                    } else {
+                        UnpoweredFunctionState::Failed
+                    }
                 } else {
                     UnpoweredFunctionState::Failed
                 }

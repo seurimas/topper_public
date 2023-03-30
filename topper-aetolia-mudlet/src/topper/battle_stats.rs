@@ -12,6 +12,7 @@ use super::db::AetMudletDatabaseModule;
 
 #[derive(Serialize)]
 pub struct PlayerStats {
+    name: String,
     afflictions: Vec<String>,
     limbs: HashMap<String, LimbState>,
     balances: HashMap<String, f32>,
@@ -57,6 +58,7 @@ fn get_lock_warning(state: &AgentState) -> Option<String> {
 impl PlayerStats {
     pub fn new() -> Self {
         PlayerStats {
+            name: String::default(),
             afflictions: Vec::new(),
             limbs: HashMap::new(),
             warnings: Vec::new(),
@@ -65,7 +67,7 @@ impl PlayerStats {
             class: "".to_string(),
         }
     }
-    pub fn for_player(state: &AgentState, class: Option<Class>) -> Self {
+    pub fn for_player(name: String, state: &AgentState, class: Option<Class>) -> Self {
         let mut afflictions = Vec::new();
         for aff in state.flags.aff_iter() {
             if state.hidden_state.is_guessed(aff) {
@@ -119,6 +121,7 @@ impl PlayerStats {
             }
         }); */
         PlayerStats {
+            name,
             afflictions,
             limbs,
             warnings,
@@ -204,11 +207,13 @@ pub fn get_battle_stats(
 ) -> BattleStats {
     let mut lines = Vec::new();
     let my_stats = PlayerStats::for_player(
+        timeline.who_am_i().clone(),
         &timeline.state.borrow_me(),
         db.get_class(&timeline.who_am_i()),
     );
     let target_stats = if let Some(target) = target {
         Some(PlayerStats::for_player(
+            target.clone(),
             &timeline.state.borrow_agent(target),
             db.get_class(target),
         ))

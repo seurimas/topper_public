@@ -79,6 +79,8 @@ pub enum Class {
     Tidesage,     // Teradrim
     Akkari,       // Praenomen
     Ravager,      // Zealot
+    Runecarver,   // Sciomancer
+    Bloodborn,    // Ascendril
 }
 
 impl Class {
@@ -118,6 +120,8 @@ impl Class {
             "Alchemist" => Some(Class::Alchemist),
             "Akkari" => Some(Class::Akkari),
             "Ravager" => Some(Class::Ravager),
+            "Runecarver" => Some(Class::Runecarver),
+            "Bloodborn" => Some(Class::Bloodborn),
             _ => None,
         }
     }
@@ -155,6 +159,8 @@ impl Class {
             Class::Alchemist => "Alchemist",
             Class::Akkari => "Akkari",
             Class::Ravager => "Ravager",
+            Class::Runecarver => "Runecarver",
+            Class::Bloodborn => "Bloodborn",
             _ => "Unknown",
         }
     }
@@ -167,7 +173,9 @@ impl Class {
             | Class::Tidesage
             | Class::Alchemist
             | Class::Akkari
-            | Class::Ravager => true,
+            | Class::Ravager 
+            | Class::Runecarver
+            | Class::Bloodborn => true,
             _ => false,
         }
     }
@@ -181,6 +189,8 @@ impl Class {
             Class::Alchemist => Class::Shaman,
             Class::Akkari => Class::Praenomen,
             Class::Ravager => Class::Zealot,
+            Class::Runecarver => Class::Sciomancer,
+            Class::Bloodborn => Class::Ascendril,
             _ => self.clone(),
         }
     }
@@ -220,6 +230,8 @@ pub fn get_skill_class(category: &String) -> Option<Class> {
         "Wavebreaking" | "Synthesis" | "Inundation" => Some(Class::Tidesage),
         "Ascendance" | "Dictum" | "Discipline" => Some(Class::Akkari),
         "Brutality" | "Ravaging" | "Egotism" => Some(Class::Ravager),
+        "Malediction" | "Runecarving" | "Sporulation" => Some(Class::Runecarver),
+        "Humourism" | "Esoterica" | "Hematurgy" => Some(Class::Bloodborn),
         _ => None,
     }
 }
