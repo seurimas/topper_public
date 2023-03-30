@@ -8,4 +8,5 @@ members = [
     "topper-aetolia-mudlet",
     "topper-core-mudlet",
     "topper-sect-parser",
+    "topper-explainer",
 ]
