@@ -1,0 +1,43 @@
+$one_unit: 8px;
+
+body {
+    background-color: black;
+}
+
+.page {
+    font-family: 'Courier New';
+    color: white;
+
+    &__lines {
+        margin: $one_unit;
+    }
+
+    &__line {
+        display: flex;
+        height: 1em;
+    }
+
+    &__edit_toggle {
+        position: fixed;
+        right: $one_unit;
+        top: $one_unit;
+        background-color: green;
+    }
+
+    &__expanded_toggle {
+        position: fixed;
+        right: $one_unit;
+        bottom: $one_unit;
+        background-color: green;
+    }
+
+    &__edit_toggle,
+    &__expanded_toggle {
+        padding: $one_unit;
+        vertical-align: middle;
+        cursor: pointer;
+        user-select: none;
+        border: 1px solid transparent;
+        border-radius: #{div($one_unit, 2)};
+    }
+}

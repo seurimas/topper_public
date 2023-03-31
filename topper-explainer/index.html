@@ -5,6 +5,13 @@
   <link data-trunk rel="icon" href="favicon.ico" />
   <link data-trunk rel="scss" href="index.scss" />
   <script type="text/javascript">
+    function fetch_file(link) {
+      return fetch(link).then(response => {
+        if (response.ok) {
+          return response.text();
+        }
+      });
+    }
   </script>
 </head>
 
