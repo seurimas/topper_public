@@ -22,6 +22,8 @@ body {
         right: $one_unit;
         top: $one_unit;
         background-color: green;
+        padding: $one_unit;
+        vertical-align: middle;
     }
 
     &__expanded_toggle {
@@ -29,12 +31,17 @@ body {
         right: $one_unit;
         bottom: $one_unit;
         background-color: green;
+        padding: $one_unit;
+        vertical-align: middle;
     }
 
     &__edit_toggle,
-    &__expanded_toggle {
-        padding: $one_unit;
-        vertical-align: middle;
+    &__expanded_toggle,
+    &__comment__edit,
+    &__comment__finish,
+    &__comment__close,
+    &__open_comment,
+    &__add_comment {
         cursor: pointer;
         user-select: none;
         border: 1px solid transparent;

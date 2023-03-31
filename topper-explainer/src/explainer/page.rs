@@ -1,11 +1,14 @@
 use serde::{Deserialize, Serialize};
 use yew::{prelude::*, virtual_dom::VNode};
 
-use crate::explainer::{comment::CommentBlock, line::PageLine};
+use crate::{
+    bindings::log,
+    explainer::{comment::CommentBlock, line::PageLine},
+};
 
 use super::{Comment, ExplainerModel};
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct ExplainerPageModel {
     page: ExplainerPage,
     viewing_comments: Vec<usize>,
@@ -13,7 +16,18 @@ pub struct ExplainerPageModel {
     expanded_mode: bool,
 }
 
-#[derive(Default, Deserialize, Serialize, PartialEq)]
+#[derive(Debug)]
+pub enum ExplainerPageMessage {
+    BeginNewComment(usize),
+    OpenComment(usize),
+    CloseComment(usize),
+    UpdateComment(usize, String),
+    DeleteComment(usize),
+    ToggleEditMode,
+    ToggleExpandedMode,
+}
+
+#[derive(Default, Debug, Deserialize, Serialize, PartialEq)]
 pub struct ExplainerPage {
     body: Vec<String>,
     #[serde(default)]
@@ -61,11 +75,15 @@ impl ExplainerPageModel {
                 let on_delete = ctx
                     .link()
                     .callback(move |_| ExplainerPageMessage::DeleteComment(idx));
+                let on_close = ctx
+                    .link()
+                    .callback(move |_| ExplainerPageMessage::CloseComment(idx));
                 html!(<CommentBlock
                     comment={comment.clone()}
                     edit_mode={self.edit_mode}
                     on_change={on_change}
                     on_delete={on_delete}
+                    on_close={on_close}
                 />)
             })
         } else {
@@ -76,6 +94,7 @@ impl ExplainerPageModel {
             has_comment={has_comment}
             line={line.clone()}
             edit_mode={self.edit_mode}
+            msg={ctx.link().callback(|msg| msg)}
         >
           {comment_block}
         </PageLine>)
@@ -118,12 +137,14 @@ impl ExplainerPageModel {
                 self.viewing_comments.push(line);
                 true
             }
-            ExplainerPageMessage::ToggleComment(line_idx) => {
-                if self.viewing_comments.contains(&line_idx) {
-                    self.viewing_comments.retain(|idx| *idx != line_idx);
-                } else {
+            ExplainerPageMessage::OpenComment(line_idx) => {
+                if !self.viewing_comments.contains(&line_idx) {
                     self.viewing_comments.push(line_idx);
                 }
+                true
+            }
+            ExplainerPageMessage::CloseComment(line_idx) => {
+                self.viewing_comments.retain(|idx| *idx != line_idx);
                 true
             }
             ExplainerPageMessage::DeleteComment(line_idx) => {
@@ -144,13 +165,4 @@ impl ExplainerPageModel {
             }
         }
     }
-}
-
-pub enum ExplainerPageMessage {
-    BeginNewComment(usize),
-    ToggleComment(usize),
-    UpdateComment(usize, String),
-    DeleteComment(usize),
-    ToggleEditMode,
-    ToggleExpandedMode,
 }

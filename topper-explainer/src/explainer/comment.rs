@@ -1,3 +1,4 @@
+use crate::bindings::log;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::{JsCast, UnwrapThrowExt};
 use web_sys::HtmlTextAreaElement;
@@ -5,7 +6,7 @@ use yew::prelude::*;
 
 use super::{page::ExplainerPageMessage, ExplainerPage};
 
-#[derive(PartialEq, Clone, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Clone, Deserialize, Serialize)]
 pub struct Comment {
     body: String,
     reference_line: usize,
@@ -43,12 +44,14 @@ pub struct CommentBlockProperties {
     pub edit_mode: bool,
     pub on_change: Callback<String>,
     pub on_delete: Callback<()>,
+    pub on_close: Callback<()>,
 }
 
 pub enum CommentMessage {
     Change(String),
     Edit,
     Finish,
+    Close,
 }
 
 fn get_value_from_input_event(e: InputEvent) -> String {
@@ -82,7 +85,19 @@ impl Component for CommentBlock {
             html!(<div class="page__comment__text">{props.comment.body.clone()}</div>)
           }}
           {if props.edit_mode {
-            Some(html!(<button class="page__comment__edit">{ "Edit" }</button>))
+            if self.editing {
+                let onclick = ctx.link().callback(|_| CommentMessage::Finish);
+                Some(html!(<button class="page__comment__finish" onclick={onclick}>{ "Finish" }</button>))
+            } else {
+                let onclick = ctx.link().callback(|_| CommentMessage::Edit);
+                Some(html!(<button class="page__comment__edit" onclick={onclick}>{ "Edit" }</button>))
+            }
+          } else {
+            None
+          }}
+          {if !self.editing {
+            let onclick = ctx.link().callback(|_| CommentMessage::Close);
+            Some(html!(<button class="page__comment__close" onclick={onclick}>{ "Close" }</button>))
           } else {
             None
           }}
@@ -97,6 +112,7 @@ impl Component for CommentBlock {
                 true
             }
             CommentMessage::Finish => {
+                log(&format!("{:?}", self.new_val));
                 if self.new_val.is_empty() {
                     ctx.props().on_delete.emit(());
                 } else {
@@ -108,6 +124,10 @@ impl Component for CommentBlock {
             }
             CommentMessage::Change(new_val) => {
                 self.new_val = new_val;
+                true
+            }
+            CommentMessage::Close => {
+                ctx.props().on_close.emit(());
                 true
             }
         }

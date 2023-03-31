@@ -1,0 +1,37 @@
+body {
+  background-color: black;
+}
+
+.page {
+  font-family: "Courier New";
+  color: white;
+}
+.page__lines {
+  margin: 8px;
+}
+.page__line {
+  display: flex;
+  height: 1em;
+}
+.page__edit_toggle {
+  position: fixed;
+  right: 8px;
+  top: 8px;
+  background-color: green;
+  padding: 8px;
+  vertical-align: middle;
+}
+.page__expanded_toggle {
+  position: fixed;
+  right: 8px;
+  bottom: 8px;
+  background-color: green;
+  padding: 8px;
+  vertical-align: middle;
+}
+.page__edit_toggle, .page__expanded_toggle, .page__comment__edit, .page__comment__finish, .page__comment__close, .page__open_comment, .page__add_comment {
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid transparent;
+  border-radius: div(8px, 2);
+}
