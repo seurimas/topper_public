@@ -1,9 +1,31 @@
 <html><head>
   <title>Seurimas' Explainer</title>
   <link rel="icon" href="/favicon-8f6e2bc234c739da.ico">
-  <link rel="stylesheet" href="/index-31188afb14d2b6ea.css">
+  <link rel="stylesheet" href="/index-43ce6c728f69a729.css">
   
   <script type="text/javascript">
+    function export_json(exported) {
+      console.log(exported);
+      const page = JSON.parse(exported);
+      var data = `data:text/json;base64,${btoa(exported)}`;
+      const link = document.getElementById('export');
+      link.href = data;
+      link.download = `${page.id}.json`;
+      link.click();
+    }
+
+    function is_unlocked() {
+      return location.hash === "#unlocked";
+    }
+
+    function set_title(title) {
+      document.title = title;
+    }
+
+    function get_time() {
+      return new Date().getTime() / 1000;
+    }
+
     function fetch_file(link) {
       return fetch(link).then(response => {
         if (response.ok) {
@@ -13,12 +35,12 @@
     }
   </script>
 
-<link rel="preload" href="/topper-explainer-19504681ea833b95_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
-<link rel="modulepreload" href="/topper-explainer-19504681ea833b95.js"></head>
+<link rel="preload" href="/topper-explainer-816bf15e05a0dd30_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
+<link rel="modulepreload" href="/topper-explainer-816bf15e05a0dd30.js"></head>
 
 <body class="outer">
 
-<script type="module">import init from '/topper-explainer-19504681ea833b95.js';init('/topper-explainer-19504681ea833b95_bg.wasm');</script><script>(function () {
+<script type="module">import init from '/topper-explainer-816bf15e05a0dd30.js';init('/topper-explainer-816bf15e05a0dd30_bg.wasm');</script><script>(function () {
     var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     var url = protocol + '//' + window.location.host + '/_trunk/ws';
     var poll_interval = 5000;

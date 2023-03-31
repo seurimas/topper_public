@@ -22,7 +22,7 @@ trunk = "0.16.0"
 yew = { version = "0.20.0", features = ["csr"] }
 wasm-bindgen = { version = "^0.2", features = ["serde-serialize"] }
 js-sys = "^0.3.55"
-web-sys = { version = "^0.3.55", features = ["Location", "HtmlIFrameElement", "HtmlDocument", "DomParser", "SupportedType", "HtmlHeadElement", "Element", "HtmlElement", "Document", "StyleSheetList", "StyleSheet", "CssStyleSheet", "HtmlPreElement", "Node", "NodeList", "CssRuleList", "CssRule"] }
+web-sys = { version = "^0.3.55", features = ["Location", "HtmlIFrameElement", "HtmlDocument", "DomParser", "SupportedType", "HtmlHeadElement", "Element", "HtmlElement", "Document", "StyleSheetList", "StyleSheet", "CssStyleSheet", "HtmlPreElement", "HtmlDivElement", "Node", "NodeList", "CssRuleList", "CssRule"] }
 wasm-bindgen-futures = "^0.4.28"
 futures = { version = "^0.3.19" }
 urlencoding = "^2.1.0"

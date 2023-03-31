@@ -1,23 +1,27 @@
 use crate::bindings::log;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::{JsCast, UnwrapThrowExt};
-use web_sys::HtmlTextAreaElement;
+use web_sys::{HtmlDivElement, HtmlInputElement};
 use yew::prelude::*;
-
-use super::{page::ExplainerPageMessage, ExplainerPage};
 
 #[derive(Debug, PartialEq, Clone, Deserialize, Serialize)]
 pub struct Comment {
     body: String,
     reference_line: usize,
+    added: i32,
 }
 
 impl Comment {
-    pub fn new(reference_line: usize) -> Self {
+    pub fn new(reference_line: usize, time: i32) -> Self {
         Self {
             body: String::new(),
             reference_line,
+            added: time,
         }
+    }
+
+    pub fn get_line(&self) -> usize {
+        self.reference_line
     }
 
     pub fn is_for_line(&self, line: usize) -> bool {
@@ -57,9 +61,9 @@ pub enum CommentMessage {
 fn get_value_from_input_event(e: InputEvent) -> String {
     let event: Event = e.dyn_into().unwrap_throw();
     let event_target = event.target().unwrap_throw();
-    let target: HtmlTextAreaElement = event_target.dyn_into().unwrap_throw();
-    web_sys::console::log_1(&target.value().into());
-    target.value()
+    let target: HtmlDivElement = event_target.dyn_into().unwrap_throw();
+    web_sys::console::log_1(&target.text_content().into());
+    target.inner_text()
 }
 
 impl Component for CommentBlock {
@@ -80,7 +84,8 @@ impl Component for CommentBlock {
             let oninput = ctx.link().callback(|event: InputEvent| {
                 CommentMessage::Change(get_value_from_input_event(event))
             });
-            html!(<textarea class="page__comment__editor" oninput={oninput}>{props.comment.body.clone()}</textarea>)
+            crate::bindings::log(&format!("Body: {}", self.new_val));
+            html!(<div class="page__comment__editor" contenteditable="true" oninput={oninput}>{self.new_val.clone()}</div>)
           } else {
             html!(<div class="page__comment__text">{props.comment.body.clone()}</div>)
           }}

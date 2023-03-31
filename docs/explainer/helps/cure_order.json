@@ -1,4 +1,5 @@
 {
+    "id": "Cure Order Primer",
     "body": [
         "13.7.1 Cure Order",
         "",
@@ -150,7 +151,9 @@
     "comments": [
         {
             "body": "This is a test",
-            "reference_line": 0
+            "reference_line": 0,
+            "added": 0
         }
-    ]
+    ],
+    "locked": true
 }

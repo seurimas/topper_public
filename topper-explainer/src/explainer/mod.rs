@@ -54,6 +54,7 @@ impl Component for ExplainerModel {
                 true
             }
             ExplainerMessage::Loaded(loaded) => {
+                set_title(&loaded.id);
                 *self = Self::Loaded(ExplainerPageModel::new(loaded));
                 true
             }

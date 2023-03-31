@@ -6,6 +6,28 @@
   <link data-trunk rel="scss" href="index.scss" />
   <link data-trunk rel="copy-dir" href="helps" />
   <script type="text/javascript">
+    function export_json(exported) {
+      console.log(exported);
+      const page = JSON.parse(exported);
+      var data = `data:text/json;base64,${btoa(exported)}`;
+      const link = document.getElementById('export');
+      link.href = data;
+      link.download = `${page.id}.json`;
+      link.click();
+    }
+
+    function is_unlocked() {
+      return location.hash === "#unlocked";
+    }
+
+    function set_title(title) {
+      document.title = title;
+    }
+
+    function get_time() {
+      return new Date().getTime() / 1000;
+    }
+
     function fetch_file(link) {
       return fetch(link).then(response => {
         if (response.ok) {

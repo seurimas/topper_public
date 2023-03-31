@@ -2,7 +2,7 @@ use yew::prelude::*;
 
 use crate::bindings::log;
 
-use super::{page::ExplainerPageMessage, Comment};
+use super::page::ExplainerPageMessage;
 
 pub struct PageLine;
 
@@ -11,6 +11,7 @@ pub struct PageLineProperties {
     pub children: Children,
     pub idx: usize,
     pub has_comment: bool,
+    pub comment_open: bool,
     pub line: AttrValue,
     pub edit_mode: bool,
     pub msg: Callback<ExplainerPageMessage>,
@@ -25,13 +26,13 @@ impl Component for PageLine {
     }
     fn view(&self, ctx: &Context<Self>) -> Html {
         let props = ctx.props();
-        let comment_icon = if props.has_comment {
+        let comment_icon = if !props.comment_open && props.has_comment {
             let idx = props.idx;
             let open_comment = ctx
                 .link()
                 .callback(move |_| ExplainerPageMessage::OpenComment(idx));
             Some(html!(<div class="page__open_comment" onclick={open_comment}>{"\""}</div>))
-        } else if ctx.props().edit_mode {
+        } else if !props.comment_open && props.edit_mode && props.line.len() > 0 {
             let idx = props.idx;
             let add_comment = ctx
                 .link()

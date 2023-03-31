@@ -1,4 +1,6 @@
 $one_unit: 8px;
+$two_unit: 16px;
+$comment_color: midnightblue;
 
 body {
     background-color: black;
@@ -17,34 +19,105 @@ body {
         height: 1em;
     }
 
-    &__edit_toggle {
+    &__edit_section {
         position: fixed;
         right: $one_unit;
         top: $one_unit;
-        background-color: green;
-        padding: $one_unit;
-        vertical-align: middle;
+        display: flex;
+        flex-direction: row;
+
+        >* {
+            margin-left: $one_unit;
+        }
     }
 
-    &__expanded_toggle {
+    &__expand_button {
         position: fixed;
         right: $one_unit;
         bottom: $one_unit;
+    }
+
+    &__edit_toggle,
+    &__save_button {
         background-color: green;
         padding: $one_unit;
         vertical-align: middle;
     }
 
+    &__expand_button {
+        background-color: $comment_color;
+        padding: $one_unit;
+        vertical-align: middle;
+    }
+
+    &__open_comment,
+    &__add_comment {
+        width: .9em;
+        height: .9em;
+        background-color: $comment_color;
+        text-align: center;
+        font-weight: bold;
+        margin-left: 8px;
+    }
+
     &__edit_toggle,
-    &__expanded_toggle,
+    &__save_button,
     &__comment__edit,
     &__comment__finish,
     &__comment__close,
     &__open_comment,
-    &__add_comment {
+    &__add_comment,
+    &__expand_button {
         cursor: pointer;
         user-select: none;
         border: 1px solid transparent;
-        border-radius: #{div($one_unit, 2)};
+        border-radius: #{$one_unit / 2};
+    }
+
+    &__comment {
+        position: relative;
+        margin: $one_unit;
+        border: 1px solid #006;
+        border-radius: $one_unit;
+        padding: $one_unit;
+        max-width: 60em;
+        background-color: $comment_color;
+        color: white;
+        margin-top: $two_unit;
+
+        &::before {
+            content: "";
+            position: absolute;
+            width: $two_unit;
+            height: $two_unit;
+            top: #{$two_unit * -1};
+            left: $two_unit;
+            border-left: $two_unit solid transparent;
+            border-right: $two_unit solid transparent;
+            border-bottom: $two_unit solid $comment_color;
+            box-sizing: border-box;
+        }
+
+        &__text {
+            white-space: break-spaces;
+        }
+
+        &__editor {
+            width: calc(100% - $one_unit - $one_unit);
+            min-height: 4em;
+            background-color: azure;
+            color: black;
+            padding: $one_unit;
+            white-space: break-spaces;
+        }
+
+        &__finish,
+        &__edit,
+        &__close {
+            padding: #{$one_unit / 2};
+            margin: #{$one_unit / 2};
+            margin-top: $one_unit;
+            background-color: azure;
+        }
     }
 }

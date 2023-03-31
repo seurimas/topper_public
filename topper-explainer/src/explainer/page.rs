@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use yew::{prelude::*, virtual_dom::VNode};
 
 use crate::{
-    bindings::log,
+    bindings::{export_json, get_time, is_unlocked, log},
     explainer::{comment::CommentBlock, line::PageLine},
 };
 
@@ -13,7 +13,6 @@ pub struct ExplainerPageModel {
     page: ExplainerPage,
     viewing_comments: Vec<usize>,
     edit_mode: bool,
-    expanded_mode: bool,
 }
 
 #[derive(Debug)]
@@ -24,11 +23,13 @@ pub enum ExplainerPageMessage {
     UpdateComment(usize, String),
     DeleteComment(usize),
     ToggleEditMode,
-    ToggleExpandedMode,
+    ToggleExpanded,
+    Export,
 }
 
 #[derive(Default, Debug, Deserialize, Serialize, PartialEq)]
 pub struct ExplainerPage {
+    pub id: String,
     body: Vec<String>,
     #[serde(default)]
     comments: Vec<Comment>,
@@ -45,23 +46,42 @@ impl ExplainerPage {
             .next()
     }
 
+    pub fn get_comment_lines(&self) -> Vec<usize> {
+        self.comments
+            .iter()
+            .map(|comment| comment.get_line())
+            .collect()
+    }
+
     pub fn update_comment(&mut self, line: usize, new_val: String) {
-        self.comments[line].update_body(new_val);
+        self.comments
+            .iter_mut()
+            .filter(|comment| comment.is_for_line(line))
+            .next()
+            .map(move |comment| comment.update_body(new_val));
     }
 
     pub fn delete_comment(&mut self, line: usize) {
-        self.comments.remove(line);
+        self.comments.retain(|comment| !comment.is_for_line(line));
     }
 }
 
 impl ExplainerPageModel {
     pub fn new(page: ExplainerPage) -> Self {
+        let locked = page.locked && !is_unlocked();
         Self {
-            edit_mode: !page.locked,
+            edit_mode: !locked,
+            viewing_comments: if locked {
+                page.get_comment_lines()
+            } else {
+                Vec::new()
+            },
             page,
-            viewing_comments: Vec::new(),
-            expanded_mode: false,
         }
+    }
+
+    fn is_expanded(&self) -> bool {
+        self.viewing_comments.len() == self.page.comments.len()
     }
 
     fn render_line(&self, ctx: &Context<ExplainerModel>, idx: usize, line: &String) -> VNode {
@@ -92,6 +112,7 @@ impl ExplainerPageModel {
         html!(<PageLine
             idx={idx}
             has_comment={has_comment}
+            comment_open={comment_block.is_some()}
             line={line.clone()}
             edit_mode={self.edit_mode}
             msg={ctx.link().callback(|msg| msg)}
@@ -107,33 +128,44 @@ impl ExplainerPageModel {
             .iter()
             .enumerate()
             .map(|(idx, line)| self.render_line(ctx, idx, line));
-        let edit_button = if self.page.locked {
+        let edit_section = if self.page.locked && !is_unlocked() {
             None
         } else {
-            let toggle_edit = ctx
-                .link()
-                .callback(|_| ExplainerPageMessage::ToggleEditMode);
-            Some(html!(<div class="page__edit_toggle" onclick={toggle_edit}>{ "Edit" }</div>))
+            let export_button = {
+                let export = ctx.link().callback(|_| ExplainerPageMessage::Export);
+                html!(<div class="page__save_button" onclick={export}>{ "Export to JSON" }</div>)
+            };
+            let edit_button = {
+                let toggle_edit = ctx
+                    .link()
+                    .callback(|_| ExplainerPageMessage::ToggleEditMode);
+                html!(<div class="page__edit_toggle" onclick={toggle_edit}>{ if !self.edit_mode { "Edit" } else { "Finish" } }</div>)
+            };
+            Some(html!(<div class="page__edit_section">{edit_button}{export_button}</div>))
         };
         let expand_button = {
+            let expanded = self.is_expanded();
             let toggle_expand = ctx
                 .link()
-                .callback(|_| ExplainerPageMessage::ToggleExpandedMode);
-            html!(<div class="page__expanded_toggle" onclick={toggle_expand}>{ "Expanded View" }</div>)
+                .callback(|_| ExplainerPageMessage::ToggleExpanded);
+            html!(<div class="page__expand_button" onclick={toggle_expand}>{if expanded { "Collapse Comments" } else { "Open All Comments" }}</div>)
         };
         html!(
-            <div class="page">
-              {edit_button}
-              {expand_button}
-              <div class="page__lines">{ for page_lines }</div>
-            </div>
+            <>
+                <a id="export"></a>
+                <div class="page">
+                    {edit_section}
+                    {expand_button}
+                    <div class="page__lines">{ for page_lines }</div>
+                </div>
+            </>
         )
     }
 
     pub fn update(&mut self, ctx: &Context<ExplainerModel>, msg: ExplainerPageMessage) -> bool {
         match msg {
             ExplainerPageMessage::BeginNewComment(line) => {
-                self.page.comments.push(Comment::new(line));
+                self.page.comments.push(Comment::new(line, get_time()));
                 self.viewing_comments.push(line);
                 true
             }
@@ -159,8 +191,19 @@ impl ExplainerPageModel {
                 self.edit_mode = !self.edit_mode;
                 true
             }
-            ExplainerPageMessage::ToggleExpandedMode => {
-                self.expanded_mode = !self.expanded_mode;
+            ExplainerPageMessage::ToggleExpanded => {
+                if self.is_expanded() {
+                    self.viewing_comments = Vec::new();
+                } else {
+                    self.viewing_comments = self.page.get_comment_lines();
+                }
+                true
+            }
+            ExplainerPageMessage::Export => {
+                match serde_json::to_string(&self.page) {
+                    Ok(exported) => export_json(&exported),
+                    Err(err) => log(&format!("{:?}", err)),
+                }
                 true
             }
         }
