@@ -11,18 +11,5 @@ pub enum ExplainerMessage {
     LoadFile(JsFuture),
     LoadedFile(String),
     InitializeSect(HtmlIFrameElement),
-    ExplainerPageMessage(ExplainerPageMessage),
     Error(String),
-}
-
-impl From<ExplainerPageMessage> for ExplainerMessage {
-    fn from(value: ExplainerPageMessage) -> Self {
-        Self::ExplainerPageMessage(value)
-    }
-}
-
-impl From<Option<ExplainerMessage>> for ExplainerMessage {
-    fn from(value: Option<ExplainerMessage>) -> Self {
-        value.unwrap_or(ExplainerMessage::Noop)
-    }
 }

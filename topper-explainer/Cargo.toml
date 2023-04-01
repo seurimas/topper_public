@@ -19,7 +19,7 @@ regex = "1"
 log = "^0.4.8"
 simplelog = "^0.12.1"
 trunk = "0.16.0"
-yew = { version = "0.20.0", features = ["csr"] }
+yew = { git = "https://github.com/yewstack/yew/", features = ["csr"] }
 wasm-bindgen = { version = "^0.2", features = ["serde-serialize"] }
 js-sys = "^0.3.55"
 web-sys = { version = "^0.3.55", features = ["Window", "HtmlSpanElement", "Location", "HtmlIFrameElement", "HtmlDocument", "DomParser", "SupportedType", "HtmlHeadElement", "Element", "HtmlElement", "Document", "StyleSheetList", "StyleSheet", "CssStyleSheet", "HtmlPreElement", "HtmlDivElement", "Node", "NodeList", "CssRuleList", "CssRule", "CssStyleDeclaration"] }

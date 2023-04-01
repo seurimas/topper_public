@@ -93,24 +93,17 @@ impl ExplainerPage {
 }
 
 impl ExplainerPageModel {
-    pub fn new(page: ExplainerPage) -> Self {
-        let locked = page.locked && !is_unlocked();
-        Self {
-            edit_mode: !locked,
-            viewing_comments: if locked {
-                page.get_comment_lines()
-            } else {
-                Vec::new()
-            },
-            page,
-        }
-    }
-
     fn is_expanded(&self) -> bool {
         self.viewing_comments.len() == self.page.comments.len()
     }
 
-    fn render_line(&self, ctx: &Context<ExplainerModel>, idx: usize, line: &String) -> VNode {
+    fn render_line(
+        &self,
+        ctx: &Context<Self>,
+        idx: usize,
+        line: &String,
+        on_msg: Callback<ExplainerPageMessage>,
+    ) -> VNode {
         let comment = self.page.get_comment(idx);
         let has_comment = comment.is_some();
         let comment_block = if self.viewing_comments.contains(&idx) {
@@ -136,24 +129,49 @@ impl ExplainerPageModel {
             None
         };
         html!(<PageLine
+            key={idx}
             idx={idx}
             has_comment={has_comment}
             comment_open={comment_block.is_some()}
             line={line.clone()}
             edit_mode={self.edit_mode}
-            msg={ctx.link().callback(|msg| msg)}
+            msg={on_msg}
         >
           {comment_block}
         </PageLine>)
     }
+}
 
-    pub fn view(&self, ctx: &Context<ExplainerModel>) -> Html {
+#[derive(Properties, PartialEq)]
+pub struct ExplainerPageProperties {
+    pub page: ExplainerPage,
+}
+
+impl Component for ExplainerPageModel {
+    type Message = ExplainerPageMessage;
+    type Properties = ExplainerPageProperties;
+    fn create(ctx: &Context<Self>) -> Self {
+        let page = &ctx.props().page;
+        let locked = page.locked && !is_unlocked();
+        Self {
+            edit_mode: !locked,
+            viewing_comments: if locked {
+                page.get_comment_lines()
+            } else {
+                Vec::new()
+            },
+            page: page.clone(),
+        }
+    }
+
+    fn view(&self, ctx: &Context<Self>) -> Html {
+        let callback = ctx.link().callback(|msg| msg);
         let page_lines = self
             .page
             .body
             .iter()
             .enumerate()
-            .map(|(idx, line)| self.render_line(ctx, idx, line));
+            .map(|(idx, line)| self.render_line(ctx, idx, line, callback.clone()));
         let edit_section = if self.page.locked && !is_unlocked() {
             None
         } else {
@@ -179,7 +197,7 @@ impl ExplainerPageModel {
         html!(
             <>
                 <a id="export"></a>
-                <div class="page">
+                <div key="page" class="page">
                     {edit_section}
                     {expand_button}
                     <div class="page__lines">{ for page_lines }</div>
@@ -188,7 +206,7 @@ impl ExplainerPageModel {
         )
     }
 
-    pub fn update(&mut self, ctx: &Context<ExplainerModel>, msg: ExplainerPageMessage) -> bool {
+    fn update(&mut self, ctx: &Context<Self>, msg: ExplainerPageMessage) -> bool {
         match msg {
             ExplainerPageMessage::BeginNewComment(line) => {
                 self.page.comments.push(Comment::new(line, get_time()));

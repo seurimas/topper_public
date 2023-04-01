@@ -22,10 +22,9 @@ use self::page::ExplainerPageModel;
 pub enum ExplainerModel {
     Welcome,
     Loading,
-    LoadingFile,
     Parsing(AetoliaSectParser),
     Cleared,
-    LoadedPage(ExplainerPageModel),
+    LoadedPage(ExplainerPage),
 }
 
 impl Default for ExplainerModel {
@@ -51,22 +50,24 @@ impl Component for ExplainerModel {
                         .and_then(|files| files.get(0))
                         .map(|file| ExplainerMessage::LoadFile(file.text().into()))
                 });
-                html!(<div class="explainer__welcome">
+                html!(<div key="welcome" class="explainer__welcome">
                   <label for="sect_log">{"Select a Sect log file:"}</label>
                   <input type="file" id="sect_log" name="sect_log" onchange={on_sect_log}/>
                 </div>)
             }
-            Self::Loading => html!(<div>{ "Loading..." }</div>),
+            Self::Loading => html!(<div key="loading">{ "Loading..." }</div>),
             Self::Parsing(parser) => html!(<>
                     <a id="export"></a>
                     {load_sect_into_iframe(ctx, &parser.text)}
                 </>
             ),
-            Self::LoadedPage(page_model) => {
+            Self::LoadedPage(page) => {
                 log("Rendering page...");
-                page_model.view(ctx)
+                html!(<ExplainerPageModel
+                  page={page.clone()}
+                />)
             }
-            unrendered => html!({ format!("No view: {:?}", unrendered) }),
+            unrendered => html!(<div key="unknown">{ format!("No view: {:?}", unrendered) }</div>),
         }
     }
 
@@ -79,20 +80,32 @@ impl Component for ExplainerModel {
         match msg {
             ExplainerMessage::LoadFile(future) => {
                 ctx.link().send_future(future.then(load_file));
-                *self = Self::LoadingFile;
+                *self = Self::Loading;
+                true
+            }
+            ExplainerMessage::LoadPage(future) => {
+                ctx.link().send_future(future.then(load_page));
+                *self = Self::Loading;
                 true
             }
             ExplainerMessage::LoadedFile(loaded) => {
-                match serde_json::from_str(&loaded) {
+                match serde_json::from_str::<ExplainerPage>(&loaded) {
                     Ok(page) => {
                         log("Found page from file!");
-                        *self = Self::LoadedPage(ExplainerPageModel::new(page));
+                        set_title(&page.id);
+                        *self = Self::LoadedPage(page);
                     }
                     _ => {
                         log("Assuming non-page file is Sect log!");
                         *self = Self::Parsing(AetoliaSectParser::new(loaded));
                     }
                 }
+                true
+            }
+            ExplainerMessage::LoadedPage(loaded) => {
+                log(&format!("Loaded {}!", loaded.len()));
+                set_title(&loaded.id);
+                *self = Self::LoadedPage(loaded);
                 true
             }
             ExplainerMessage::InitializeSect(iframe) => match self {
@@ -109,25 +122,10 @@ impl Component for ExplainerModel {
                     false
                 }
             },
-            ExplainerMessage::LoadPage(future) => {
-                ctx.link().send_future(future.then(load_page));
-                *self = Self::Loading;
-                true
-            }
-            ExplainerMessage::LoadedPage(loaded) => {
-                log(&format!("Loaded {}!", loaded.len()));
-                set_title(&loaded.id);
-                *self = Self::LoadedPage(ExplainerPageModel::new(loaded));
-                true
-            }
             ExplainerMessage::Error(error) => {
                 log(&error);
                 false
             }
-            ExplainerMessage::ExplainerPageMessage(page_message) => match self {
-                Self::LoadedPage(page_model) => page_model.update(ctx, page_message),
-                _ => false,
-            },
             ExplainerMessage::Noop => false,
         }
     }
