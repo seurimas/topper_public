@@ -118,7 +118,7 @@ impl Component for CommentBlock {
             }
             CommentMessage::Finish => {
                 log(&format!("{:?}", self.new_val));
-                if self.new_val.is_empty() {
+                if self.new_val.trim().is_empty() {
                     ctx.props().on_delete.emit(());
                 } else {
                     ctx.props().on_change.emit(self.new_val.clone());

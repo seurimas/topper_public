@@ -27,7 +27,7 @@ pub enum ExplainerPageMessage {
     Export,
 }
 
-#[derive(Default, Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Default, Debug, Clone, Deserialize, Serialize)]
 pub struct ExplainerPage {
     pub id: String,
     body: Vec<String>,
@@ -37,7 +37,33 @@ pub struct ExplainerPage {
     locked: bool,
 }
 
+impl PartialEq for ExplainerPage {
+    fn eq(&self, other: &Self) -> bool {
+        true
+        // if !self.id.eq(&other.id) {
+        //     false
+        // } else if self.body.len() != other.body.len() {
+        //     false
+        // } else {
+        //     self.comments.eq(&other.comments)
+        // }
+    }
+}
+
 impl ExplainerPage {
+    pub fn new(id: String, body: Vec<String>) -> Self {
+        Self {
+            id,
+            body,
+            comments: Vec::new(),
+            locked: false,
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        self.body.len()
+    }
+
     pub fn get_comment(&self, line: usize) -> Option<Comment> {
         self.comments
             .iter()
