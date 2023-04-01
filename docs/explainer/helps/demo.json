@@ -2283,6 +2283,87 @@
         "<white>A stack of 2 decongestant pills falls out of your inventory.",
         "<white>"
     ],
-    "comments": [],
+    "comments": [
+        {
+            "body": "Preparing 2 anelace before a spar is a good idea. It can interrupt your flow to create them mid-fight, and you should have the opportunity to use at least one before they despawn.",
+            "reference_line": 46,
+            "added": 1680387560
+        },
+        {
+            "body": "Always keep Runeband up. Globes are also good, but Runeband is necessary for Ironcollar, Bladestorm, and your kill condition, Heartcage.\n\nPlus, it gives great afflictions that you can capitalize on during fights.\n",
+            "reference_line": 283,
+            "added": 1680387613
+        },
+        {
+            "body": "Quip is a great ability to use if your Intelligence is higher than your enemy. As you can see here, mine is higher than Kagura, so I hit with berserking in addition to hatred.",
+            "reference_line": 303,
+            "added": 1680387677
+        },
+        {
+            "body": "Awakening is another core to the Bard offense, giving access to Induce and its effects. Heartcage requires 50% strong or more on the Induced emotion.",
+            "reference_line": 515,
+            "added": 1680387775
+        },
+        {
+            "body": "You can see here Kagura swallowed a pill. If you do not create a window to use Tempo with Needle, you can also time your Tempos to hit when they are off pill balance long enough for the second hit to come out.",
+            "reference_line": 637,
+            "added": 1680387898
+        },
+        {
+            "body": "Rhythm procs because Kagura is still afflicted with paresis.\n",
+            "reference_line": 694,
+            "added": 1680387947
+        },
+        {
+            "body": "Paresis is cured too late to stop Rhythm.",
+            "reference_line": 700,
+            "added": 1680387978
+        },
+        {
+            "body": "Rhythm is still ongoing, but we can hit with more abilities, as long as they don't require your falchion. However, I have misplaced Ridicule here, and it only gives 1 affliction, since Kagura does not have the 3+ afflictions needed to deliver self-loathing. I should have used something more time efficient, like Quip (which we determined earlier in the fight was super effective).",
+            "reference_line": 723,
+            "added": 1680387994
+        },
+        {
+            "body": "Ridicule is fully effective here, but self-loathing is not something we particularly care about right now. I need to get Ironcollar stuck before I try to get Kagura prone.",
+            "reference_line": 1135,
+            "added": 1680388174
+        },
+        {
+            "body": "Fitness is an essential defensive measure against venom classes. Here, I noticed (rather, my alias detected) that I was fully venom locked, and Fitness helped me escape. Kagura will be trying to re-apply that lock, since Fitness is now on cooldown! I may need to escape the room to reset and get a better fight for myself. Sometimes this happens, and that's fine!",
+            "reference_line": 1239,
+            "added": 1680388234
+        },
+        {
+            "body": "I made the mistake of staying in the room, despite Kagura's dangerous lead. My Purity enchantment (very useful!) gives me a second change here, very luckily curing anorexia and letting me cure paralysis. I should escape, or at least TOUCH SHIELD.",
+            "reference_line": 1459,
+            "added": 1680388368
+        },
+        {
+            "body": "Sometimes, we don't always do what we should. I Quip Kagura here, when I should be on the defensive. Quip's afflictions will be easily cured while I am dealing with that venom lock.",
+            "reference_line": 1475,
+            "added": 1680388444
+        },
+        {
+            "body": "All classes have a class-based cure, or two! Here, I try to use Bravado (which would have been stopped by paralysis before), to try to escape the lock. However, it only cures my allergies. I am still locked. It would have been better to TOUCH SHIELD or run away.",
+            "reference_line": 1525,
+            "added": 1680388483
+        },
+        {
+            "body": "Fitness is back up, so I use it immediately, breaking the venom lock!",
+            "reference_line": 1712,
+            "added": 1680388586
+        },
+        {
+            "body": "Tumbling is often a great way to escape. However, the best fighters watch out for tumbles and can give chase very well!",
+            "reference_line": 2166,
+            "added": 1680388830
+        },
+        {
+            "body": "Like I said, Kagura gave chase, and the fight went to her. It was well fought by both me and her. However, some bad luck (clumsiness affecting Tempo very heavily) and several missed opportunities to flee or shield put Kagura in a position for a fairly quick win.",
+            "reference_line": 2256,
+            "added": 1680388853
+        }
+    ],
     "locked": true
 }
