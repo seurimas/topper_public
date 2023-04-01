@@ -1,7 +1,7 @@
 <html><head>
   <title>Seurimas' Explainer</title>
-  <link rel="icon" href="/favicon-8f6e2bc234c739da.ico">
-  <link rel="stylesheet" href="/index-43ce6c728f69a729.css">
+  <link rel="icon" href="/explainer/favicon-8f6e2bc234c739da.ico">
+  <link rel="stylesheet" href="/explainer/index-43ce6c728f69a729.css">
   
   <script type="text/javascript">
     function export_json(exported) {
@@ -12,6 +12,18 @@
       link.href = data;
       link.download = `${page.id}.json`;
       link.click();
+    }
+
+    function get_color_from_node(node) {
+      if (node.style !== undefined) {
+        return node.style.color;
+      } else {
+        return "white";
+      }
+    }
+
+    function bounce(cb) {
+      setTimeout(cb, 5000);
     }
 
     function is_unlocked() {
@@ -33,38 +45,20 @@
         }
       });
     }
+
+    function fetch_sect_log(link) {
+      return fetch(`https://justcors.com/l_nfh7g2exq8f/${link}`).then(response => {
+        console.log(response);
+        if (response.ok) {
+          return response.text();
+        }
+      });
+    }
   </script>
 
-<link rel="preload" href="/topper-explainer-816bf15e05a0dd30_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
-<link rel="modulepreload" href="/topper-explainer-816bf15e05a0dd30.js"></head>
+<link rel="preload" href="/explainer/topper-explainer-9efcb3a6a1518bf_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
+<link rel="modulepreload" href="/explainer/topper-explainer-9efcb3a6a1518bf.js"></head>
 
 <body class="outer">
 
-<script type="module">import init from '/topper-explainer-816bf15e05a0dd30.js';init('/topper-explainer-816bf15e05a0dd30_bg.wasm');</script><script>(function () {
-    var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    var url = protocol + '//' + window.location.host + '/_trunk/ws';
-    var poll_interval = 5000;
-    var reload_upon_connect = () => {
-        window.setTimeout(
-            () => {
-                // when we successfully reconnect, we'll force a
-                // reload (since we presumably lost connection to
-                // trunk due to it being killed, so it will have
-                // rebuilt on restart)
-                var ws = new WebSocket(url);
-                ws.onopen = () => window.location.reload();
-                ws.onclose = reload_upon_connect;
-            },
-            poll_interval);
-    };
-
-    var ws = new WebSocket(url);
-    ws.onmessage = (ev) => {
-        const msg = JSON.parse(ev.data);
-        if (msg.reload) {
-            window.location.reload();
-        }
-    };
-    ws.onclose = reload_upon_connect;
-})()
-</script></body></html>
+<script type="module">import init from '/explainer/topper-explainer-9efcb3a6a1518bf.js';init('/explainer/topper-explainer-9efcb3a6a1518bf_bg.wasm');</script></body></html>

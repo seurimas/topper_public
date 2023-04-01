@@ -113,8 +113,7 @@ impl Component for ExplainerModel {
                     parser.parse_nodes(&iframe);
                     log("Parsed!");
                     let page = parser.get_page();
-                    export_json(&serde_json::to_string(&page).unwrap());
-                    *self = Self::Cleared;
+                    *self = Self::LoadedPage(page);
                     true
                 }
                 _ => {
