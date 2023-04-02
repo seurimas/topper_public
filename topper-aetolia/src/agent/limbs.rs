@@ -130,7 +130,7 @@ pub struct LimbSet {
 pub const DAMAGED_VALUE: CType = 3332;
 pub const MANGLED_VALUE: CType = 6665;
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct LimbState {
     pub damage: f32,
     pub broken: bool,

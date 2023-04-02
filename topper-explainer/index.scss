@@ -141,6 +141,8 @@ body {
         background-color: $state_color;
         color: white;
         margin-top: $two_unit;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
 
         &::before {
             content: "";
@@ -153,6 +155,164 @@ body {
             border-right: $two_unit solid transparent;
             border-bottom: $two_unit solid $state_color;
             box-sizing: border-box;
+        }
+
+        &__player {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+
+            &__class,
+            &__aff_count {
+                margin-bottom: $one_unit;
+                flex-basis: 50%;
+            }
+
+            &__rebounding {
+                margin-top: $one_unit;
+                flex-basis: 100%;
+            }
+
+            &__balance {
+                margin-right: $one_unit;
+            }
+
+            &__limbs {
+                margin-top: $one_unit;
+                flex-basis: 100%;
+                display: flex;
+                flex-direction: row;
+                flex-wrap: wrap;
+                padding-right: 50%;
+
+                &>.limb {
+                    flex-basis: 50%;
+
+                    &--damaged_0 {
+                        color: white;
+                    }
+
+                    &--damaged_1 {
+                        font-weight: bold;
+                        color: #fcf;
+                    }
+
+                    &--damaged_2 {
+                        font-weight: bold;
+                        color: #faf;
+                    }
+
+                    &--damaged_3 {
+                        font-weight: bold;
+                        color: #f4f;
+                    }
+
+                    &--damaged_4 {
+                        font-weight: bolder;
+                        color: #f48;
+                    }
+
+                    &--damaged_5 {
+                        font-weight: bolder;
+                        color: #f44;
+                    }
+
+                    &--damaged_6 {
+                        font-weight: bolder;
+                        color: #f00;
+                    }
+
+                    &--damaged_7 {
+                        font-weight: 900;
+                        color: #a00;
+                    }
+
+                    &--damaged_8 {
+                        font-weight: 900;
+                        color: #900;
+                    }
+
+                    &--damaged_9 {
+                        font-weight: 900;
+                        color: #400;
+                    }
+
+                    &--damaged_10 {
+                        font-weight: 900;
+                        color: #100;
+                    }
+
+                    &--broken_broken {
+                        background-color: green;
+                    }
+
+                    &--broken_damaged {
+                        background-color: yellow;
+                    }
+
+                    &--broken_mangled {
+                        background-color: white;
+                    }
+
+                    &--broken_amputated {
+                        background-color: magenta;
+                    }
+
+                    &--bruise_level_1 {
+                        text-decoration: underline dashed;
+                    }
+
+                    &--bruise_level_2 {
+                        text-decoration: underline;
+                    }
+
+                    &--bruise_level_3 {
+                        text-decoration: underline double;
+                    }
+                }
+            }
+
+            &__affs {
+                margin-top: $one_unit;
+                display: flex;
+                flex-direction: row;
+                flex-wrap: wrap;
+
+                &>.aff {
+                    background-color: white;
+                    color: black;
+                    border: 1px solid transparent;
+                    border-radius: $one_unit;
+                    padding-left: $one_unit;
+                    padding-right: $one_unit;
+                    height: 1em;
+                    line-height: 1em;
+
+                    &--Anorexia,
+                    &--Asthma,
+                    &--Slickness {
+                        background-color: red;
+                    }
+
+                    &--Aeon,
+                    &--Paralysis,
+                    &--ThinBlood,
+                    &--Frozen {
+                        background-color: magenta;
+                    }
+
+                    &--Stupidity,
+                    &--Paresis,
+                    &--Impatience {
+                        background-color: pink;
+                    }
+
+                    &--Perplexed,
+                    &--SelfLoathing {
+                        background-color: yellow;
+                    }
+                }
+            }
         }
     }
 }
