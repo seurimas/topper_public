@@ -1,4 +1,6 @@
-use crate::{bindings::*, explainer::ExplainerPage};
+use crate::{
+    bindings::*, colored_lines::get_content_of_raw_colored_text, explainer::ExplainerPage,
+};
 use regex::Regex;
 use std::{cmp::Ordering, marker::PhantomData};
 use topper_aetolia::timeline::{AetPrompt, AetTimeSlice, AetTimeline};
@@ -9,7 +11,7 @@ use web_sys::*;
 use super::observations::OBSERVER;
 
 lazy_static! {
-    static ref PROMPT_REGEX: Regex =
+    pub static ref PROMPT_REGEX: Regex =
         Regex::new(r"\[(?P<hour>\d\d):(?P<minute>\d\d):(?P<second>\d\d):(?P<centi>\d\d)\]")
             .unwrap();
     static ref WHO_REGEX: Regex = Regex::new(r"^Who:\s+(?P<who>\w+)$").unwrap();
@@ -107,4 +109,51 @@ impl AetoliaSectParser {
         }
         self.line_remaining = format!("{}{}", self.line_remaining, text);
     }
+}
+
+pub fn parse_me_and_you(page: &ExplainerPage) -> (String, String) {
+    let mut me = "Unknown".to_string();
+    let mut you = "Assailant".to_string();
+    for line_text in page.get_body().iter() {
+        let text = get_content_of_raw_colored_text(line_text);
+        if let Some(captures) = WHO_REGEX.captures(&text) {
+            if let Some(who) = captures.name("who") {
+                me = who.as_str().to_string();
+            }
+        } else if let Some(captures) = VS_REGEX.captures(&text) {
+            if let Some(vs) = captures.name("vs") {
+                you = vs.as_str().to_string();
+            }
+        } else if let Some(matches) = PROMPT_REGEX.find(&text) {
+            break;
+        }
+    }
+    (me, you)
+}
+
+pub fn parse_prompt_time(line: &String, last_time: i32) -> Option<i32> {
+    if let Some(captures) = PROMPT_REGEX.captures(line.as_ref()) {
+        if let (Some(hour), Some(minute), Some(second), Some(centi)) = (
+            captures.name("hour"),
+            captures.name("minute"),
+            captures.name("second"),
+            captures.name("centi"),
+        ) {
+            let hour: i32 = hour.as_str().parse().unwrap();
+            let minute: i32 = minute.as_str().parse().unwrap();
+            let second: i32 = second.as_str().parse().unwrap();
+            let centi: i32 = centi.as_str().parse().unwrap();
+            let mut time = centi + (((((hour * 60) + minute) * 60) + second) * 100);
+            if time < last_time {
+                // It's a braaand neww day, and the sun is hiiigh.
+                time = time + (24 * 360000);
+            }
+            return Some(time);
+        }
+    }
+    None
+}
+
+pub fn is_prompt(line: &String) -> bool {
+    parse_prompt_time(line, 0).is_some()
 }

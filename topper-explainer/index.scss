@@ -1,6 +1,7 @@
 $one_unit: 8px;
 $two_unit: 16px;
 $comment_color: midnightblue;
+$state_color: goldenrod;
 
 body {
     background-color: black;
@@ -16,7 +17,7 @@ body {
 
     &__line {
         display: flex;
-        height: 1em;
+        min-height: 1em;
     }
 
     &__edit_section {
@@ -55,6 +56,15 @@ body {
         width: .9em;
         height: .9em;
         background-color: $comment_color;
+        text-align: center;
+        font-weight: bold;
+        margin-left: 8px;
+    }
+
+    &__view_state {
+        width: .9em;
+        height: .9em;
+        background-color: $state_color;
         text-align: center;
         font-weight: bold;
         margin-left: 8px;
@@ -118,6 +128,31 @@ body {
             margin: #{$one_unit / 2};
             margin-top: $one_unit;
             background-color: azure;
+        }
+    }
+
+    &__state {
+        position: relative;
+        margin: $one_unit;
+        border: 1px solid #006;
+        border-radius: $one_unit;
+        padding: $one_unit;
+        max-width: 60em;
+        background-color: $state_color;
+        color: white;
+        margin-top: $two_unit;
+
+        &::before {
+            content: "";
+            position: absolute;
+            width: $two_unit;
+            height: $two_unit;
+            top: #{$two_unit * -1};
+            left: $two_unit;
+            border-left: $two_unit solid transparent;
+            border-right: $two_unit solid transparent;
+            border-bottom: $two_unit solid $state_color;
+            box-sizing: border-box;
         }
     }
 }

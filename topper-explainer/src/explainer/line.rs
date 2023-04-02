@@ -1,7 +1,7 @@
 use regex::Regex;
 use yew::{prelude::*, virtual_dom::VNode};
 
-use crate::bindings::log;
+use crate::{bindings::log, colored_lines::render_line_with_color, sect_parser::is_prompt};
 
 use super::page::ExplainerPageMessage;
 
@@ -18,42 +18,6 @@ pub struct PageLineProperties {
     pub msg: Callback<ExplainerPageMessage>,
 }
 
-lazy_static! {
-    static ref COLOR: Regex = Regex::new(r"<(?P<color>[^>]+)>").unwrap();
-}
-
-fn render_line_with_color(line: String) -> (Html, String) {
-    let mut rendered = VNode::default();
-    let mut seen = 0;
-    let mut active_color = None;
-    let mut content = String::new();
-    if let VNode::VList(list) = &mut rendered {
-        for capture in COLOR.captures_iter(&line) {
-            let color = capture.get(1).unwrap();
-            let color_start = color.start() - 1;
-            if color_start > seen {
-                let text = &line[seen..color_start];
-                list.push(html!(<span
-                    style={format!("color: {}", active_color.unwrap_or("white"))}>
-                    { text }
-                </span>));
-                content.push_str(text);
-            }
-            seen = color.end() + 1;
-            active_color = Some(color.as_str());
-        }
-        if seen < line.len() {
-            let text = &line[seen..];
-            list.push(html!(<span
-                style={format!("color: {}", active_color.unwrap_or("white"))}>
-                {text}
-            </span>));
-            content.push_str(text);
-        }
-    }
-    (rendered, content)
-}
-
 impl Component for PageLine {
     type Message = ExplainerPageMessage;
     type Properties = PageLineProperties;
@@ -63,7 +27,7 @@ impl Component for PageLine {
     }
     fn view(&self, ctx: &Context<Self>) -> Html {
         let props = ctx.props();
-        let (rendered_line, line_content) = render_line_with_color(props.line.to_string());
+        let (rendered_line, line_content) = render_line_with_color(&props.line.to_string());
         let comment_icon = if !props.comment_open && props.has_comment {
             let idx = props.idx;
             let open_comment = ctx
@@ -79,9 +43,19 @@ impl Component for PageLine {
         } else {
             None
         };
+        let state_icon = if is_prompt(&line_content) {
+            let idx = props.idx;
+            let view_state = ctx
+                .link()
+                .callback(move |_| ExplainerPageMessage::ToggleState(idx));
+            Some(html!(<div class="page__view_state" onclick={view_state}>{"?"}</div>))
+        } else {
+            None
+        };
         html!(<>
             <div class="page__line">
                 <span class="page__line__text">{ rendered_line }</span>
+                {state_icon}
                 {comment_icon}
             </div>
             {for props.children.iter()}

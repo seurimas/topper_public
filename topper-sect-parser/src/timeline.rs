@@ -100,7 +100,7 @@ pub fn parse_time_slices(line_nodes: &Vec<Element>) -> (String, String, Vec<AetT
                 let mut slice = AetTimeSlice {
                     observations: None,
                     gmcp: Vec::new(),
-                    lines: lines,
+                    lines,
                     prompt: AetPrompt::Promptless,
                     time,
                     me: me.clone(),

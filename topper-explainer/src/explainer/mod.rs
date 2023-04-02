@@ -6,6 +6,7 @@ use yew::prelude::*;
 mod comment;
 mod line;
 pub mod page;
+mod state;
 
 use crate::{
     bindings::*,
@@ -17,6 +18,7 @@ use crate::{
 pub use self::comment::Comment;
 pub use self::page::ExplainerPage;
 use self::page::ExplainerPageModel;
+pub use self::state::Mutation;
 
 #[derive(Debug)]
 pub enum ExplainerModel {

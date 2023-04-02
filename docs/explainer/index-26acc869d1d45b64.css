@@ -1,0 +1,125 @@
+body {
+  background-color: black;
+}
+
+.page {
+  font-family: "Courier New";
+  color: white;
+}
+.page__lines {
+  margin: 8px;
+}
+.page__line {
+  display: flex;
+  min-height: 1em;
+}
+.page__edit_section {
+  position: fixed;
+  right: 8px;
+  top: 8px;
+  display: flex;
+  flex-direction: row;
+}
+.page__edit_section > * {
+  margin-left: 8px;
+}
+.page__expand_button {
+  position: fixed;
+  right: 8px;
+  bottom: 8px;
+}
+.page__edit_toggle, .page__save_button {
+  background-color: green;
+  padding: 8px;
+  vertical-align: middle;
+}
+.page__expand_button {
+  background-color: midnightblue;
+  padding: 8px;
+  vertical-align: middle;
+}
+.page__open_comment, .page__add_comment {
+  width: 0.9em;
+  height: 0.9em;
+  background-color: midnightblue;
+  text-align: center;
+  font-weight: bold;
+  margin-left: 8px;
+}
+.page__view_state {
+  width: 0.9em;
+  height: 0.9em;
+  background-color: goldenrod;
+  text-align: center;
+  font-weight: bold;
+  margin-left: 8px;
+}
+.page__edit_toggle, .page__save_button, .page__comment__edit, .page__comment__finish, .page__comment__close, .page__open_comment, .page__add_comment, .page__expand_button {
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+.page__comment {
+  position: relative;
+  margin: 8px;
+  border: 1px solid #006;
+  border-radius: 8px;
+  padding: 8px;
+  max-width: 60em;
+  background-color: midnightblue;
+  color: white;
+  margin-top: 16px;
+}
+.page__comment::before {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  top: -16px;
+  left: 16px;
+  border-left: 16px solid transparent;
+  border-right: 16px solid transparent;
+  border-bottom: 16px solid midnightblue;
+  box-sizing: border-box;
+}
+.page__comment__text {
+  white-space: break-spaces;
+}
+.page__comment__editor {
+  width: calc(100% - 8px - 8px);
+  min-height: 4em;
+  background-color: azure;
+  color: black;
+  padding: 8px;
+  white-space: break-spaces;
+}
+.page__comment__finish, .page__comment__edit, .page__comment__close {
+  padding: 4px;
+  margin: 4px;
+  margin-top: 8px;
+  background-color: azure;
+}
+.page__state {
+  position: relative;
+  margin: 8px;
+  border: 1px solid #006;
+  border-radius: 8px;
+  padding: 8px;
+  max-width: 60em;
+  background-color: goldenrod;
+  color: white;
+  margin-top: 16px;
+}
+.page__state::before {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  top: -16px;
+  left: 16px;
+  border-left: 16px solid transparent;
+  border-right: 16px solid transparent;
+  border-bottom: 16px solid goldenrod;
+  box-sizing: border-box;
+}

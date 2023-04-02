@@ -3,6 +3,7 @@
 extern crate lazy_static;
 use explainer::ExplainerModel;
 mod bindings;
+mod colored_lines;
 mod explainer;
 mod links;
 mod msg;

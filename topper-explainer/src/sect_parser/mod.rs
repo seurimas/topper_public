@@ -6,9 +6,11 @@ use topper_core::timeline::{db::DummyDatabaseModule, BaseTimeline};
 mod loader;
 mod observations;
 mod parser;
+mod timeline;
 
 pub use loader::*;
-pub use parser::AetoliaSectParser;
+pub use parser::{is_prompt, parse_me_and_you, AetoliaSectParser};
+pub use timeline::{build_time_slices, get_timeline_state};
 
 pub fn get_selected_slice(time_slices: &Vec<AetTimeSlice>, line_idx: usize) -> usize {
     time_slices

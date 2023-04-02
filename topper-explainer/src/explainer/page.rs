@@ -1,18 +1,25 @@
 use serde::{Deserialize, Serialize};
+use topper_aetolia::timeline::{AetTimeSlice, AetTimelineState};
 use yew::{prelude::*, virtual_dom::VNode};
 
 use crate::{
     bindings::{export_json, get_time, is_unlocked, log},
-    explainer::{comment::CommentBlock, line::PageLine},
+    explainer::{comment::CommentBlock, line::PageLine, state::StateBlock},
+    sect_parser::{build_time_slices, get_timeline_state, parse_me_and_you},
 };
 
-use super::{Comment, ExplainerModel};
+use super::{Comment, ExplainerModel, Mutation};
 
 #[derive(Default, Debug)]
 pub struct ExplainerPageModel {
     page: ExplainerPage,
+    me: String,
+    you: String,
+    time_slices: Vec<AetTimeSlice>,
+    viewing_state: Option<(usize, AetTimelineState)>,
     viewing_comments: Vec<usize>,
     edit_mode: bool,
+    pass_msg: Callback<ExplainerPageMessage>,
 }
 
 #[derive(Debug)]
@@ -22,6 +29,7 @@ pub enum ExplainerPageMessage {
     CloseComment(usize),
     UpdateComment(usize, String),
     DeleteComment(usize),
+    ToggleState(usize),
     ToggleEditMode,
     ToggleExpanded,
     Export,
@@ -35,6 +43,8 @@ pub struct ExplainerPage {
     comments: Vec<Comment>,
     #[serde(default)]
     locked: bool,
+    #[serde(default)]
+    mutations: Vec<Mutation>,
 }
 
 impl PartialEq for ExplainerPage {
@@ -57,7 +67,12 @@ impl ExplainerPage {
             body,
             comments: Vec::new(),
             locked: false,
+            mutations: Vec::new(),
         }
+    }
+
+    pub fn get_body(&self) -> &Vec<String> {
+        &self.body
     }
 
     pub fn len(&self) -> usize {
@@ -128,6 +143,19 @@ impl ExplainerPageModel {
         } else {
             None
         };
+        let state_block = if let Some((viewing_idx, viewing_state)) = self.viewing_state.as_ref() {
+            if *viewing_idx != idx {
+                None
+            } else {
+                Some(html!(<StateBlock
+                    state={viewing_state.clone()}
+                    me={self.me.clone()}
+                    you={self.you.clone()}
+                />))
+            }
+        } else {
+            None
+        };
         html!(<PageLine
             key={idx}
             idx={idx}
@@ -138,6 +166,7 @@ impl ExplainerPageModel {
             msg={on_msg}
         >
           {comment_block}
+          {state_block}
         </PageLine>)
     }
 }
@@ -153,6 +182,7 @@ impl Component for ExplainerPageModel {
     fn create(ctx: &Context<Self>) -> Self {
         let page = &ctx.props().page;
         let locked = page.locked && !is_unlocked();
+        let (me, you) = parse_me_and_you(&page);
         Self {
             edit_mode: !locked,
             viewing_comments: if locked {
@@ -160,18 +190,22 @@ impl Component for ExplainerPageModel {
             } else {
                 Vec::new()
             },
+            viewing_state: None,
             page: page.clone(),
+            me,
+            you,
+            time_slices: build_time_slices(&page),
+            pass_msg: ctx.link().callback(|msg| msg),
         }
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let callback = ctx.link().callback(|msg| msg);
         let page_lines = self
             .page
             .body
             .iter()
             .enumerate()
-            .map(|(idx, line)| self.render_line(ctx, idx, line, callback.clone()));
+            .map(|(idx, line)| self.render_line(ctx, idx, line, self.pass_msg.clone()));
         let edit_section = if self.page.locked && !is_unlocked() {
             None
         } else {
@@ -229,6 +263,13 @@ impl Component for ExplainerPageModel {
             }
             ExplainerPageMessage::UpdateComment(line_idx, new_val) => {
                 self.page.update_comment(line_idx, new_val);
+                true
+            }
+            ExplainerPageMessage::ToggleState(line_idx) => {
+                let (me, _you) = parse_me_and_you(&self.page);
+                let timeline_state = get_timeline_state(me, &self.time_slices, line_idx as u32);
+                log(&format!("{:?}", timeline_state.borrow_me()));
+                self.viewing_state = Some((line_idx, timeline_state));
                 true
             }
             ExplainerPageMessage::ToggleEditMode => {

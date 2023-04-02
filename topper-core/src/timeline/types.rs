@@ -3,7 +3,7 @@ use log::warn;
 use regex::Regex;
 use serde::Deserialize;
 use serde_json::Value;
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Debug};
 pub type CType = i32;
 pub const BALANCE_SCALE: f32 = 100.0;
 pub type GMCP = (String, Value);
@@ -33,6 +33,12 @@ pub struct TimelineState<A, N> {
     pub free_hints: HashMap<String, String>,
     pub time: CType,
     pub me: String,
+}
+
+impl<A, N> Debug for TimelineState<A, N> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("<timeline state>")
+    }
 }
 
 impl<A: BaseAgentState + Clone, N: Clone> TimelineState<A, N> {
