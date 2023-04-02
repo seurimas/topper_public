@@ -285,7 +285,11 @@ impl Component for ExplainerPageModel {
                 true
             }
             ExplainerPageMessage::Export => {
-                match serde_json::to_string(&self.page) {
+                let mut page = self.page.clone();
+                if page.comments.len() > 0 {
+                    page.locked = true;
+                }
+                match serde_json::to_string(&page) {
                     Ok(exported) => export_json(&exported),
                     Err(err) => log(&format!("{:?}", err)),
                 }

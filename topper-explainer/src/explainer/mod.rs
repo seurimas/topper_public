@@ -52,8 +52,23 @@ impl Component for ExplainerModel {
                         .and_then(|files| files.get(0))
                         .map(|file| ExplainerMessage::LoadFile(file.text().into()))
                 });
-                html!(<div key="welcome" class="explainer__welcome">
-                  <label for="sect_log">{"Select a Sect log file:"}</label>
+                html!(<div key="welcome" class="welcome">
+                  <span class="info">
+                  {"Welcome to Seurimas' Explainer tool.
+                  
+                  The purpose of this tool is to provide a means of explaining concepts in the MUD Aetolia, using inline comments. The commented logs can be exported to JSON, shared, and then loaded into this tool to view the comments again.
+                  
+                  As an added utility, Sect logs can be loaded into this tool. The tool will parse the log and provide inline insights into the state of the fight: afflictions, limb state, and critical balances.
+                  
+                  When editing a page, you can click on this icon to add a comment: "}
+                  <div class="page__add_comment">{"+"}</div>
+                  {"
+                  While editing or viewing a Sect log, this icon shows up with every prompt to show the battle state: "}
+                  <div class="page__view_state">{"?"}</div>
+                  <br/>
+                  <br/>
+                  </span>
+                  <label for="sect_log">{"Select an exported JSON file or a downloaded Sect log:"}</label>
                   <input type="file" id="sect_log" name="sect_log" onchange={on_sect_log}/>
                 </div>)
             }
