@@ -62,7 +62,7 @@ body {
   font-weight: bold;
   margin-left: 8px;
 }
-.page__edit_toggle, .page__save_button, .page__comment__edit, .page__comment__finish, .page__comment__close, .page__open_comment, .page__add_comment, .page__expand_button {
+.page__edit_toggle, .page__save_button, .page__comment__edit, .page__comment__finish, .page__comment__close, .page__open_comment, .page__add_comment, .page__expand_button, .page__view_state {
   cursor: pointer;
   user-select: none;
   border: 1px solid transparent;

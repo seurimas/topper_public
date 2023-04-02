@@ -86,7 +86,8 @@ body {
     &__comment__close,
     &__open_comment,
     &__add_comment,
-    &__expand_button {
+    &__expand_button,
+    &__view_state {
         cursor: pointer;
         user-select: none;
         border: 1px solid transparent;
