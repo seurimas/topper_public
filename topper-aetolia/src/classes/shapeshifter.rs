@@ -1,3 +1,5 @@
+use crate::curatives::remove_in_order;
+use crate::curatives::STEROID_ORDER;
 use crate::timeline::*;
 use crate::types::*;
 
@@ -19,6 +21,11 @@ pub fn handle_combat_action(
                     apply_or_infer_balance(me, (BType::ClassCure1, 12.0), &observations);
                 },
             );
+        }
+        "Rage" => {
+            for_agent(agent_states, &combat_action.caster, &|me| {
+                remove_in_order(STEROID_ORDER.to_vec(), me);
+            });
         }
         _ => {}
     }
