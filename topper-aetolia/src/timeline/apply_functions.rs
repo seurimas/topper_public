@@ -918,36 +918,36 @@ pub fn apply_or_infer_cures(
     first_person: bool,
 ) -> Result<(), String> {
     let mut found_cures = Vec::new();
-    for observation in after.iter() {
-        match observation {
-            AetObservation::Cured(aff_name) => {
-                if let Some(aff) = FType::from_name(&aff_name) {
-                    who.toggle_flag(aff, false);
-                    if aff == FType::ThinBlood {
-                        who.clear_relapses();
-                    } else if aff == FType::Void {
-                        who.set_flag(FType::Weakvoid, true);
+    if first_person {
+        for observation in after.iter() {
+            match observation {
+                AetObservation::Cured(aff_name) => {
+                    if let Some(aff) = FType::from_name(&aff_name) {
+                        who.toggle_flag(aff, false);
+                        if aff == FType::ThinBlood {
+                            who.clear_relapses();
+                        } else if aff == FType::Void {
+                            who.set_flag(FType::Weakvoid, true);
+                        }
+                        found_cures.push(aff);
                     }
-                    found_cures.push(aff);
                 }
-            }
-            AetObservation::Stripped(def_name) => {
-                if let Some(def) = FType::from_name(&def_name) {
-                    who.toggle_flag(def, false);
-                    found_cures.push(def);
+                AetObservation::Stripped(def_name) => {
+                    if let Some(def) = FType::from_name(&def_name) {
+                        who.toggle_flag(def, false);
+                        found_cures.push(def);
+                    }
                 }
+                _ => {}
             }
-            _ => {}
         }
-    }
-    if found_cures.len() == 0 {
-        if first_person {
+        if found_cures.len() == 0 {
             for aff in cures.iter() {
                 who.observe_flag(*aff, false);
             }
-        } else {
-            remove_in_order(cures, who);
         }
+    } else {
+        remove_in_order(cures, who);
     }
     Ok(())
 }

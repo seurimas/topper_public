@@ -727,11 +727,11 @@ function getImports() {
     imports.wbg.__wbindgen_throw = function(arg0, arg1) {
         throw new Error(getStringFromWasm0(arg0, arg1));
     };
-    imports.wbg.__wbindgen_closure_wrapper2360 = function(arg0, arg1, arg2) {
+    imports.wbg.__wbindgen_closure_wrapper2359 = function(arg0, arg1, arg2) {
         const ret = makeClosure(arg0, arg1, 1116, __wbg_adapter_18);
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_closure_wrapper2866 = function(arg0, arg1, arg2) {
+    imports.wbg.__wbindgen_closure_wrapper2865 = function(arg0, arg1, arg2) {
         const ret = makeMutClosure(arg0, arg1, 1302, __wbg_adapter_21);
         return addHeapObject(ret);
     };
@@ -770,7 +770,7 @@ function initSync(module) {
 
 async function init(input) {
     if (typeof input === 'undefined') {
-        input = new URL('topper-explainer-7e1765c2cf0bdf5a_bg.wasm', import.meta.url);
+        input = new URL('topper-explainer-f43902225d7ead93_bg.wasm', import.meta.url);
     }
     const imports = getImports();
 
