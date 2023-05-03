@@ -89,6 +89,17 @@ pub fn handle_combat_action(
                     after,
                 );
             }
+            "Pulse" => match combat_action.annotation.as_ref() {
+                "upset" => {
+                    attack_afflictions(
+                        agent_states,
+                        &combat_action.target,
+                        vec![FType::Weariness],
+                        after,
+                    );
+                }
+                _ => {}
+            },
             _ => {}
         },
         _ => {}

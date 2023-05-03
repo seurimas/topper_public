@@ -19,5 +19,26 @@
       }
     ],
     "observation_name": "Proc"
+  },
+  {
+    "regex": "^(\\w+) skin turns a sickly colour and black bile seeps from (\\w+|\\w+ \\w+) mouth.",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Discipline"
+      },
+      {
+        "Literal": "Repent"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": "upset"
+      }
+    ],
+    "observation_name": "Proc"
   }
 ]
