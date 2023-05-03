@@ -1,6 +1,6 @@
 [
   {
-    "regex": "^(\\w+) (parries|parry) the attack (to|on) (\\w+|\\w+ \\w+) (head|torso|left arm|right arm|left leg|right leg) with a deft maneuver.$",
+    "regex": "^(\\w+) (parries|parry) the attack (to|on) (\\w+) ?\\w* (head|torso|left arm|right arm|left leg|right leg) with a deft maneuver.$",
     "args": [
       {
         "GroupAsTarget": 1
@@ -18,7 +18,7 @@
     "observation_name": "Parry"
   },
   {
-    "regex": "^With a free hand, (\\w+) fends? off the attack (to|on) (\\w+|\\w+ \\w+) (head|torso|left arm|right arm|left leg|right leg).$",
+    "regex": "^With a free hand, (\\w+) fends? off the attack (to|on) (\\w+) ?\\w* (head|torso|left arm|right arm|left leg|right leg).$",
     "args": [
       {
         "GroupAsTarget": 1
@@ -36,7 +36,7 @@
     "observation_name": "Parry"
   },
   {
-    "regex": "^With a predatory growl, (\\w+) opposes? the attack (to|on) (\\w+|\\w+ \\w+) (head|torso|left arm|right arm|left leg|right leg), denying it purchase.$",
+    "regex": "^With a predatory growl, (\\w+) opposes? the attack (to|on) (\\w+) ?\\w* (head|torso|left arm|right arm|left leg|right leg), denying it purchase.$",
     "args": [
       {
         "GroupAsTarget": 1
@@ -162,7 +162,7 @@
     "observation_name": "Devenoms"
   },
   {
-    "regex": "^Your fangs won't penetrate the odd waxy coating protecting (\\w+|\\w+ \\w+).$",
+    "regex": "^Your fangs won't penetrate the odd waxy coating protecting (\\w+) ?\\w*.$",
     "args": [
       {
         "Literal": ""
@@ -216,7 +216,7 @@
     "observation_name": "OtherAfflicted"
   },
   {
-    "regex": "^(\\w+) twists and turns (\\w+|\\w+ \\w+) body, dodging the attack.$",
+    "regex": "^(\\w+) twists and turns (\\w+) ?\\w* body, dodging the attack.$",
     "args": [
       {
         "GroupAsTarget": 1
@@ -342,7 +342,7 @@
     "observation_name": "Absorbed"
   },
   {
-    "regex": "^(\\w+)'s face flushes as (\\w+|\\w+ \\w+) body purges the (\\w+) venom.",
+    "regex": "^(\\w+)'s face flushes as (\\w+) ?\\w* body purges the (\\w+) venom.",
     "args": [
       {
         "GroupAsTarget": 1

@@ -84,7 +84,7 @@
     "observation_name": "Proc"
   },
   {
-    "regex": "^Specks of frost form on (\\w+) as (\\w+|\\w+ \\w+) shivers with fear.$",
+    "regex": "^Specks of frost form on (\\w+) as (\\w+) ?\\w* shivers with fear.$",
     "args": [
       {
         "GroupAsTarget": 1

@@ -252,7 +252,7 @@
     "observation_name": "CombatAction"
   },
   {
-    "regex": "^(\\w+) becomes flushed as (\\w+|\\w+ \\w+) (head|torso|left arm|right arm|left leg|right leg) heals with quickened haste.$",
+    "regex": "^(\\w+) becomes flushed as (\\w+) ?\\w* (head|torso|left arm|right arm|left leg|right leg) heals with quickened haste.$",
     "args": [
       {
         "GroupAsTarget": 1
@@ -357,7 +357,7 @@
     "observation_name": "Proc"
   },
   {
-    "regex": "^(\\w+) furrows \\w+ brow as (\\w+|\\w+ \\w+) undergoes some inner turmoil.$",
+    "regex": "^(\\w+) furrows \\w+ brow as (\\w+) ?\\w* undergoes some inner turmoil.$",
     "args": [
       {
         "GroupAsTarget": 1
@@ -567,7 +567,7 @@
     "observation_name": "Proc"
   },
   {
-    "regex": "^(\\w+)'?s? broken legs cause (\\w+|\\w+ \\w+) to fall to the ground in a heap.$",
+    "regex": "^(\\w+)'?s? broken legs cause (\\w+) ?\\w* to fall to the ground in a heap.$",
     "args": [
       {
         "GroupAsTarget": 1
