@@ -3,6 +3,9 @@ use std::collections::HashMap;
 use crate::timeline::*;
 use crate::types::*;
 
+use self::akkari::map_mentis;
+
+mod akkari;
 mod ravager;
 mod revenant;
 
@@ -43,6 +46,7 @@ lazy_static! {
         );
         revenant::add_mappings(&mut mapping);
         ravager::add_mappings(&mut mapping);
+        akkari::add_mappings(&mut mapping);
         mapping
     };
 }
@@ -51,6 +55,14 @@ pub fn normalize_combat_action(combat_action: &CombatAction) -> CombatAction {
     if let Some((category, skill)) =
         ABILITY_MAPPING.get(&(combat_action.category.clone(), combat_action.skill.clone()))
     {
+        CombatAction {
+            caster: combat_action.caster.clone(),
+            target: combat_action.target.clone(),
+            annotation: combat_action.annotation.clone(),
+            skill: skill.clone(),
+            category: category.clone(),
+        }
+    } else if let Some((category, skill)) = map_mentis(&combat_action) {
         CombatAction {
             caster: combat_action.caster.clone(),
             target: combat_action.target.clone(),

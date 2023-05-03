@@ -390,6 +390,10 @@ pub enum FType {
     Shadowbrand,
     Shadowsphere,
 
+    // Praenomen Uncurable
+    Seduction,
+    Temptation,
+
     // Special
     Disrupted,
     Fear,
@@ -440,6 +444,10 @@ pub enum FType {
     RightLegDamaged,
     LeftArmDamaged,
     RightArmDamaged,
+
+    // Mirrored affs
+    Remorse,
+    Contrition,
 }
 
 lazy_static! {
@@ -475,7 +483,7 @@ impl FType {
                 }
             })
             .collect::<String>();
-        let result: Option<FType> = pretty.parse().ok();
+        let result: Option<FType> = pretty.parse::<FType>().ok().map(|aff| aff.normalize());
         result
     }
 
@@ -508,6 +516,14 @@ impl FType {
 
     pub fn afflictions() -> Vec<Self> {
         AFFLICTIONS.to_vec()
+    }
+
+    pub fn normalize(&self) -> Self {
+        match self {
+            FType::Remorse => FType::Seduction,
+            FType::Contrition => FType::Temptation,
+            other => *other,
+        }
     }
 }
 

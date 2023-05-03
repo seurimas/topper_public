@@ -1,0 +1,23 @@
+[
+  {
+    "regex": "^Terror consumes (\\w+) as the pitiless light inspires (self-pity|commitment fear|hubris|sadness) in (\\w+|\\w+ \\w+) heart.",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Discipline"
+      },
+      {
+        "Literal": "Light"
+      },
+      {
+        "GroupAsTarget": 2
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  }
+]
