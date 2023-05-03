@@ -56,6 +56,9 @@ pub enum AetPredicate {
     HasBalanceEquilibrium(AetTarget),
     HasBalance(AetTarget),
     HasEquilibrium(AetTarget),
+    HasTree(AetTarget),
+    HasFocus(AetTarget),
+    HasFitness(AetTarget),
     BardPredicate(AetTarget, BardPredicate),
 }
 
@@ -264,6 +267,30 @@ impl UnpoweredFunction for AetPredicate {
             AetPredicate::HasEquilibrium(target) => {
                 if let Some(target) = target.get_target(model, controller) {
                     if target.get_balance(BType::Equil) < QUEUE_TIME {
+                        return UnpoweredFunctionState::Complete;
+                    }
+                }
+                UnpoweredFunctionState::Failed
+            }
+            AetPredicate::HasFocus(target) => {
+                if let Some(target) = target.get_target(model, controller) {
+                    if target.get_balance(BType::Focus) < QUEUE_TIME {
+                        return UnpoweredFunctionState::Complete;
+                    }
+                }
+                UnpoweredFunctionState::Failed
+            }
+            AetPredicate::HasTree(target) => {
+                if let Some(target) = target.get_target(model, controller) {
+                    if target.get_balance(BType::Tree) < QUEUE_TIME {
+                        return UnpoweredFunctionState::Complete;
+                    }
+                }
+                UnpoweredFunctionState::Failed
+            }
+            AetPredicate::HasFitness(target) => {
+                if let Some(target) = target.get_target(model, controller) {
+                    if target.get_balance(BType::Fitness) < QUEUE_TIME {
                         return UnpoweredFunctionState::Complete;
                     }
                 }
