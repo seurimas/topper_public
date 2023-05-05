@@ -321,6 +321,14 @@ body {
                     &--SelfLoathing {
                         background-color: yellow;
                     }
+
+                    &--mental {
+                        font-weight: bold;
+                    }
+
+                    &--physical {
+                        font-style: italic;
+                    }
                 }
             }
         }

@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use topper_aetolia::{timeline::AetTimelineState, types::*};
+use topper_aetolia::{curatives::MENTAL_AFFLICTIONS, timeline::AetTimelineState, types::*};
 use yew::prelude::*;
 
 use super::page::ExplainerPageMessage;
@@ -196,7 +196,15 @@ pub struct AfflictionsIndicatorProps {
 #[function_component]
 fn AfflictionsIndicator(props: &AfflictionsIndicatorProps) -> Html {
     let aff_indicator = props.afflictions.iter().map(|aff| {
-        let classes = classes!("aff", format!("aff--{}", aff.to_string()),);
+        let classes = classes!(
+            "aff",
+            format!("aff--{}", aff.to_string()),
+            if MENTAL_AFFLICTIONS.contains(aff) {
+                Some("aff--mental")
+            } else {
+                None
+            },
+        );
         html!(<div class={classes}>{aff.to_name()}</div>)
     });
     html!(<div class="page__state__player__affs">
