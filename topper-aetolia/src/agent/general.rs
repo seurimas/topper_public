@@ -518,6 +518,10 @@ impl FType {
         AFFLICTIONS.to_vec()
     }
 
+    pub fn is_mirror(&self) -> bool {
+        self == &FType::Remorse || self == &FType::Contrition
+    }
+
     pub fn normalize(&self) -> Self {
         match self {
             FType::Remorse => FType::Seduction,
@@ -537,7 +541,9 @@ pub struct FlagSet {
 
 impl FlagSet {
     pub fn is_flag_set(&self, flag: FType) -> bool {
-        if flag.is_counter() {
+        if flag.is_mirror() {
+            self.is_flag_set(flag.normalize())
+        } else if flag.is_counter() {
             self.counters[flag as usize - FType::SIZE as usize - 1] > 0
         } else {
             self.simple[flag as usize]
@@ -545,7 +551,9 @@ impl FlagSet {
     }
 
     pub fn get_flag_count(&self, flag: FType) -> u8 {
-        if flag.is_counter() {
+        if flag.is_mirror() {
+            self.get_flag_count(flag.normalize())
+        } else if flag.is_counter() {
             self.counters[flag as usize - FType::SIZE as usize - 1]
         } else {
             if self.simple[flag as usize] {
@@ -557,7 +565,9 @@ impl FlagSet {
     }
 
     pub fn set_flag(&mut self, flag: FType, value: bool) {
-        if flag.is_counter() {
+        if flag.is_mirror() {
+            self.set_flag(flag.normalize(), value);
+        } else if flag.is_counter() {
             let counter_idx = flag as usize - FType::SIZE as usize - 1;
             let old_value = self.counters[counter_idx as usize];
             if value && old_value < 1 {
@@ -571,7 +581,9 @@ impl FlagSet {
     }
 
     pub fn set_flag_count(&mut self, flag: FType, value: u8) {
-        if flag.is_counter() {
+        if flag.is_mirror() {
+            self.set_flag_count(flag.normalize(), value);
+        } else if flag.is_counter() {
             let counter_idx = flag as usize - FType::SIZE as usize - 1;
             self.counters[counter_idx] = value;
         } else {
@@ -580,7 +592,9 @@ impl FlagSet {
     }
 
     pub fn tick_counter_up(&mut self, flag: FType) {
-        if flag.is_counter() {
+        if flag.is_mirror() {
+            self.tick_counter_up(flag.normalize());
+        } else if flag.is_counter() {
             self.counters[flag as usize - FType::SIZE as usize - 1] += 1;
         } else {
             println!("Tried to tick up non-counter.");

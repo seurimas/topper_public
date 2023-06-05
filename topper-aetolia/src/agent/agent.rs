@@ -156,7 +156,11 @@ impl AgentState {
             FType::RightLegAmputated => self.limb_damage.amputated(LType::RightLegDamage),
             FType::LeftArmAmputated => self.limb_damage.amputated(LType::LeftArmDamage),
             FType::RightArmAmputated => self.limb_damage.amputated(LType::RightArmDamage),
-            _ => self.flags.is_flag_set(flag),
+            _ => if flag.is_mirror() {
+                self.flags.is_flag_set(flag.normalize())
+            } else {
+                self.flags.is_flag_set(flag)
+            },
         }
     }
 
