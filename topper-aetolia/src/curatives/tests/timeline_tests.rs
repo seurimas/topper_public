@@ -11,12 +11,12 @@ mod timeline_tests {
         let mut timeline = AetTimeline::new();
         timeline
             .state
-            .for_agent(&"Seurimas".into(), |updated_seur| {
+            .for_agent(&"Seurimas".into(), &move |updated_seur: &mut AgentState| {
                 updated_seur.set_flag(FType::ThinBlood, true);
             });
         timeline
             .state
-            .for_agent(&"Benedicto".into(), |updated_bene| {
+            .for_agent(&"Benedicto".into(), &move |updated_bene: &mut AgentState| {
                 updated_bene.set_flag(FType::ThinBlood, true);
             });
         let coag_slice = AetTimeSlice {
@@ -44,12 +44,12 @@ mod timeline_tests {
         let mut timeline = AetTimeline::new();
         timeline
             .state
-            .for_agent(&"Seurimas".into(), |updated_seur| {
+            .for_agent(&"Seurimas".into(), &move |updated_seur: &mut AgentState| {
                 updated_seur.set_flag(FType::LeftArmBroken, true);
             });
         timeline
             .state
-            .for_agent(&"Benedicto".into(), |updated_bene| {
+            .for_agent(&"Benedicto".into(), &move |updated_bene: &mut AgentState| {
                 updated_bene.set_flag(FType::LeftArmBroken, true);
             });
         let coag_slice = AetTimeSlice {
@@ -77,12 +77,12 @@ mod timeline_tests {
         let mut timeline = AetTimeline::new();
         timeline
             .state
-            .for_agent(&"Seurimas".into(), |updated_seur| {
+            .for_agent(&"Seurimas".into(), &move |updated_seur: &mut AgentState| {
                 updated_seur.set_limb_damage(LType::LeftLegDamage, 1500);
             });
         timeline
             .state
-            .for_agent(&"Benedicto".into(), |updated_bene| {
+            .for_agent(&"Benedicto".into(), &move |updated_bene: &mut AgentState| {
                 updated_bene.set_limb_damage(LType::LeftLegDamage, 1500);
             });
         let restore_slice = AetTimeSlice {
@@ -131,14 +131,14 @@ mod timeline_tests {
         let mut timeline = AetTimeline::new();
         timeline
             .state
-            .for_agent(&"Seurimas".into(), |updated_seur| {
+            .for_agent(&"Seurimas".into(), &move |updated_seur: &mut AgentState| {
                 updated_seur
                     .limb_damage
                     .set_limb_damaged(LType::LeftLegDamage, true);
             });
         timeline
             .state
-            .for_agent(&"Benedicto".into(), |updated_bene| {
+            .for_agent(&"Benedicto".into(), &move |updated_bene: &mut AgentState| {
                 updated_bene
                     .limb_damage
                     .set_limb_damaged(LType::LeftLegDamage, true);
@@ -198,14 +198,14 @@ mod timeline_tests {
         let mut timeline = AetTimeline::new();
         timeline
             .state
-            .for_agent(&"Seurimas".into(), |updated_seur| {
+            .for_agent(&"Seurimas".into(), &move |updated_seur: &mut AgentState| {
                 updated_seur
                     .limb_damage
                     .set_limb_damaged(LType::LeftLegDamage, true);
             });
         timeline
             .state
-            .for_agent(&"Benedicto".into(), |updated_bene| {
+            .for_agent(&"Benedicto".into(), &move |updated_bene: &mut AgentState| {
                 updated_bene
                     .limb_damage
                     .set_limb_damaged(LType::LeftLegDamage, true);
@@ -280,7 +280,7 @@ mod timeline_tests {
         let mut timeline = AetTimeline::new();
         timeline
             .state
-            .for_agent(&"Seurimas".into(), |updated_seur| {
+            .for_agent(&"Seurimas".into(), &move |updated_seur: &mut AgentState| {
                 updated_seur
                     .limb_damage
                     .set_limb_damaged(LType::TorsoDamage, true);
@@ -288,7 +288,7 @@ mod timeline_tests {
             });
         timeline
             .state
-            .for_agent(&"Benedicto".into(), |updated_bene| {
+            .for_agent(&"Benedicto".into(), &move |updated_bene: &mut AgentState| {
                 updated_bene
                     .limb_damage
                     .set_limb_damaged(LType::TorsoDamage, true);

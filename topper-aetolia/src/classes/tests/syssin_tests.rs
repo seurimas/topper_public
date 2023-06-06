@@ -807,7 +807,7 @@ mod syssin_timeline_tests {
     #[test]
     fn test_hyper() {
         let mut timeline = AetTimeline::new();
-        timeline.state.for_agent(&"Benedicto".to_string(), |bene| {
+        timeline.state.for_agent(&"Benedicto".to_string(), &move |bene| {
             bene.set_flag(FType::Hypersomnia, true);
             bene.set_flag(FType::Rebounding, false);
         });
@@ -821,7 +821,7 @@ mod syssin_timeline_tests {
             qeb,
             "qeb parry head;;stand;;dstab Benedicto delphinium kalmia;;dash d;;hypnotise Benedicto;;suggest Benedicto Hypochondria%%qs shadow sleight void Benedicto",
         );
-        timeline.state.for_agent(&"Benedicto".to_string(), |bene| {
+        timeline.state.for_agent(&"Benedicto".to_string(), &move |bene| {
             bene.set_flag(FType::Insomnia, false);
         });
         let qeb = get_attack(
@@ -839,7 +839,7 @@ mod syssin_timeline_tests {
     #[test]
     fn test_flay_for_thin() {
         let mut timeline = AetTimeline::new();
-        timeline.state.for_agent(&"Benedicto".to_string(), |bene| {
+        timeline.state.for_agent(&"Benedicto".to_string(), &move |bene| {
             bene.set_flag(FType::Rebounding, false);
             bene.set_flag(FType::Paresis, true);
             bene.set_flag(FType::Asthma, true);
@@ -862,7 +862,7 @@ mod syssin_timeline_tests {
     #[test]
     fn test_bite_for_thin() {
         let mut timeline = AetTimeline::new();
-        timeline.state.for_agent(&"Benedicto".to_string(), |bene| {
+        timeline.state.for_agent(&"Benedicto".to_string(), &move |bene| {
             bene.set_flag(FType::Rebounding, false);
             bene.set_flag(FType::Fangbarrier, false);
             bene.set_flag(FType::Paresis, true);

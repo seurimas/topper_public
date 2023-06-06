@@ -20,7 +20,7 @@ mod zealot_timeline_tests {
         let mut timeline = AetTimeline::new();
         timeline
             .state
-            .for_agent(&"Tina".to_string(), |me: &mut AgentState| {
+            .for_agent(&"Tina".to_string(), &move |me: &mut AgentState| {
                 me.set_limb_damage(LType::TorsoDamage, 1700);
             });
         let mut no_break = AetTimeSlice {
