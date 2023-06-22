@@ -785,3 +785,18 @@ impl AgentState {
         self.aggro.register_hit();
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_will_be_rebounding() {
+        let mut state = AgentState::default();
+        assert!(!state.will_be_rebounding(0.5));
+
+        state.set_balance(BType::Rebounding, 1.);
+        assert!(!state.will_be_rebounding(0.5));
+        assert!(state.will_be_rebounding(1.5));
+    }
+}

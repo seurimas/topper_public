@@ -156,6 +156,7 @@ pub fn apply_observation(
                     })
                     .collect::<HashSet<FType>>();
                 timeline.for_agent(who, &move |me: &mut AgentState| {
+                    me.hidden_state.clear_unknown();
                     for affliction in FType::afflictions() {
                         me.observe_flag(affliction, afflictions.contains(&affliction));
                     }
@@ -219,7 +220,7 @@ pub fn apply_observation(
                                 herb.to_string(),
                                 Pipe {
                                     id: id.unwrap_or_default(),
-                                    artifact: artifact.eq("artifact"),
+                                    artifact: artifact.eq("A"),
                                     lit: 0,
                                     puffs: puffs.unwrap_or_default(),
                                 },
@@ -491,6 +492,8 @@ pub fn apply_venom(who: &mut AgentState, venom: &String, relapse: bool) -> Resul
     } else if let Some(affliction) = VENOM_AFFLICTS.get(venom) {
         who.set_flag(*affliction, true);
         guessed_aff = Some(*affliction);
+    } else if venom == "asp" || venom == "loki" {
+        who.hidden_state.add_unknown();
     } else if venom == "camus" {
         who.set_stat(SType::Health, who.get_stat(SType::Health) - 1000);
     } else if venom == "delphinium" && who.is(FType::Insomnia) {
@@ -1107,7 +1110,9 @@ pub fn apply_or_infer_cure(
                 {
                     if let Ok(limb) = get_limb_damage(salve_loc) {
                         if !who.limb_damage.damaged(limb) {
-                            remove_in_order(order.to_vec(), who);
+                            if !first_person {
+                                remove_in_order(order.to_vec(), who);
+                            }
                         } else {
                             println!("{} fizzled on {}", salve_name, salve_loc);
                         }

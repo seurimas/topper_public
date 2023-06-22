@@ -14,6 +14,7 @@ use super::db::AetMudletDatabaseModule;
 pub struct PlayerStats {
     name: String,
     afflictions: Vec<String>,
+    unknowns: usize,
     limbs: HashMap<String, LimbState>,
     balances: HashMap<String, f32>,
     warnings: Vec<String>,
@@ -60,6 +61,7 @@ impl PlayerStats {
         PlayerStats {
             name: String::default(),
             afflictions: Vec::new(),
+            unknowns: 0,
             limbs: HashMap::new(),
             warnings: Vec::new(),
             balances: HashMap::new(),
@@ -123,6 +125,7 @@ impl PlayerStats {
         PlayerStats {
             name,
             afflictions,
+            unknowns: state.hidden_state.unknown(),
             limbs,
             warnings,
             balances,

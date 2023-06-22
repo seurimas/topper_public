@@ -32,8 +32,13 @@ pub fn remove_in_order(afflictions: Vec<FType>, me: &mut AgentState) {
             return;
         }
     }
-    // No affs found. Assume this is a poor quality branch.
-    me.branch_state.strike();
+    // If we have unknowns, remove one. Otherwise, this is a poor quality branch.
+    if me.hidden_state.unknown() > 0 {
+        me.hidden_state.remove_unknown();
+    } else {
+        // Strike the branch.
+        me.branch_state.strike();
+    }
 }
 
 pub fn handle_simple_cure_action(

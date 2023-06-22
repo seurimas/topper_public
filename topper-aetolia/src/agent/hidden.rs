@@ -33,6 +33,20 @@ impl HiddenState {
             false
         }
     }
+    pub fn add_unknown(&mut self) {
+        self.unknown = self.unknown + 1;
+    }
+    pub fn remove_unknown(&mut self) {
+        if self.unknown > 0 {
+            self.unknown = self.unknown - 1;
+        }
+    }
+    pub fn unknown(&self) -> usize {
+        self.unknown
+    }
+    pub fn clear_unknown(&mut self) {
+        self.unknown = 0;
+    }
     pub fn add_guess(&mut self, flag: FType) -> bool {
         !self.guessed.insert(flag)
     }

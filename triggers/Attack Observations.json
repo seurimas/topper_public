@@ -162,6 +162,24 @@
     "observation_name": "Devenoms"
   },
   {
+    "regex": "^A rune of the asp flares as your weapon connects.$",
+    "args": [
+      {
+        "Literal": "asp"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Devenoms"
+  },
+  {
     "regex": "^Your fangs won't penetrate the odd waxy coating protecting (\\w+) ?\\w*.$",
     "args": [
       {
