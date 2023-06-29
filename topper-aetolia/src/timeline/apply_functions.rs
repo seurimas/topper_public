@@ -1013,14 +1013,6 @@ pub fn apply_or_infer_cure(
             who.toggle_flag(aff, false);
             found_cures.push(aff);
         }
-    } else if let Some(AetObservation::DiscernedCure(_you, aff_name)) = after.get(1) {
-        if let Some(aff) = FType::from_name(&aff_name) {
-            who.toggle_flag(aff, false);
-            if aff == FType::Void {
-                who.set_flag(FType::Weakvoid, true);
-            }
-            found_cures.push(aff);
-        }
     } else if let Some(AetObservation::Stripped(def_name)) = after.get(1) {
         if let Some(def) = FType::from_name(&def_name) {
             match cure {

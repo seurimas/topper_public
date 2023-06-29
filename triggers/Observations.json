@@ -288,6 +288,24 @@
     "observation_name": "DiscernedCure"
   },
   {
+    "regex": "^(\\w+) seems to calm, no longer poisoned.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "voyria"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "DiscernedCure"
+  },
+  {
     "regex": "^The hardened paste coating (\\w+)'s body sloughs off from (\\w+) ?\\w* skin.$",
     "args": [
       {
