@@ -14,11 +14,12 @@ mod timeline_tests {
             .for_agent(&"Seurimas".into(), &move |updated_seur: &mut AgentState| {
                 updated_seur.set_flag(FType::ThinBlood, true);
             });
-        timeline
-            .state
-            .for_agent(&"Benedicto".into(), &move |updated_bene: &mut AgentState| {
+        timeline.state.for_agent(
+            &"Benedicto".into(),
+            &move |updated_bene: &mut AgentState| {
                 updated_bene.set_flag(FType::ThinBlood, true);
-            });
+            },
+        );
         let coag_slice = AetTimeSlice {
             observations: Some(vec![AetObservation::SimpleCureAction(SimpleCureAction {
                 caster: "Benedicto".into(),
@@ -45,13 +46,14 @@ mod timeline_tests {
         timeline
             .state
             .for_agent(&"Seurimas".into(), &move |updated_seur: &mut AgentState| {
-                updated_seur.set_flag(FType::LeftArmBroken, true);
+                updated_seur.set_flag(FType::LeftArmCrippled, true);
             });
-        timeline
-            .state
-            .for_agent(&"Benedicto".into(), &move |updated_bene: &mut AgentState| {
-                updated_bene.set_flag(FType::LeftArmBroken, true);
-            });
+        timeline.state.for_agent(
+            &"Benedicto".into(),
+            &move |updated_bene: &mut AgentState| {
+                updated_bene.set_flag(FType::LeftArmCrippled, true);
+            },
+        );
         let coag_slice = AetTimeSlice {
             observations: Some(vec![AetObservation::SimpleCureAction(SimpleCureAction {
                 caster: "Benedicto".into(),
@@ -66,10 +68,10 @@ mod timeline_tests {
         timeline.push_time_slice(coag_slice, None as Option<&DummyDatabaseModule>);
         let seur_state = timeline.state.borrow_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Salve), true);
-        assert_eq!(seur_state.is(FType::LeftArmBroken), true);
+        assert_eq!(seur_state.is(FType::LeftArmCrippled), true);
         let bene_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Salve), false);
-        assert_eq!(bene_state.is(FType::LeftArmBroken), false);
+        assert_eq!(bene_state.is(FType::LeftArmCrippled), false);
     }
 
     #[test]
@@ -80,11 +82,12 @@ mod timeline_tests {
             .for_agent(&"Seurimas".into(), &move |updated_seur: &mut AgentState| {
                 updated_seur.set_limb_damage(LType::LeftLegDamage, 1500);
             });
-        timeline
-            .state
-            .for_agent(&"Benedicto".into(), &move |updated_bene: &mut AgentState| {
+        timeline.state.for_agent(
+            &"Benedicto".into(),
+            &move |updated_bene: &mut AgentState| {
                 updated_bene.set_limb_damage(LType::LeftLegDamage, 1500);
-            });
+            },
+        );
         let restore_slice = AetTimeSlice {
             observations: Some(vec![
                 AetObservation::SimpleCureAction(SimpleCureAction {
@@ -134,15 +137,16 @@ mod timeline_tests {
             .for_agent(&"Seurimas".into(), &move |updated_seur: &mut AgentState| {
                 updated_seur
                     .limb_damage
-                    .set_limb_damaged(LType::LeftLegDamage, true);
+                    .set_limb_broken(LType::LeftLegDamage, true);
             });
-        timeline
-            .state
-            .for_agent(&"Benedicto".into(), &move |updated_bene: &mut AgentState| {
+        timeline.state.for_agent(
+            &"Benedicto".into(),
+            &move |updated_bene: &mut AgentState| {
                 updated_bene
                     .limb_damage
-                    .set_limb_damaged(LType::LeftLegDamage, true);
-            });
+                    .set_limb_broken(LType::LeftLegDamage, true);
+            },
+        );
         let restore_slice = AetTimeSlice {
             observations: Some(vec![
                 AetObservation::SimpleCureAction(SimpleCureAction {
@@ -201,15 +205,16 @@ mod timeline_tests {
             .for_agent(&"Seurimas".into(), &move |updated_seur: &mut AgentState| {
                 updated_seur
                     .limb_damage
-                    .set_limb_damaged(LType::LeftLegDamage, true);
+                    .set_limb_broken(LType::LeftLegDamage, true);
             });
-        timeline
-            .state
-            .for_agent(&"Benedicto".into(), &move |updated_bene: &mut AgentState| {
+        timeline.state.for_agent(
+            &"Benedicto".into(),
+            &move |updated_bene: &mut AgentState| {
                 updated_bene
                     .limb_damage
-                    .set_limb_damaged(LType::LeftLegDamage, true);
-            });
+                    .set_limb_broken(LType::LeftLegDamage, true);
+            },
+        );
         let restore_slice = AetTimeSlice {
             observations: Some(vec![
                 AetObservation::SimpleCureAction(SimpleCureAction {
@@ -283,17 +288,18 @@ mod timeline_tests {
             .for_agent(&"Seurimas".into(), &move |updated_seur: &mut AgentState| {
                 updated_seur
                     .limb_damage
-                    .set_limb_damaged(LType::TorsoDamage, true);
+                    .set_limb_broken(LType::TorsoDamage, true);
                 updated_seur.set_flag(FType::Heatspear, true);
             });
-        timeline
-            .state
-            .for_agent(&"Benedicto".into(), &move |updated_bene: &mut AgentState| {
+        timeline.state.for_agent(
+            &"Benedicto".into(),
+            &move |updated_bene: &mut AgentState| {
                 updated_bene
                     .limb_damage
-                    .set_limb_damaged(LType::TorsoDamage, true);
+                    .set_limb_broken(LType::TorsoDamage, true);
                 updated_bene.set_flag(FType::Heatspear, true);
-            });
+            },
+        );
         let restore_slice = AetTimeSlice {
             observations: Some(vec![
                 AetObservation::SimpleCureAction(SimpleCureAction {

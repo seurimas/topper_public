@@ -156,10 +156,10 @@ fn LimbsIndicator(props: &LimbsIndicatorProps) -> Html {
             "amputated"
         } else if state.mangled {
             "mangled"
-        } else if state.damaged {
-            "damaged"
         } else if state.broken {
             "broken"
+        } else if state.crippled {
+            "crippled"
         } else {
             "healthy"
         };

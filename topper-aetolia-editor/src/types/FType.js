@@ -235,13 +235,13 @@ Ablaze
 SappedStrength
 FULL
 HeadMangled
-HeadDamaged
+HeadBroken
 TorsoMangled
-TorsoDamaged
-LeftLegBroken
-RightLegBroken
-LeftArmBroken
-RightArmBroken
+TorsoBroken
+LeftLegCrippled
+RightLegCrippled
+LeftArmCrippled
+RightArmCrippled
 LeftLegAmputated
 RightLegAmputated
 LeftArmAmputated
@@ -250,10 +250,10 @@ LeftLegMangled
 RightLegMangled
 LeftArmMangled
 RightArmMangled
-LeftLegDamaged
-RightLegDamaged
-LeftArmDamaged
-RightArmDamaged`;
+LeftLegBroken
+RightLegBroken
+LeftArmBroken
+RightArmBroken`;
 
 export const FTYPE_DESC = {
     name: 'FType',

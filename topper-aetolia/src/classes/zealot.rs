@@ -75,7 +75,7 @@ pub fn handle_combat_action(
             for_agent(agent_states, &combat_action.caster, &move |you| {
                 let limb_state = you.get_limb_state(limb);
                 let damage_change = 33.34 - limb_state.damage;
-                you.limb_damage.set_limb_damaged(limb, true);
+                you.limb_damage.set_limb_broken(limb, true);
                 you.toggle_flag(dislocation, false);
             });
         }
@@ -446,7 +446,7 @@ pub fn handle_combat_action(
         "Infernal" => {
             if combat_action.annotation.eq("failure") {
                 for_agent(agent_states, &combat_action.caster, &|you| {
-                    you.limb_damage.set_limb_damaged(LType::TorsoDamage, false);
+                    you.limb_damage.set_limb_broken(LType::TorsoDamage, false);
                 });
             } else {
                 let observations = after.clone();
@@ -612,7 +612,7 @@ fn value_pendulum(
         {
             let timer = timer as f32 / BALANCE_SCALE - me.get_qeb_balance();
             if timer > 0.0 {
-                if !you.get_limb_state(limb).broken && timer < 1.0 {
+                if !you.get_limb_state(limb).crippled && timer < 1.0 {
                     println!("No pendulum, timer at {}", timer);
                     return 0.0;
                 }
@@ -655,10 +655,10 @@ fn psi_percent(me: &AgentState) -> f32 {
 
 fn can_kick(me: &AgentState) -> bool {
     !me.is(FType::Paralysis)
-        && !me.limb_damage.broken(LType::LeftLegDamage)
-        && !me.limb_damage.broken(LType::RightLegDamage)
-        && (!me.limb_damage.broken(LType::LeftArmDamage)
-            || !me.limb_damage.broken(LType::RightArmDamage))
+        && !me.limb_damage.crippled(LType::LeftLegDamage)
+        && !me.limb_damage.crippled(LType::RightLegDamage)
+        && (!me.limb_damage.crippled(LType::LeftArmDamage)
+            || !me.limb_damage.crippled(LType::RightArmDamage))
 }
 
 fn can_punch(me: &AgentState) -> bool {
@@ -741,7 +741,7 @@ fn value_heelrush<DB: AetDatabaseModule + ?Sized>(
     let limb_state = you.get_limb_state(limb);
     if you.get_restoring().is_some()
         && limb_state.hits_to_break(HEELRUSH_DAMAGE) == 1
-        && !limb_state.damaged
+        && !limb_state.broken
         && !limb_state.is_restoring
         && !limb_state.is_parried
         && !me.is(FType::Paresis)
@@ -1140,7 +1140,7 @@ fn main_stack(
                 } else {
                     ComboType::Full
                 },
-                if target_limbs.torso.damaged
+                if target_limbs.torso.broken
                     && !you.is(FType::InfernalSeal)
                     && !you.is(FType::Shielded)
                 {
@@ -1185,7 +1185,7 @@ fn main_stack(
             (
                 ComboType::ComboSecond,
                 if !you.is(FType::Fallen)
-                    && (target_limbs.left_leg.broken || target_limbs.right_leg.broken)
+                    && (target_limbs.left_leg.crippled || target_limbs.right_leg.crippled)
                     && target_limbs.restores_to_zeroes() >= 1
                     && can_punch(me)
                 {
@@ -1199,7 +1199,7 @@ fn main_stack(
             let target_limbs = you.get_limbs_state();
             (
                 ComboType::ComboAny,
-                if !target_limbs.torso.damaged
+                if !target_limbs.torso.broken
                     && !target_limbs.torso.is_restoring
                     && !target_limbs.torso.is_parried
                     && can_punch(me)
@@ -1234,7 +1234,7 @@ fn main_stack(
             let target_limb = you.get_limb_state(LType::TorsoDamage);
             (
                 ComboType::ComboAny,
-                if !target_limb.damaged
+                if !target_limb.broken
                     && target_limb.hits_to_break(PUMMEL_DAMAGE) == 2
                     && (!you.is(FType::InfernalSeal) || you.is(FType::Heatspear))
                     && !target_limb.is_parried
@@ -1349,7 +1349,7 @@ fn main_stack(
             let target_limb = you.get_limb_state(LType::LeftArmDamage);
             (
                 ComboType::ComboAny,
-                if !target_limb.damaged
+                if !target_limb.broken
                     && !target_limb.is_restoring
                     && !target_limb.is_parried
                     && !target_limb.is_dislocated
@@ -1369,7 +1369,7 @@ fn main_stack(
             let target_limb = you.get_limb_state(LType::RightArmDamage);
             (
                 ComboType::ComboAny,
-                if !target_limb.damaged
+                if !target_limb.broken
                     && !target_limb.is_restoring
                     && !target_limb.is_parried
                     && !target_limb.is_dislocated
@@ -1389,7 +1389,7 @@ fn main_stack(
             let target_limb = you.get_limb_state(LType::LeftLegDamage);
             (
                 ComboType::ComboAny,
-                if !target_limb.damaged
+                if !target_limb.broken
                     && !target_limb.is_restoring
                     && !target_limb.is_parried
                     && !target_limb.is_dislocated
@@ -1405,7 +1405,7 @@ fn main_stack(
             let target_limb = you.get_limb_state(LType::RightLegDamage);
             (
                 ComboType::ComboAny,
-                if !target_limb.damaged
+                if !target_limb.broken
                     && !target_limb.is_restoring
                     && !target_limb.is_parried
                     && !target_limb.is_dislocated
@@ -1421,7 +1421,7 @@ fn main_stack(
             let target_limb = you.get_limb_state(LType::LeftArmDamage);
             (
                 ComboType::ComboAny,
-                if !target_limb.damaged
+                if !target_limb.broken
                     && target_limb.hits_to_break(PUMMEL_DAMAGE) == 2
                     && !target_limb.is_restoring
                     && !target_limb.is_parried
@@ -1442,7 +1442,7 @@ fn main_stack(
             let target_limb = you.get_limb_state(LType::RightArmDamage);
             (
                 ComboType::ComboAny,
-                if !target_limb.damaged
+                if !target_limb.broken
                     && target_limb.hits_to_break(PUMMEL_DAMAGE) == 2
                     && !target_limb.is_restoring
                     && !target_limb.is_parried
@@ -1463,7 +1463,7 @@ fn main_stack(
             let target_limb = you.get_limb_state(LType::LeftLegDamage);
             (
                 ComboType::ComboAny,
-                if !target_limb.damaged
+                if !target_limb.broken
                     && target_limb.hits_to_break(WANEKICK_DAMAGE) == 2
                     && !target_limb.is_restoring
                     && !target_limb.is_parried
@@ -1480,7 +1480,7 @@ fn main_stack(
             let target_limb = you.get_limb_state(LType::RightLegDamage);
             (
                 ComboType::ComboAny,
-                if !target_limb.damaged
+                if !target_limb.broken
                     && target_limb.hits_to_break(WANEKICK_DAMAGE) == 2
                     && !target_limb.is_restoring
                     && !target_limb.is_parried
@@ -1663,7 +1663,7 @@ fn main_stack(
                 ComboType::Hackles,
                 if me.get_balance(BType::Secondary) > 3.0 || you.is(FType::Shielded) {
                     0.0
-                } else if target_limbs.torso.broken && you.is(FType::Heatspear) {
+                } else if target_limbs.torso.crippled && you.is(FType::Heatspear) {
                     40.0
                 } else if you.is(FType::Heatspear) {
                     15.0 + you.get_count(FType::Ablaze) as f32 * 2.0

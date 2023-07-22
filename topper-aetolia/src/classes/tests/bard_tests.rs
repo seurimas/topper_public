@@ -125,12 +125,12 @@ mod bard_timeline_tests {
         timeline.push_time_slice(dstab_slice, None as Option<&DummyDatabaseModule>);
         let seur_state = timeline.state.borrow_agent(&"Seurimas".to_string());
         assert_eq!(seur_state.balanced(BType::Balance), false);
-        assert_eq!(seur_state.is(FType::LeftLegBroken), false);
-        assert_eq!(seur_state.is(FType::LeftArmBroken), false);
+        assert_eq!(seur_state.is(FType::LeftLegCrippled), false);
+        assert_eq!(seur_state.is(FType::LeftArmCrippled), false);
         let bene_state = timeline.state.borrow_agent(&"Benedicto".to_string());
         assert_eq!(bene_state.balanced(BType::Balance), true);
-        assert_eq!(bene_state.is(FType::LeftLegBroken), true);
-        assert_eq!(bene_state.is(FType::LeftArmBroken), true);
+        assert_eq!(bene_state.is(FType::LeftLegCrippled), true);
+        assert_eq!(bene_state.is(FType::LeftArmCrippled), true);
     }
 
     #[test]
@@ -807,10 +807,12 @@ mod bard_timeline_tests {
     #[test]
     fn test_hyper() {
         let mut timeline = AetTimeline::new();
-        timeline.state.for_agent(&"Benedicto".to_string(), &move |bene| {
-            bene.set_flag(FType::Hypersomnia, true);
-            bene.set_flag(FType::Rebounding, false);
-        });
+        timeline
+            .state
+            .for_agent(&"Benedicto".to_string(), &move |bene| {
+                bene.set_flag(FType::Hypersomnia, true);
+                bene.set_flag(FType::Rebounding, false);
+            });
         let qeb = get_attack(
             &timeline,
             &"Benedicto".to_string(),
@@ -821,9 +823,11 @@ mod bard_timeline_tests {
             qeb,
             "qeb parry head;;stand;;dstab Benedicto delphinium kalmia;;dash d;;hypnotise Benedicto;;suggest Benedicto Hypochondria%%qs shadow sleight void Benedicto",
         );
-        timeline.state.for_agent(&"Benedicto".to_string(), &move |bene| {
-            bene.set_flag(FType::Insomnia, false);
-        });
+        timeline
+            .state
+            .for_agent(&"Benedicto".to_string(), &move |bene| {
+                bene.set_flag(FType::Insomnia, false);
+            });
         let qeb = get_attack(
             &timeline,
             &"Benedicto".to_string(),
@@ -839,14 +843,16 @@ mod bard_timeline_tests {
     #[test]
     fn test_flay_for_thin() {
         let mut timeline = AetTimeline::new();
-        timeline.state.for_agent(&"Benedicto".to_string(), &move |bene| {
-            bene.set_flag(FType::Rebounding, false);
-            bene.set_flag(FType::Paresis, true);
-            bene.set_flag(FType::Asthma, true);
-            bene.set_flag(FType::Vomiting, true);
-            bene.set_flag(FType::Lethargy, true);
-            bene.set_balance(BType::Tree, 10.0);
-        });
+        timeline
+            .state
+            .for_agent(&"Benedicto".to_string(), &move |bene| {
+                bene.set_flag(FType::Rebounding, false);
+                bene.set_flag(FType::Paresis, true);
+                bene.set_flag(FType::Asthma, true);
+                bene.set_flag(FType::Vomiting, true);
+                bene.set_flag(FType::Lethargy, true);
+                bene.set_balance(BType::Tree, 10.0);
+            });
         let qeb = get_attack(
             &timeline,
             &"Benedicto".to_string(),
@@ -862,15 +868,17 @@ mod bard_timeline_tests {
     #[test]
     fn test_bite_for_thin() {
         let mut timeline = AetTimeline::new();
-        timeline.state.for_agent(&"Benedicto".to_string(), &move |bene| {
-            bene.set_flag(FType::Rebounding, false);
-            bene.set_flag(FType::Fangbarrier, false);
-            bene.set_flag(FType::Paresis, true);
-            bene.set_flag(FType::Asthma, true);
-            bene.set_flag(FType::Vomiting, true);
-            bene.set_flag(FType::Lethargy, true);
-            bene.set_balance(BType::Tree, 10.0);
-        });
+        timeline
+            .state
+            .for_agent(&"Benedicto".to_string(), &move |bene| {
+                bene.set_flag(FType::Rebounding, false);
+                bene.set_flag(FType::Fangbarrier, false);
+                bene.set_flag(FType::Paresis, true);
+                bene.set_flag(FType::Asthma, true);
+                bene.set_flag(FType::Vomiting, true);
+                bene.set_flag(FType::Lethargy, true);
+                bene.set_balance(BType::Tree, 10.0);
+            });
         let qeb = get_attack(
             &timeline,
             &"Benedicto".to_string(),

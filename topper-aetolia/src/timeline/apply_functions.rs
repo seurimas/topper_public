@@ -474,20 +474,20 @@ pub fn apply_venom(who: &mut AgentState, venom: &String, relapse: bool) -> Resul
     } else if venom == "oculus" && who.is(FType::Blindness) {
         who.set_flag(FType::Deafness, false);
     } else if venom == "epseth" {
-        if who.is(FType::LeftLegBroken) {
-            who.set_flag(FType::RightLegBroken, true);
-            guessed_aff = Some(FType::RightLegBroken);
+        if who.is(FType::LeftLegCrippled) {
+            who.set_flag(FType::RightLegCrippled, true);
+            guessed_aff = Some(FType::RightLegCrippled);
         } else {
-            who.set_flag(FType::LeftLegBroken, true);
-            guessed_aff = Some(FType::LeftLegBroken);
+            who.set_flag(FType::LeftLegCrippled, true);
+            guessed_aff = Some(FType::LeftLegCrippled);
         }
     } else if venom == "epteth" {
-        if who.is(FType::LeftArmBroken) {
-            who.set_flag(FType::RightArmBroken, true);
-            guessed_aff = Some(FType::RightArmBroken);
+        if who.is(FType::LeftArmCrippled) {
+            who.set_flag(FType::RightArmCrippled, true);
+            guessed_aff = Some(FType::RightArmCrippled);
         } else {
-            who.set_flag(FType::LeftArmBroken, true);
-            guessed_aff = Some(FType::LeftArmBroken);
+            who.set_flag(FType::LeftArmCrippled, true);
+            guessed_aff = Some(FType::LeftArmCrippled);
         }
     } else if let Some(affliction) = VENOM_AFFLICTS.get(venom) {
         who.set_flag(*affliction, true);
@@ -621,7 +621,7 @@ pub fn attack_hit(observations: &Vec<AetObservation>) -> bool {
     return true;
 }
 
-pub fn limb_damaged(observations: &Vec<AetObservation>, limb: LType) -> bool {
+pub fn limb_broken(observations: &Vec<AetObservation>, limb: LType) -> bool {
     let limb_string = limb.to_string();
     for (i, observation) in observations.iter().enumerate() {
         match (i, observation) {
@@ -676,7 +676,7 @@ pub fn apply_limb_damage(
             .limb_damage
             .adjust_limb(limb_hit, (damage_dealt * 100.0) as CType);
         if should_break {
-            if limb_damaged(observations, limb_hit) {
+            if limb_broken(observations, limb_hit) {
                 if target.limb_damage.get_damage(limb_hit) <= DAMAGED_VALUE {
                     println!(
                         "{:?} break at {}",
@@ -684,8 +684,8 @@ pub fn apply_limb_damage(
                         target.limb_damage.get_damage(limb_hit)
                     );
                 }
-                target.limb_damage.set_limb_damaged(limb_hit, true);
-            } else if !target.limb_damage.damaged(limb_hit)
+                target.limb_damage.set_limb_broken(limb_hit, true);
+            } else if !target.limb_damage.broken(limb_hit)
                 && target.limb_damage.get_damage(limb_hit) > DAMAGED_VALUE
             {
                 println!(
@@ -1101,7 +1101,7 @@ pub fn apply_or_infer_cure(
                     SALVE_CURE_ORDERS.get(&(salve_name.to_string(), salve_loc.to_string()))
                 {
                     if let Ok(limb) = get_limb_damage(salve_loc) {
-                        if !who.limb_damage.damaged(limb) {
+                        if !who.limb_damage.broken(limb) {
                             if !first_person {
                                 remove_in_order(order.to_vec(), who);
                             }

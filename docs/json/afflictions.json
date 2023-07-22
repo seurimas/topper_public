@@ -2143,8 +2143,8 @@
         "Smoked:     Nothing.",
         "Special:    Nothing."
     ],
-    "Left_arm_broken": [
-        "Affliction:      Left_arm_broken.",
+    "Left_arm_crippled": [
+        "Affliction:      Left_arm_crippled.",
         "Diagnose:        afflicted by a crippled left arm.",
         "Cure message:    The bones in your left arm mend.",
         "Body part:       Left arm.",
@@ -2292,8 +2292,8 @@
         "Smoked:     Nothing.",
         "Special:    Nothing."
     ],
-    "Left_leg_broken": [
-        "Affliction:      Left_leg_broken.",
+    "Left_leg_crippled": [
+        "Affliction:      Left_leg_crippled.",
         "Diagnose:        afflicted by a crippled left leg.",
         "Cure message:    The bones in your left leg mend.",
         "Body part:       Left leg.",
@@ -3271,8 +3271,8 @@
         "Smoked:     Nothing.",
         "Special:    Nothing."
     ],
-    "Right_arm_broken": [
-        "Affliction:      Right_arm_broken.",
+    "Right_arm_crippled": [
+        "Affliction:      Right_arm_crippled.",
         "Diagnose:        afflicted by a crippled right arm.",
         "Cure message:    The bones in your right arm mend.",
         "Body part:       Right arm.",
@@ -3420,8 +3420,8 @@
         "Smoked:     Nothing.",
         "Special:    Nothing."
     ],
-    "Right_leg_broken": [
-        "Affliction:      Right_leg_broken.",
+    "Right_leg_crippled": [
+        "Affliction:      Right_leg_crippled.",
         "Diagnose:        afflicted by a crippled right leg.",
         "Cure message:    The bones in your right leg mend.",
         "Body part:       Right leg.",

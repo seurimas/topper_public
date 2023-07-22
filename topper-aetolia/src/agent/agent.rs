@@ -41,21 +41,21 @@ impl BaseAgentState for AgentState {
         if let Some((cured_limb, regenerating, first_person)) = self.limb_damage.wait(duration) {
             if !first_person {
                 match self.get_restore_cure(cured_limb) {
-                    Some(FType::LeftArmDamaged)
+                    Some(FType::LeftArmBroken)
                     | Some(FType::LeftArmMangled)
                     | Some(FType::LeftArmAmputated)
-                    | Some(FType::LeftLegDamaged)
+                    | Some(FType::LeftLegBroken)
                     | Some(FType::LeftLegMangled)
                     | Some(FType::LeftLegAmputated)
-                    | Some(FType::RightArmDamaged)
+                    | Some(FType::RightArmBroken)
                     | Some(FType::RightArmMangled)
                     | Some(FType::RightArmAmputated)
-                    | Some(FType::RightLegDamaged)
+                    | Some(FType::RightLegBroken)
                     | Some(FType::RightLegMangled)
                     | Some(FType::RightLegAmputated)
-                    | Some(FType::TorsoDamaged)
+                    | Some(FType::TorsoBroken)
                     | Some(FType::TorsoMangled)
-                    | Some(FType::HeadDamaged)
+                    | Some(FType::HeadBroken)
                     | Some(FType::HeadMangled) => {
                         self.limb_damage.restore(cured_limb, regenerating);
                     }
@@ -136,16 +136,16 @@ impl AgentState {
 
     pub fn is(&self, flag: FType) -> bool {
         match flag {
+            FType::LeftLegCrippled => self.limb_damage.crippled(LType::LeftLegDamage),
+            FType::RightLegCrippled => self.limb_damage.crippled(LType::RightLegDamage),
+            FType::LeftArmCrippled => self.limb_damage.crippled(LType::LeftArmDamage),
+            FType::RightArmCrippled => self.limb_damage.crippled(LType::RightArmDamage),
+            FType::HeadBroken => self.limb_damage.broken(LType::HeadDamage),
+            FType::TorsoBroken => self.limb_damage.broken(LType::TorsoDamage),
             FType::LeftLegBroken => self.limb_damage.broken(LType::LeftLegDamage),
             FType::RightLegBroken => self.limb_damage.broken(LType::RightLegDamage),
             FType::LeftArmBroken => self.limb_damage.broken(LType::LeftArmDamage),
             FType::RightArmBroken => self.limb_damage.broken(LType::RightArmDamage),
-            FType::HeadDamaged => self.limb_damage.damaged(LType::HeadDamage),
-            FType::TorsoDamaged => self.limb_damage.damaged(LType::TorsoDamage),
-            FType::LeftLegDamaged => self.limb_damage.damaged(LType::LeftLegDamage),
-            FType::RightLegDamaged => self.limb_damage.damaged(LType::RightLegDamage),
-            FType::LeftArmDamaged => self.limb_damage.damaged(LType::LeftArmDamage),
-            FType::RightArmDamaged => self.limb_damage.damaged(LType::RightArmDamage),
             FType::HeadMangled => self.limb_damage.mangled(LType::HeadDamage),
             FType::TorsoMangled => self.limb_damage.mangled(LType::TorsoDamage),
             FType::LeftLegMangled => self.limb_damage.mangled(LType::LeftLegDamage),
@@ -156,11 +156,13 @@ impl AgentState {
             FType::RightLegAmputated => self.limb_damage.amputated(LType::RightLegDamage),
             FType::LeftArmAmputated => self.limb_damage.amputated(LType::LeftArmDamage),
             FType::RightArmAmputated => self.limb_damage.amputated(LType::RightArmDamage),
-            _ => if flag.is_mirror() {
-                self.flags.is_flag_set(flag.normalize())
-            } else {
-                self.flags.is_flag_set(flag)
-            },
+            _ => {
+                if flag.is_mirror() {
+                    self.flags.is_flag_set(flag.normalize())
+                } else {
+                    self.flags.is_flag_set(flag)
+                }
+            }
         }
     }
 
@@ -217,24 +219,24 @@ impl AgentState {
             self.hidden_state.unhide(flag);
         }
         match flag {
-            FType::LeftLegBroken => self
+            FType::LeftLegCrippled => self
                 .limb_damage
-                .set_limb_broken(LType::LeftLegDamage, value),
-            FType::RightLegBroken => self
+                .set_limb_crippled(LType::LeftLegDamage, value),
+            FType::RightLegCrippled => self
                 .limb_damage
-                .set_limb_broken(LType::RightLegDamage, value),
-            FType::LeftArmBroken => self
+                .set_limb_crippled(LType::RightLegDamage, value),
+            FType::LeftArmCrippled => self
                 .limb_damage
-                .set_limb_broken(LType::LeftArmDamage, value),
-            FType::RightArmBroken => self
+                .set_limb_crippled(LType::LeftArmDamage, value),
+            FType::RightArmCrippled => self
                 .limb_damage
-                .set_limb_broken(LType::RightArmDamage, value),
-            FType::LeftLegDamaged
-            | FType::LeftArmDamaged
-            | FType::RightLegDamaged
-            | FType::RightArmDamaged
-            | FType::TorsoDamaged
-            | FType::HeadDamaged => {}
+                .set_limb_crippled(LType::RightArmDamage, value),
+            FType::LeftLegBroken
+            | FType::LeftArmBroken
+            | FType::RightLegBroken
+            | FType::RightArmBroken
+            | FType::TorsoBroken
+            | FType::HeadBroken => {}
             FType::LeftLegMangled
             | FType::LeftArmMangled
             | FType::RightLegMangled
@@ -383,10 +385,10 @@ impl AgentState {
     pub fn get_limb_state(&self, what: LType) -> LimbState {
         let limb = self.limb_damage.limbs[what as usize];
         let damage = limb.damage as f32 / 100.0;
-        let damaged = limb.damaged;
+        let broken = limb.broken;
         let mangled = limb.mangled;
         let amputated = limb.amputated;
-        let broken = match what.broken() {
+        let crippled = match what.crippled() {
             Some(broken_aff) => self.is(broken_aff),
             _ => false,
         } || damage > 35.0;
@@ -435,8 +437,8 @@ impl AgentState {
         };
         LimbState {
             damage,
+            crippled,
             broken,
-            damaged,
             mangled,
             amputated,
             is_restoring,
@@ -471,10 +473,10 @@ impl AgentState {
     }
 
     pub fn can_wield(&self, left: bool, right: bool) -> bool {
-        if left && self.get_limb_state(LType::LeftArmDamage).broken {
+        if left && self.get_limb_state(LType::LeftArmDamage).crippled {
             return false;
         }
-        if right && self.get_limb_state(LType::RightArmDamage).broken {
+        if right && self.get_limb_state(LType::RightArmDamage).crippled {
             return false;
         }
         if self.is(FType::Paralysis) || self.is(FType::Perplexed) {
@@ -519,7 +521,7 @@ impl AgentState {
     pub fn can_touch(&self) -> bool {
         !self.is(FType::Paresis)
             && !self.is(FType::Paralysis)
-            && !(self.is(FType::LeftArmBroken) && self.is(FType::RightArmBroken))
+            && !(self.is(FType::LeftArmCrippled) && self.is(FType::RightArmCrippled))
             && !self.is(FType::NumbArms)
     }
 
@@ -538,7 +540,7 @@ impl AgentState {
             && !self.is(FType::Frozen)
             && !self.is(FType::Paresis)
             && !self.is(FType::Paralysis)
-            && !(self.is(FType::LeftArmBroken) && self.is(FType::RightArmBroken))
+            && !(self.is(FType::LeftArmCrippled) && self.is(FType::RightArmCrippled))
     }
 
     pub fn is_prone(&self) -> bool {
@@ -556,8 +558,8 @@ impl AgentState {
     }
 
     pub fn can_stand(&self) -> bool {
-        !self.is(FType::LeftLegBroken)
-            && !self.is(FType::RightLegBroken)
+        !self.is(FType::LeftLegCrippled)
+            && !self.is(FType::RightLegCrippled)
             && !self.is(FType::Frozen)
             && !self.is(FType::Paralysis)
     }
@@ -571,11 +573,11 @@ impl AgentState {
     }
 
     pub fn arm_free_left(&self) -> bool {
-        !self.is(FType::LeftArmBroken)
+        !self.is(FType::LeftArmCrippled)
     }
 
     pub fn arm_free_right(&self) -> bool {
-        !self.is(FType::RightArmBroken)
+        !self.is(FType::RightArmCrippled)
     }
 
     pub fn push_toxin(&mut self, venom: String) {
@@ -630,11 +632,11 @@ impl AgentState {
                         return Some(*cure);
                     }
                 }
-                FType::LeftLegDamaged
-                | FType::RightLegDamaged
-                | FType::LeftArmDamaged
-                | FType::RightArmDamaged => {
-                    if self.limb_damage.damaged(limb) {
+                FType::LeftLegBroken
+                | FType::RightLegBroken
+                | FType::LeftArmBroken
+                | FType::RightArmBroken => {
+                    if self.limb_damage.broken(limb) {
                         return Some(*cure);
                     }
                 }
@@ -689,7 +691,7 @@ impl AgentState {
         for limb in LIMBS.to_vec() {
             if self.limb_damage.mangled(limb) {
                 count += 2;
-            } else if self.limb_damage.damaged(limb) {
+            } else if self.limb_damage.broken(limb) {
                 count += 1;
             }
         }

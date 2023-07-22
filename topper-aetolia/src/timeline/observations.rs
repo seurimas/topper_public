@@ -11,7 +11,7 @@ use topper_core::observations::*;
 mod observer_tests;
 
 lazy_static! {
-    static ref DAMAGE_TYPE: Regex = Regex::new("broken|damaged|mangled|dislocated").unwrap();
+    static ref DAMAGE_TYPE: Regex = Regex::new("crippled|broken|mangled|dislocated").unwrap();
     static ref DAMAGE_LIMB: Regex =
         Regex::new("left leg|right leg|left arm|right arm|head|torso").unwrap();
 }

@@ -1,4 +1,3 @@
-
 mod firstaid_tests {
     use super::super::*;
 
@@ -45,7 +44,7 @@ mod firstaid_tests {
             "2) pill:     [paresis, asthma]".into(),
             "6)  pipe:     [squelched]".into(),
             "    poultice: [shivering, frozen, gorged, effused_blood, blurry_vision,".into(),
-            "               smashed_throat, right_arm_broken, left_arm_broken, cracked_ribs,"
+            "               smashed_throat, right_arm_crippled, left_arm_crippled, cracked_ribs,"
                 .into(),
             "               whiplash, backstrain, collapsed_lung, left_arm_dislocated,".into(),
             "               left_leg_dislocated, right_arm_dislocated, right_leg_dislocated,"
@@ -69,8 +68,8 @@ mod firstaid_tests {
         priorities.insert(FType::EffusedBlood, 6);
         priorities.insert(FType::BlurryVision, 6);
         priorities.insert(FType::SmashedThroat, 6);
-        priorities.insert(FType::RightArmBroken, 6);
-        priorities.insert(FType::LeftArmBroken, 6);
+        priorities.insert(FType::RightArmCrippled, 6);
+        priorities.insert(FType::LeftArmCrippled, 6);
         priorities.insert(FType::CrackedRibs, 6);
         priorities.insert(FType::Whiplash, 6);
         priorities.insert(FType::Backstrain, 6);

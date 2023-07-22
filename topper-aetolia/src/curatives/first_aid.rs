@@ -141,7 +141,7 @@ static FIRST_AID_BLOCK: &'static str = "\x1b[48;5;232mYour affliction curing pri
     special:  [vinethorns]
 
 4)  pipe:     [disfigurement, migraine]
-    poultice: [left_leg_broken, right_leg_broken, firstaid_predict_arms,
+    poultice: [left_leg_crippled, right_leg_crippled, firstaid_predict_arms,
                firstaid_predict_legs, firstaid_predict_any_limb]
     pill:     [impatience, recklessness, baldness, hypochondria, weariness,
                pacifism, mirroring, infested, patterns]
@@ -160,7 +160,7 @@ static FIRST_AID_BLOCK: &'static str = "\x1b[48;5;232mYour affliction curing pri
 
 6)  pipe:     [squelched]
     poultice: [shivering, frozen, gorged, effused_blood, blurry_vision,
-               smashed_throat, right_arm_broken, left_arm_broken, cracked_ribs,
+               smashed_throat, right_arm_crippled, left_arm_crippled, cracked_ribs,
                whiplash, backstrain, collapsed_lung, left_arm_dislocated,
                left_leg_dislocated, right_arm_dislocated, right_leg_dislocated,
                sore_wrist, sore_ankle, muscle_spasms, heatspear]
@@ -287,10 +287,10 @@ impl FirstAid {
         simple_priorities.insert(FType::ThinBlood, 3);
 
         simple_priorities.insert(FType::Disfigurement, 4);
-        simple_priorities.insert(FType::RightArmBroken, 4);
-        simple_priorities.insert(FType::RightLegBroken, 4);
-        simple_priorities.insert(FType::LeftLegBroken, 4);
-        simple_priorities.insert(FType::LeftArmBroken, 4);
+        simple_priorities.insert(FType::RightArmCrippled, 4);
+        simple_priorities.insert(FType::RightLegCrippled, 4);
+        simple_priorities.insert(FType::LeftLegCrippled, 4);
+        simple_priorities.insert(FType::LeftArmCrippled, 4);
         simple_priorities.insert(FType::Impatience, 4);
         simple_priorities.insert(FType::Recklessness, 4);
         simple_priorities.insert(FType::Hypochondria, 4);

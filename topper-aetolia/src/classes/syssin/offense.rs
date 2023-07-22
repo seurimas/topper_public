@@ -30,7 +30,7 @@ lazy_static! {
         FType::Stupidity,
         FType::Paresis,
         FType::Sensitivity,
-        FType::LeftLegBroken,
+        FType::LeftLegCrippled,
     ];
 }
 
@@ -43,8 +43,8 @@ lazy_static! {
         FType::Paresis,
         FType::Allergies,
         FType::Vomiting,
-        FType::LeftLegBroken,
-        FType::LeftArmBroken,
+        FType::LeftLegCrippled,
+        FType::LeftArmCrippled,
         FType::Shyness,
     ];
 }
@@ -59,10 +59,10 @@ lazy_static! {
         FType::Paresis,
         FType::Slickness,
         FType::Anorexia,
-        FType::LeftLegBroken,
-        FType::LeftArmBroken,
-        FType::RightLegBroken,
-        FType::RightArmBroken,
+        FType::LeftLegCrippled,
+        FType::LeftArmCrippled,
+        FType::RightLegCrippled,
+        FType::RightArmCrippled,
     ];
 }
 
@@ -75,10 +75,10 @@ lazy_static! {
         FType::Stupidity,
         FType::Allergies,
         FType::Vomiting,
-        FType::LeftLegBroken,
-        FType::LeftArmBroken,
-        FType::RightLegBroken,
-        FType::RightArmBroken,
+        FType::LeftLegCrippled,
+        FType::LeftArmCrippled,
+        FType::RightLegCrippled,
+        FType::RightArmCrippled,
         FType::Voyria,
         FType::Stuttering,
     ];
@@ -94,10 +94,10 @@ lazy_static! {
         FType::Dizziness,
         FType::Weariness,
         FType::Slickness,
-        FType::LeftArmBroken,
-        FType::RightArmBroken,
-        FType::LeftLegBroken,
-        FType::RightLegBroken,
+        FType::LeftArmCrippled,
+        FType::RightArmCrippled,
+        FType::LeftLegCrippled,
+        FType::RightLegCrippled,
     ];
 }
 
@@ -110,11 +110,11 @@ lazy_static! {
         FType::Stupidity,
         FType::Anorexia,
         FType::Dizziness,
-        FType::LeftLegBroken,
+        FType::LeftLegCrippled,
         FType::Stuttering,
-        FType::RightLegBroken,
-        FType::LeftArmBroken,
-        FType::RightArmBroken,
+        FType::RightLegCrippled,
+        FType::LeftArmCrippled,
+        FType::RightArmCrippled,
     ];
 }
 
@@ -128,10 +128,10 @@ lazy_static! {
         FType::Clumsiness,
         FType::Vomiting,
         FType::Asthma,
-        FType::LeftArmBroken,
-        FType::RightArmBroken,
-        FType::LeftLegBroken,
-        FType::RightLegBroken,
+        FType::LeftArmCrippled,
+        FType::RightArmCrippled,
+        FType::LeftLegCrippled,
+        FType::RightLegCrippled,
     ];
 }
 
@@ -145,11 +145,11 @@ lazy_static! {
         FType::Peace,
         FType::Vomiting,
         FType::Slickness,
-        FType::LeftArmBroken,
-        FType::RightArmBroken,
+        FType::LeftArmCrippled,
+        FType::RightArmCrippled,
         FType::Dizziness,
-        FType::LeftLegBroken,
-        FType::RightLegBroken,
+        FType::LeftLegCrippled,
+        FType::RightLegCrippled,
     ];
 }
 
@@ -165,8 +165,8 @@ lazy_static! {
         FType::Allergies,
         FType::Dizziness,
         FType::Vomiting,
-        FType::LeftLegBroken,
-        FType::RightLegBroken,
+        FType::LeftLegCrippled,
+        FType::RightLegCrippled,
     ];
 }
 
@@ -188,11 +188,11 @@ lazy_static! {
             Box::new(VenomPlan::Stick(FType::Clumsiness)),
         ),
         VenomPlan::Stick(FType::Slickness),
-        VenomPlan::Stick(FType::LeftArmBroken),
-        VenomPlan::Stick(FType::RightArmBroken),
+        VenomPlan::Stick(FType::LeftArmCrippled),
+        VenomPlan::Stick(FType::RightArmCrippled),
         VenomPlan::Stick(FType::Vomiting),
-        VenomPlan::Stick(FType::LeftLegBroken),
-        VenomPlan::Stick(FType::RightLegBroken),
+        VenomPlan::Stick(FType::LeftLegCrippled),
+        VenomPlan::Stick(FType::RightLegCrippled),
     ];
 }
 
@@ -220,20 +220,20 @@ lazy_static! {
         VenomPlan::OffTree(FType::Paresis),
         VenomPlan::Stick(FType::Allergies),
         VenomPlan::Stick(FType::Vomiting),
-        VenomPlan::Stick(FType::LeftLegBroken),
-        VenomPlan::Stick(FType::RightLegBroken),
-        VenomPlan::Stick(FType::LeftArmBroken),
-        VenomPlan::Stick(FType::RightArmBroken),
+        VenomPlan::Stick(FType::LeftLegCrippled),
+        VenomPlan::Stick(FType::RightLegCrippled),
+        VenomPlan::Stick(FType::LeftArmCrippled),
+        VenomPlan::Stick(FType::RightArmCrippled),
     ];
 }
 
 lazy_static! {
     static ref SALVE_STACK: Vec<FType> = vec![
-        FType::LeftLegBroken,
-        FType::RightLegBroken,
+        FType::LeftLegCrippled,
+        FType::RightLegCrippled,
         FType::Anorexia,
-        FType::LeftArmBroken,
-        FType::RightArmBroken,
+        FType::LeftArmCrippled,
+        FType::RightArmCrippled,
         FType::Stupidity,
         FType::Stuttering,
         FType::Asthma,
@@ -254,8 +254,8 @@ lazy_static! {
         VenomPlan::OneOf(FType::Asthma, FType::Weariness),
         VenomPlan::OneOf(FType::Recklessness, FType::Clumsiness),
         VenomPlan::OneOf(FType::Slickness, FType::Anorexia),
-        VenomPlan::OneOf(FType::LeftLegBroken, FType::LeftArmBroken),
-        VenomPlan::OneOf(FType::RightLegBroken, FType::RightArmBroken),
+        VenomPlan::OneOf(FType::LeftLegCrippled, FType::LeftArmCrippled),
+        VenomPlan::OneOf(FType::RightLegCrippled, FType::RightArmCrippled),
         VenomPlan::Stick(FType::Anorexia),
     ];
 }
@@ -283,8 +283,8 @@ lazy_static! {
         ),
         VenomPlan::Stick(FType::Slickness),
         VenomPlan::Stick(FType::Paresis),
-        VenomPlan::OneOf(FType::LeftLegBroken, FType::LeftArmBroken),
-        VenomPlan::OneOf(FType::RightLegBroken, FType::RightArmBroken),
+        VenomPlan::OneOf(FType::LeftLegCrippled, FType::LeftArmCrippled),
+        VenomPlan::OneOf(FType::RightLegCrippled, FType::RightArmCrippled),
     ];
 }
 
@@ -299,8 +299,8 @@ lazy_static! {
         VenomPlan::Stick(FType::Vomiting),
         VenomPlan::Stick(FType::Allergies),
         VenomPlan::OneOf(FType::Asthma, FType::Slickness),
-        VenomPlan::OneOf(FType::LeftLegBroken, FType::LeftArmBroken),
-        VenomPlan::OneOf(FType::RightLegBroken, FType::RightLegBroken),
+        VenomPlan::OneOf(FType::LeftLegCrippled, FType::LeftArmCrippled),
+        VenomPlan::OneOf(FType::RightLegCrippled, FType::RightLegCrippled),
         VenomPlan::OneOf(FType::Sensitivity, FType::Dizziness),
     ];
 }
@@ -316,8 +316,8 @@ lazy_static! {
         VenomPlan::Stick(FType::Allergies),
         VenomPlan::OneOf(FType::Sensitivity, FType::Dizziness),
         VenomPlan::OneOf(FType::Asthma, FType::Slickness),
-        VenomPlan::OneOf(FType::LeftLegBroken, FType::LeftArmBroken),
-        VenomPlan::OneOf(FType::RightLegBroken, FType::RightLegBroken),
+        VenomPlan::OneOf(FType::LeftLegCrippled, FType::LeftArmCrippled),
+        VenomPlan::OneOf(FType::RightLegCrippled, FType::RightLegCrippled),
         VenomPlan::OneOf(FType::Sensitivity, FType::Dizziness),
     ];
 }
@@ -330,8 +330,8 @@ lazy_static! {
         VenomPlan::OneOf(FType::Weariness, FType::Stupidity),
         VenomPlan::OneOf(FType::Slickness, FType::Anorexia),
         VenomPlan::OneOf(FType::Allergies, FType::Vomiting),
-        VenomPlan::OneOf(FType::LeftLegBroken, FType::LeftArmBroken),
-        VenomPlan::OneOf(FType::RightLegBroken, FType::RightLegBroken),
+        VenomPlan::OneOf(FType::LeftLegCrippled, FType::LeftArmCrippled),
+        VenomPlan::OneOf(FType::RightLegCrippled, FType::RightLegCrippled),
         VenomPlan::OneOf(FType::Sensitivity, FType::Dizziness),
     ];
 }
@@ -343,8 +343,8 @@ lazy_static! {
         VenomPlan::OneOf(FType::Weariness, FType::Stupidity),
         VenomPlan::OneOf(FType::Slickness, FType::Anorexia),
         VenomPlan::OneOf(FType::Allergies, FType::Vomiting),
-        VenomPlan::OneOf(FType::LeftLegBroken, FType::LeftArmBroken),
-        VenomPlan::OneOf(FType::RightLegBroken, FType::RightLegBroken),
+        VenomPlan::OneOf(FType::LeftLegCrippled, FType::LeftArmCrippled),
+        VenomPlan::OneOf(FType::RightLegCrippled, FType::RightLegCrippled),
         VenomPlan::OneOf(FType::Sensitivity, FType::Dizziness),
     ];
 }
@@ -357,8 +357,8 @@ lazy_static! {
         VenomPlan::OneOf(FType::Allergies, FType::Vomiting),
         VenomPlan::OneOf(FType::Weariness, FType::Stupidity),
         VenomPlan::OneOf(FType::Slickness, FType::Anorexia),
-        VenomPlan::OneOf(FType::LeftLegBroken, FType::LeftArmBroken),
-        VenomPlan::OneOf(FType::RightLegBroken, FType::RightLegBroken),
+        VenomPlan::OneOf(FType::LeftLegCrippled, FType::LeftArmCrippled),
+        VenomPlan::OneOf(FType::RightLegCrippled, FType::RightLegCrippled),
         VenomPlan::OneOf(FType::Sensitivity, FType::Dizziness),
     ];
 }
@@ -372,8 +372,8 @@ lazy_static! {
         VenomPlan::OneOf(FType::Allergies, FType::Vomiting),
         VenomPlan::OneOf(FType::Haemophilia, FType::Dizziness),
         VenomPlan::OneOf(FType::Slickness, FType::Anorexia),
-        VenomPlan::OneOf(FType::LeftLegBroken, FType::LeftArmBroken),
-        VenomPlan::OneOf(FType::RightLegBroken, FType::RightLegBroken),
+        VenomPlan::OneOf(FType::LeftLegCrippled, FType::LeftArmCrippled),
+        VenomPlan::OneOf(FType::RightLegCrippled, FType::RightLegCrippled),
         VenomPlan::OneOf(FType::Sensitivity, FType::Dizziness),
     ];
 }
@@ -389,8 +389,8 @@ lazy_static! {
         VenomPlan::Stick(FType::Disfigurement),
         VenomPlan::OneOf(FType::Allergies, FType::Weariness),
         VenomPlan::OneOf(FType::Slickness, FType::Anorexia),
-        VenomPlan::OneOf(FType::LeftLegBroken, FType::LeftArmBroken),
-        VenomPlan::OneOf(FType::RightLegBroken, FType::RightLegBroken),
+        VenomPlan::OneOf(FType::LeftLegCrippled, FType::LeftArmCrippled),
+        VenomPlan::OneOf(FType::RightLegCrippled, FType::RightLegCrippled),
         VenomPlan::OneOf(FType::Sensitivity, FType::Dizziness),
     ];
 }
@@ -406,8 +406,8 @@ lazy_static! {
         VenomPlan::OneOf(FType::Paresis, FType::Allergies),
         VenomPlan::OneOf(FType::Peace, FType::Vomiting),
         VenomPlan::OneOf(FType::Slickness, FType::Anorexia),
-        VenomPlan::OneOf(FType::LeftLegBroken, FType::LeftArmBroken),
-        VenomPlan::OneOf(FType::RightLegBroken, FType::RightArmBroken),
+        VenomPlan::OneOf(FType::LeftLegCrippled, FType::LeftArmCrippled),
+        VenomPlan::OneOf(FType::RightLegCrippled, FType::RightArmCrippled),
         VenomPlan::OneOf(FType::Sensitivity, FType::Dizziness),
     ];
 }
@@ -420,8 +420,8 @@ lazy_static! {
         VenomPlan::OneOf(FType::Vomiting, FType::Stupidity),
         VenomPlan::OneOf(FType::Peace, FType::Weariness),
         VenomPlan::OneOf(FType::Slickness, FType::Anorexia),
-        VenomPlan::OneOf(FType::LeftLegBroken, FType::LeftArmBroken),
-        VenomPlan::OneOf(FType::RightLegBroken, FType::RightArmBroken),
+        VenomPlan::OneOf(FType::LeftLegCrippled, FType::LeftArmCrippled),
+        VenomPlan::OneOf(FType::RightLegCrippled, FType::RightArmCrippled),
         VenomPlan::OneOf(FType::Dizziness, FType::Squelched),
     ];
 }
@@ -583,9 +583,9 @@ fn should_bedazzle(
     strategy: &String,
     before_flay: bool,
 ) -> bool {
-    if !before_flay && me.is(FType::LeftArmBroken) && !me.is(FType::RightArmBroken) {
+    if !before_flay && me.is(FType::LeftArmCrippled) && !me.is(FType::RightArmCrippled) {
         true
-    } else if before_flay && me.is(FType::RightArmBroken) && !me.is(FType::LeftArmBroken) {
+    } else if before_flay && me.is(FType::RightArmCrippled) && !me.is(FType::LeftArmCrippled) {
         true
     } else if target.affs_count(&BEDAZZLE_AFFS.to_vec()) >= 5 {
         false

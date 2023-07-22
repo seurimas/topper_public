@@ -36,11 +36,11 @@ mod sentinel_timeline_tests {
         assert_eq!(me_state.balanced(BType::Balance), false);
         assert_eq!(me_state.balanced(BType::Equil), false);
         assert_eq!(me_state.is(FType::Insulation), true);
-        assert_eq!(me_state.is(FType::LeftLegBroken), false);
+        assert_eq!(me_state.is(FType::LeftLegCrippled), false);
         let you_state = timeline.state.borrow_agent(&"Illidan".to_string());
         assert_eq!(you_state.balanced(BType::Balance), true);
         assert_eq!(you_state.balanced(BType::Equil), true);
         assert_eq!(you_state.is(FType::Insulation), false);
-        assert_eq!(you_state.is(FType::LeftLegBroken), true);
+        assert_eq!(you_state.is(FType::LeftLegCrippled), true);
     }
 }

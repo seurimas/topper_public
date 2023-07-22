@@ -61,8 +61,20 @@ pub fn handle_simple_cure_action(
                 if proc.skill.eq("Sear") {
                     seared = true;
                 }
+            } else if let Some(AetObservation::DiscernedCure(who, what)) = observations.get(1) {
+                if what.eq("void") || what.eq("weakvoid") {
+                    if what.eq("void") {
+                        me.toggle_flag(FType::Void, false);
+                        me.toggle_flag(FType::Weakvoid, true);
+                    } else {
+                        me.observe_flag(FType::Weakvoid, false);
+                    }
+                } else {
+                    apply_or_infer_cure(me, &cure_type, &observations, first_person);
+                }
+            } else {
+                apply_or_infer_cure(me, &cure_type, &observations, first_person);
             }
-            apply_or_infer_cure(me, &cure_type, &observations, first_person);
             match &cure_type {
                 SimpleCure::Pill(_) => {
                     apply_or_infer_balance(me, (BType::Pill, 2.0), &observations);

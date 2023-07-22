@@ -141,8 +141,8 @@ lazy_static! {
         for (aff, venom) in AFFLICT_VENOMS.iter() {
             val.insert(FirstStrike::Slash(venom), vec![*aff]);
         }
-        val.insert(FirstStrike::Slash("epseth"), vec![FType::LeftLegBroken, FType::RightLegBroken]);
-        val.insert(FirstStrike::Slash("epteth"), vec![FType::LeftArmBroken, FType::RightArmBroken]);
+        val.insert(FirstStrike::Slash("epseth"), vec![FType::LeftLegCrippled, FType::RightLegCrippled]);
+        val.insert(FirstStrike::Slash("epteth"), vec![FType::LeftArmCrippled, FType::RightArmCrippled]);
         val.insert(FirstStrike::Twirl, vec![FType::Confusion]);
         // Wrong, only one actually applies
         val.insert(FirstStrike::Crosscut, vec![FType::Impairment, FType::Addiction]);
@@ -449,9 +449,9 @@ pub fn handle_combat_action(
                 for_agent(agent_states, target, &move |you: &mut AgentState| {
                     if limb_damaged {
                         you.set_limb_damage(limb_hit, DAMAGED_VALUE);
-                        you.limb_damage.set_limb_damaged(limb_hit, true);
+                        you.limb_damage.set_limb_broken(limb_hit, true);
                     } else {
-                        you.set_flag(limb_hit.broken().unwrap(), true);
+                        you.set_flag(limb_hit.crippled().unwrap(), true);
                     }
                 });
             } else {
@@ -755,12 +755,12 @@ lazy_static! {
         FType::Stupidity,
         FType::Confusion,
         FType::Heartflutter,
-        FType::LeftLegBroken,
-        FType::RightLegBroken,
+        FType::LeftLegCrippled,
+        FType::RightLegCrippled,
         FType::Vomiting,
         FType::Impairment,
-        FType::LeftArmBroken,
-        FType::RightArmBroken,
+        FType::LeftArmCrippled,
+        FType::RightArmCrippled,
         FType::Dizziness,
         FType::Epilepsy,
         FType::Sensitivity,
@@ -802,8 +802,8 @@ fn want_might(me: &AgentState) -> bool {
 
 fn want_spinecut(you: &AgentState) -> bool {
     you.affs_count(&vec![
-        FType::LeftLegBroken,
-        FType::RightLegBroken,
+        FType::LeftLegCrippled,
+        FType::RightLegCrippled,
         FType::Confusion,
         FType::Heartflutter,
     ]) >= 4
@@ -816,13 +816,13 @@ fn want_pierce(you: &AgentState) -> Option<String> {
         || you.is(FType::Confusion)
     {
         return None;
-    } else if you.limb_damage.broken(LType::LeftLegDamage)
-        && !you.limb_damage.damaged(LType::LeftLegDamage)
+    } else if you.limb_damage.crippled(LType::LeftLegDamage)
+        && !you.limb_damage.broken(LType::LeftLegDamage)
         && you.limb_damage.restoring != Some(LType::LeftLegDamage)
     {
         return Some("left".to_string());
-    } else if you.limb_damage.broken(LType::RightLegDamage)
-        && !you.limb_damage.damaged(LType::RightLegDamage)
+    } else if you.limb_damage.crippled(LType::RightLegDamage)
+        && !you.limb_damage.broken(LType::RightLegDamage)
         && you.limb_damage.restoring != Some(LType::RightLegDamage)
     {
         return Some("right".to_string());
@@ -838,13 +838,13 @@ fn want_sever(you: &AgentState) -> Option<String> {
         || you.is(FType::Confusion)
     {
         return None;
-    } else if you.limb_damage.broken(LType::LeftArmDamage)
-        && !you.limb_damage.damaged(LType::LeftArmDamage)
+    } else if you.limb_damage.crippled(LType::LeftArmDamage)
+        && !you.limb_damage.broken(LType::LeftArmDamage)
         && you.limb_damage.restoring != Some(LType::LeftArmDamage)
     {
         return Some("left".to_string());
-    } else if you.limb_damage.broken(LType::RightArmDamage)
-        && !you.limb_damage.damaged(LType::RightArmDamage)
+    } else if you.limb_damage.crippled(LType::RightArmDamage)
+        && !you.limb_damage.broken(LType::RightArmDamage)
         && you.limb_damage.restoring != Some(LType::RightArmDamage)
     {
         return Some("right".to_string());

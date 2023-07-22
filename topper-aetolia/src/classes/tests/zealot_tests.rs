@@ -44,6 +44,6 @@ mod zealot_timeline_tests {
         assert_eq!(me_state.balanced(BType::Balance), false);
         let you_state = timeline.state.borrow_agent(&"Tina".to_string());
         assert_eq!(you_state.get_limb_state(LType::TorsoDamage).damage, 33.32);
-        assert_eq!(you_state.get_limb_state(LType::TorsoDamage).damaged, false);
+        assert_eq!(you_state.get_limb_state(LType::TorsoDamage).broken, false);
     }
 }

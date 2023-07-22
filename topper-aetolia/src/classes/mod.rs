@@ -173,7 +173,7 @@ impl Class {
             | Class::Tidesage
             | Class::Alchemist
             | Class::Akkari
-            | Class::Ravager 
+            | Class::Ravager
             | Class::Runecarver
             | Class::Bloodborn => true,
             _ => false,
@@ -615,8 +615,8 @@ pub fn handle_combat_action(
             "broken legs" => {
                 for_agent(agent_states, &combat_action.caster, &|you| {
                     you.toggle_flag(FType::Fallen, true);
-                    you.observe_flag(FType::LeftLegBroken, true);
-                    you.observe_flag(FType::RightLegBroken, true);
+                    you.observe_flag(FType::LeftLegCrippled, true);
+                    you.observe_flag(FType::RightLegCrippled, true);
                 });
                 Ok(())
             }
@@ -636,8 +636,8 @@ lazy_static! {
         val.insert(FType::Shyness, "digitalis");
         val.insert(FType::Allergies, "darkshade");
         val.insert(FType::Paresis, "curare");
-        val.insert(FType::LeftArmBroken, "epteth");
-        val.insert(FType::RightArmBroken, "epteth");
+        val.insert(FType::LeftArmCrippled, "epteth");
+        val.insert(FType::RightArmCrippled, "epteth");
         val.insert(FType::Sensitivity, "prefarar");
         val.insert(FType::Disfigurement, "monkshood");
         val.insert(FType::Vomiting, "euphorbia");
@@ -646,8 +646,8 @@ lazy_static! {
         val.insert(FType::Haemophilia, "hepafarin");
         val.insert(FType::Stuttering, "jalk");
         val.insert(FType::Weariness, "vernalius");
-        val.insert(FType::RightLegBroken, "epseth");
-        val.insert(FType::LeftLegBroken, "epseth");
+        val.insert(FType::RightLegCrippled, "epseth");
+        val.insert(FType::LeftLegCrippled, "epseth");
         val.insert(FType::Dizziness, "larkspur");
         val.insert(FType::Anorexia, "slike");
         val.insert(FType::Voyria, "voyria");

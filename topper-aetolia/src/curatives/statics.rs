@@ -38,10 +38,10 @@ lazy_static! {
         FType::Blighted,
         FType::Paresis,
         FType::Paralysis,
-        FType::LeftLegBroken,
-        FType::RightLegBroken,
-        FType::LeftArmBroken,
-        FType::RightArmBroken,
+        FType::LeftLegCrippled,
+        FType::RightLegCrippled,
+        FType::LeftArmCrippled,
+        FType::RightArmCrippled,
         FType::MentalDisruption,
         FType::PhysicalDisruption,
         FType::Rend,
@@ -383,21 +383,21 @@ lazy_static! {
 
 lazy_static! {
     pub static ref MENDING_SKIN_ORDER: Vec<FType> = vec![
-        FType::LeftArmBroken,
-        FType::RightArmBroken,
-        FType::LeftLegBroken,
-        FType::RightLegBroken,
+        FType::LeftArmCrippled,
+        FType::RightArmCrippled,
+        FType::LeftLegCrippled,
+        FType::RightLegCrippled,
     ];
 }
 
 lazy_static! {
     pub static ref MENDING_ARMS_ORDER: Vec<FType> =
-        vec![FType::LeftArmBroken, FType::RightArmBroken,];
+        vec![FType::LeftArmCrippled, FType::RightArmCrippled,];
 }
 
 lazy_static! {
     pub static ref MENDING_LEGS_ORDER: Vec<FType> =
-        vec![FType::LeftLegBroken, FType::RightLegBroken,];
+        vec![FType::LeftLegCrippled, FType::RightLegCrippled,];
 }
 
 lazy_static! {
@@ -424,7 +424,7 @@ lazy_static! {
 lazy_static! {
     pub static ref MENDING_LEFT_ARM_ORDER: Vec<FType> = vec![
         FType::LeftArmBruisedCritical,
-        FType::LeftArmBroken,
+        FType::LeftArmCrippled,
         FType::LeftArmBruisedModerate,
         FType::LeftArmBruised,
         FType::LeftArmDislocated,
@@ -434,7 +434,7 @@ lazy_static! {
 lazy_static! {
     pub static ref MENDING_RIGHT_ARM_ORDER: Vec<FType> = vec![
         FType::RightArmBruisedCritical,
-        FType::RightArmBroken,
+        FType::RightArmCrippled,
         FType::RightArmBruisedModerate,
         FType::RightArmBruised,
         FType::RightArmDislocated,
@@ -444,7 +444,7 @@ lazy_static! {
 lazy_static! {
     pub static ref MENDING_LEFT_LEG_ORDER: Vec<FType> = vec![
         FType::LeftLegBruisedCritical,
-        FType::LeftLegBroken,
+        FType::LeftLegCrippled,
         FType::LeftLegBruisedModerate,
         FType::LeftLegBruised,
         FType::LeftLegDislocated,
@@ -454,7 +454,7 @@ lazy_static! {
 lazy_static! {
     pub static ref MENDING_RIGHT_LEG_ORDER: Vec<FType> = vec![
         FType::RightLegBruisedCritical,
-        FType::RightLegBroken,
+        FType::RightLegCrippled,
         FType::RightLegBruisedModerate,
         FType::RightLegBruised,
         FType::RightLegDislocated,
@@ -465,7 +465,7 @@ lazy_static! {
     pub static ref RESTORATION_HEAD_ORDER: Vec<FType> = vec![
         FType::MauledFace,
         FType::HeadMangled,
-        FType::HeadDamaged,
+        FType::HeadBroken,
         FType::SmashedThroat,
         FType::Voidgaze,
     ];
@@ -477,7 +477,7 @@ lazy_static! {
         FType::SpinalRip,
         FType::BurntSkin,
         FType::TorsoMangled,
-        FType::TorsoDamaged,
+        FType::TorsoBroken,
         FType::CrushedChest,
         FType::Heatspear,
         FType::Deepwound,
@@ -488,7 +488,7 @@ lazy_static! {
     pub static ref RESTORATION_LEFT_ARM_ORDER: Vec<FType> = vec![
         FType::LeftArmAmputated,
         FType::LeftArmMangled,
-        FType::LeftArmDamaged,
+        FType::LeftArmBroken,
     ];
 }
 
@@ -496,7 +496,7 @@ lazy_static! {
     pub static ref RESTORATION_RIGHT_ARM_ORDER: Vec<FType> = vec![
         FType::RightArmAmputated,
         FType::RightArmMangled,
-        FType::RightArmDamaged,
+        FType::RightArmBroken,
     ];
 }
 
@@ -504,7 +504,7 @@ lazy_static! {
     pub static ref RESTORATION_LEFT_LEG_ORDER: Vec<FType> = vec![
         FType::LeftLegAmputated,
         FType::LeftLegMangled,
-        FType::LeftLegDamaged,
+        FType::LeftLegBroken,
     ];
 }
 
@@ -512,7 +512,7 @@ lazy_static! {
     pub static ref RESTORATION_RIGHT_LEG_ORDER: Vec<FType> = vec![
         FType::RightLegAmputated,
         FType::RightLegMangled,
-        FType::RightLegDamaged,
+        FType::RightLegBroken,
     ];
 }
 

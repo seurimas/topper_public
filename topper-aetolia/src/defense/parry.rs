@@ -85,13 +85,13 @@ pub fn get_preferred_parry<DB: AetDatabaseModule + ?Sized>(
             Class::Shapeshifter => {
                 let myself = timeline.state.borrow_agent(me);
                 let limbs_state = myself.get_limbs_state();
-                if limbs_state.left_leg.broken && !limbs_state.left_leg.damaged {
+                if limbs_state.left_leg.crippled && !limbs_state.left_leg.broken {
                     Ok(LType::LeftLegDamage)
-                } else if limbs_state.right_leg.broken && !limbs_state.right_leg.damaged {
+                } else if limbs_state.right_leg.crippled && !limbs_state.right_leg.broken {
                     Ok(LType::RightLegDamage)
-                } else if limbs_state.left_arm.broken && !limbs_state.left_arm.damaged {
+                } else if limbs_state.left_arm.crippled && !limbs_state.left_arm.broken {
                     Ok(LType::LeftArmDamage)
-                } else if limbs_state.right_arm.broken && !limbs_state.right_arm.damaged {
+                } else if limbs_state.right_arm.crippled && !limbs_state.right_arm.broken {
                     Ok(LType::RightArmDamage)
                 } else if let Some(parry) = get_restore_parry(timeline, me) {
                     Ok(parry)
@@ -139,10 +139,10 @@ pub fn get_preferred_parry<DB: AetDatabaseModule + ?Sized>(
             Class::Wayfarer => {
                 let myself = timeline.state.borrow_agent(me);
                 let limbs_state = myself.get_limbs_state();
-                if limbs_state.left_leg.damaged
-                    || limbs_state.right_leg.damaged
-                    || limbs_state.left_arm.damaged
-                    || limbs_state.right_arm.damaged
+                if limbs_state.left_leg.broken
+                    || limbs_state.right_leg.broken
+                    || limbs_state.left_arm.broken
+                    || limbs_state.right_arm.broken
                 {
                     if limbs_state.head.damage > 20.0 {
                         Ok(LType::HeadDamage)

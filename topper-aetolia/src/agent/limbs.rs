@@ -31,12 +31,12 @@ impl LType {
         }
     }
 
-    pub fn broken(&self) -> Option<FType> {
+    pub fn crippled(&self) -> Option<FType> {
         match self {
-            LType::LeftArmDamage => Some(FType::LeftArmBroken),
-            LType::RightArmDamage => Some(FType::RightArmBroken),
-            LType::LeftLegDamage => Some(FType::LeftLegBroken),
-            LType::RightLegDamage => Some(FType::RightLegBroken),
+            LType::LeftArmDamage => Some(FType::LeftArmCrippled),
+            LType::RightArmDamage => Some(FType::RightArmCrippled),
+            LType::LeftLegDamage => Some(FType::LeftLegCrippled),
+            LType::RightLegDamage => Some(FType::RightLegCrippled),
             _ => None,
         }
     }
@@ -111,8 +111,8 @@ pub fn get_damage_barrier(aff: &String) -> Result<(LType, CType), String> {
 #[derive(Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Limb {
     pub damage: CType,
+    pub crippled: bool,
     pub broken: bool,
-    pub damaged: bool,
     pub mangled: bool,
     pub amputated: bool,
     pub welt: bool,
@@ -133,8 +133,8 @@ pub const MANGLED_VALUE: CType = 6665;
 #[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct LimbState {
     pub damage: f32,
+    pub crippled: bool,
     pub broken: bool,
-    pub damaged: bool,
     pub mangled: bool,
     pub amputated: bool,
     pub is_restoring: bool,
@@ -180,22 +180,22 @@ impl LimbsState {
 
     pub fn damages(&self) -> i32 {
         let mut acc = 0;
-        if self.head.damaged {
+        if self.head.broken {
             acc += 1;
         }
-        if self.torso.damaged {
+        if self.torso.broken {
             acc += 1;
         }
-        if self.left_arm.damaged {
+        if self.left_arm.broken {
             acc += 1;
         }
-        if self.right_arm.damaged {
+        if self.right_arm.broken {
             acc += 1;
         }
-        if self.left_leg.damaged {
+        if self.left_leg.broken {
             acc += 1;
         }
-        if self.right_leg.damaged {
+        if self.right_leg.broken {
             acc += 1;
         }
         acc
@@ -236,7 +236,7 @@ impl fmt::Display for LimbSet {
                         }
                         if self.limbs[idx].mangled {
                             write!(f, "{}Mangled", limb)?;
-                        } else if self.limbs[idx].damaged {
+                        } else if self.limbs[idx].broken {
                             write!(f, "{}Damaged", limb)?;
                         } else {
                             write!(f, "{}Hurt", limb)?;
@@ -294,29 +294,29 @@ impl LimbSet {
         self.limbs[limb as usize].welt = false;
     }
 
-    pub fn set_limb_broken(&mut self, limb: LType, damaged: bool) {
+    pub fn set_limb_crippled(&mut self, limb: LType, damaged: bool) {
         match limb {
             LType::TorsoDamage | LType::HeadDamage => {}
             _ => {
-                self.limbs[limb as usize].broken = damaged;
+                self.limbs[limb as usize].crippled = damaged;
             }
         }
     }
 
-    pub fn broken(&self, limb: LType) -> bool {
-        self.limbs[limb as usize].broken
+    pub fn crippled(&self, limb: LType) -> bool {
+        self.limbs[limb as usize].crippled
     }
 
-    pub fn set_limb_damaged(&mut self, limb: LType, damaged: bool) {
+    pub fn set_limb_broken(&mut self, limb: LType, damaged: bool) {
         if damaged {
             match limb {
                 LType::TorsoDamage | LType::HeadDamage => {}
                 _ => {
-                    self.limbs[limb as usize].broken = true;
+                    self.limbs[limb as usize].crippled = true;
                 }
             }
         }
-        self.limbs[limb as usize].damaged = damaged;
+        self.limbs[limb as usize].broken = damaged;
         if damaged && self.limbs[limb as usize].damage <= DAMAGED_VALUE {
             self.limbs[limb as usize].damage = DAMAGED_VALUE + 1;
         } else if !damaged && self.limbs[limb as usize].damage > DAMAGED_VALUE {
@@ -324,8 +324,8 @@ impl LimbSet {
         }
     }
 
-    pub fn damaged(&self, limb: LType) -> bool {
-        self.limbs[limb as usize].damaged
+    pub fn broken(&self, limb: LType) -> bool {
+        self.limbs[limb as usize].broken
     }
 
     pub fn set_limb_mangled(&mut self, limb: LType, damaged: bool) {
@@ -333,7 +333,7 @@ impl LimbSet {
             match limb {
                 LType::TorsoDamage | LType::HeadDamage => {}
                 _ => {
-                    self.limbs[limb as usize].broken = true;
+                    self.limbs[limb as usize].crippled = true;
                 }
             }
         }
@@ -373,7 +373,7 @@ impl LimbSet {
     pub fn set_limb_damage(&mut self, broken: LType, new_damage: CType) {
         self.limbs[broken as usize].damage = new_damage;
         if self.limbs[broken as usize].damage < DAMAGED_VALUE {
-            self.limbs[broken as usize].damaged = false;
+            self.limbs[broken as usize].broken = false;
             self.limbs[broken as usize].mangled = false;
         } else if self.limbs[broken as usize].damage < MANGLED_VALUE {
             self.limbs[broken as usize].mangled = false;

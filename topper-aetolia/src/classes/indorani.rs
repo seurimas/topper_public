@@ -44,10 +44,10 @@ pub fn handle_combat_action(
         }
         "Croned" => {
             let broken_limb = match combat_action.annotation.as_ref() {
-                "left arm" => FType::LeftArmBroken,
-                "right arm" => FType::RightArmBroken,
-                "left leg" => FType::LeftLegBroken,
-                "right leg" => FType::RightLegBroken,
+                "left arm" => FType::LeftArmCrippled,
+                "right arm" => FType::RightArmCrippled,
+                "left leg" => FType::LeftLegCrippled,
+                "right leg" => FType::RightLegCrippled,
                 _ => FType::SIZE, // I don't want to panic
             };
             attack_afflictions(
