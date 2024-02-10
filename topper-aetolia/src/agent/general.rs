@@ -8,6 +8,139 @@ use std::convert::{TryFrom, TryInto};
 use std::fmt;
 use topper_core::timeline::BaseAgentState;
 
+#[derive(Deserialize, Debug, PartialEq, Eq, Hash, Clone, Copy)]
+pub enum Timer {
+    CountDown(CType),
+    CountUpObserve {
+        expire_at: CType,
+        up_to: CType,
+        progress: CType,
+    },
+}
+
+impl Default for Timer {
+    fn default() -> Self {
+        Timer::CountDown(0)
+    }
+}
+
+impl Timer {
+    pub fn count_down(time: CType) -> Self {
+        Timer::CountDown(time)
+    }
+
+    pub fn count_down_seconds(time: f32) -> Self {
+        Timer::CountDown((time * BALANCE_SCALE) as CType)
+    }
+
+    pub fn count_up(up_to: CType) -> Self {
+        Timer::CountUpObserve {
+            up_to,
+            expire_at: up_to,
+            progress: 0,
+        }
+    }
+
+    pub fn count_up_seconds(up_to: f32) -> Self {
+        Timer::CountUpObserve {
+            up_to: (up_to * BALANCE_SCALE) as CType,
+            expire_at: (up_to * BALANCE_SCALE) as CType,
+            progress: 0,
+        }
+    }
+
+    pub fn count_up_observe(up_to: CType, expire_at: CType) -> Self {
+        Timer::CountUpObserve {
+            up_to,
+            expire_at,
+            progress: 0,
+        }
+    }
+
+    pub fn count_up_observe_seconds(up_to: f32, expire_at: f32) -> Self {
+        Timer::CountUpObserve {
+            up_to: (up_to * BALANCE_SCALE) as CType,
+            expire_at: (expire_at * BALANCE_SCALE) as CType,
+            progress: 0,
+        }
+    }
+
+    pub fn start_count_down(&mut self, time: CType) {
+        *self = Timer::CountDown(time);
+    }
+
+    pub fn start_count_down_seconds(&mut self, time: f32) {
+        *self = Timer::CountDown((time * BALANCE_SCALE) as CType);
+    }
+
+    pub fn reset(&mut self) {
+        match self {
+            Timer::CountDown(_) => *self = Timer::CountDown(0),
+            Timer::CountUpObserve { progress, .. } => *progress = 0,
+        }
+    }
+
+    pub fn expire(&mut self) {
+        match self {
+            Timer::CountDown(_) => *self = Timer::CountDown(0),
+            Timer::CountUpObserve {
+                expire_at,
+                progress,
+                ..
+            } => *progress = *expire_at,
+        }
+    }
+
+    pub fn wait(&mut self, duration: CType) {
+        match self {
+            Timer::CountDown(remaining) => {
+                if *remaining > duration {
+                    *remaining -= duration;
+                } else {
+                    *self = Timer::CountDown(0);
+                }
+            }
+            Timer::CountUpObserve {
+                expire_at,
+                progress,
+                ..
+            } => {
+                if *progress < *expire_at {
+                    *progress += duration;
+                }
+            }
+        }
+    }
+
+    pub fn is_active(&self) -> bool {
+        match self {
+            Timer::CountDown(remaining) => *remaining > 0,
+            Timer::CountUpObserve {
+                expire_at,
+                progress,
+                ..
+            } => *progress < *expire_at,
+        }
+    }
+
+    pub fn get_time_left(&self) -> CType {
+        match self {
+            Timer::CountDown(remaining) => *remaining,
+            Timer::CountUpObserve {
+                up_to, progress, ..
+            } => *up_to - *progress,
+        }
+    }
+
+    pub fn get_time_left_seconds(&self) -> f32 {
+        self.get_time_left() as f32 / BALANCE_SCALE as f32
+    }
+
+    pub fn abs_diff(&self, target_time: CType) -> CType {
+        self.get_time_left().abs_diff(target_time) as CType
+    }
+}
+
 // Balances
 #[derive(Deserialize, Debug, PartialEq, Eq, Hash, Clone, Copy, TryFromPrimitive)]
 #[repr(usize)]
@@ -46,6 +179,14 @@ pub enum BType {
     ParesisParalysis,
     SelfLoathing,
     Manabarbs,
+    Pacifism,
+    Shock,
+    Burnout,
+    Voyria,
+
+    // Writhe
+    WritheDartpinned,
+    WritheWeb,
 
     UNKNOWN,
     SIZE,
@@ -130,7 +271,7 @@ pub enum FType {
     // General
     Reflection,
 
-    // Syssin defences
+    // Infiltrator defences
     Shroud,
     Ghosted,
     Shadowslip,
@@ -256,12 +397,12 @@ pub enum FType {
     // Panacea
     Stormtouched,
     Patterns,
-    Shaderot,
-    ShaderotBenign,
-    ShaderotSpirit,
-    ShaderotHeat,
-    ShaderotWither,
-    ShaderotBody,
+    Rot,
+    RotBenign,
+    RotSpirit,
+    RotHeat,
+    RotWither,
+    RotBody,
 
     // Reishi
     Besilence,
@@ -372,7 +513,7 @@ pub enum FType {
     // Monk Uncurable
     NumbArms,
 
-    // Syssin Uncurable
+    // Infiltrator Uncurable
     Void,
     Weakvoid,
     Backstabbed,
@@ -401,20 +542,21 @@ pub enum FType {
     Itchy,
 
     // Writhes
-    WritheArmpitlock,
-    WritheBind,
-    WritheGrappled,
-    WritheGunk,
-    WritheHoist,
     WritheImpaled,
-    WritheLure,
+    WritheArmpitlock,
     WritheNecklock,
-    WritheRopes,
-    WritheStasis,
     WritheThighlock,
     WritheTransfix,
+    WritheBind,
+    WritheGunk,
+    WritheRopes,
     WritheVines,
     WritheWeb,
+    WritheDartpinned,
+    WritheHoist,
+    WritheGrappled,
+    WritheLure,
+    WritheStasis,
 
     SIZE,
     // Afflictions that stack.
@@ -444,6 +586,15 @@ pub enum FType {
     RightLegBroken,
     LeftArmBroken,
     RightArmBroken,
+
+    // Predator special affs
+    Acid,
+    Fleshbane,
+    Bloodscourge,
+    Cirisosis,
+    Veinrip,
+    Negated,
+    Intoxicated,
 
     // Mirrored affs
     Remorse,
@@ -483,8 +634,14 @@ impl FType {
                 }
             })
             .collect::<String>();
-        let result: Option<FType> = pretty.parse::<FType>().ok().map(|aff| aff.normalize());
-        result
+        match pretty.as_ref() {
+            "Inoculated" => Some(FType::Imbued),
+            "FungalInvasion" => Some(FType::Impeded),
+            "Preymark" => Some(FType::Shadowbrand),
+            "WoeCurse" => Some(FType::Shadowsphere),
+            "Mystified" => Some(FType::Voidtrapped),
+            _ => pretty.parse::<FType>().ok().map(|aff| aff.normalize()),
+        }
     }
 
     pub fn to_name(&self) -> String {
@@ -977,7 +1134,10 @@ impl DodgeState {
 pub enum ClassState {
     Zealot(ZealotClassState),
     Sentinel(SentinelClassState),
+    Predator(PredatorClassState),
+    Monk(MonkClassState),
     Bard(BardClassState),
+    Infiltrator(InfiltratorClassState),
     Shifter(HowlingState),
     Other(Class),
     Unknown,
@@ -991,6 +1151,7 @@ impl ClassState {
                 pyromania.wait(duration);
             }
             ClassState::Bard(bard_class_state) => bard_class_state.wait(duration),
+            ClassState::Predator(predator_class_state) => predator_class_state.wait(duration),
             _ => {}
         }
     }
@@ -998,9 +1159,12 @@ impl ClassState {
     pub fn get_normalized_class(&self) -> Option<Class> {
         match self {
             Self::Zealot(_) => Some(Class::Zealot),
+            Self::Predator(_) => Some(Class::Predator),
             Self::Sentinel(_) => Some(Class::Sentinel),
             Self::Bard(_) => Some(Class::Bard),
+            Self::Infiltrator(_) => Some(Class::Infiltrator),
             Self::Shifter(_) => Some(Class::Shapeshifter),
+            Self::Monk(_) => Some(Class::Monk),
             Self::Other(class) => Some(*class),
             Self::Unknown => None,
         }
@@ -1013,11 +1177,17 @@ impl ClassState {
             (Self::Sentinel(_), Class::Sentinel) => None,
             (Self::Bard(_), Class::Bard) => None,
             (Self::Shifter(_), Class::Shapeshifter) => None,
+            (Self::Predator(_), Class::Predator) => None,
+            (Self::Infiltrator(_), Class::Infiltrator) => None,
+            (Self::Monk(_), Class::Monk) => None,
             // Changed.
             (_, Class::Zealot) => Some(Self::Zealot(ZealotClassState::default())),
             (_, Class::Sentinel) => Some(Self::Sentinel(SentinelClassState::default())),
             (_, Class::Bard) => Some(Self::Bard(BardClassState::default())),
             (_, Class::Shapeshifter) => Some(Self::Shifter(HowlingState::default())),
+            (_, Class::Predator) => Some(Self::Predator(PredatorClassState::default())),
+            (_, Class::Infiltrator) => Some(Self::Infiltrator(InfiltratorClassState::default())),
+            (_, Class::Monk) => Some(Self::Monk(MonkClassState::default())),
             (_, observed) => {
                 // Other initializations should have been covered above.
                 Some(Self::Other(observed))
@@ -1037,17 +1207,23 @@ impl Default for ClassState {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ChannelState {
     Inactive,
-    Heelrush(LType, CType),
+    Heelrush(LType, Timer),
+    Direblow(Timer),
 }
 
 impl ChannelState {
     pub fn wait(&mut self, duration: CType) {
         match self {
             ChannelState::Heelrush(_, remaining) => {
-                if *remaining < duration {
+                remaining.wait(duration);
+                if !remaining.is_active() {
                     *self = ChannelState::Inactive;
-                } else {
-                    *remaining = *remaining - duration;
+                }
+            }
+            ChannelState::Direblow(remaining) => {
+                remaining.wait(duration);
+                if !remaining.is_active() {
+                    *self = ChannelState::Inactive;
                 }
             }
             _ => {}
@@ -1100,5 +1276,19 @@ impl TimedFlagState {
 
     pub fn deactivate(&mut self) {
         *self = TimedFlagState::Inactive;
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Elevation {
+    Ground,
+    Flying,
+    Trees,
+    Roof,
+}
+
+impl Default for Elevation {
+    fn default() -> Self {
+        Elevation::Ground
     }
 }

@@ -1,0 +1,338 @@
+[
+  {
+    "regex": "^Your toxic blood has afflicted (\\w+) with (.*).",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Knifeplay"
+      },
+      {
+        "Literal": "Bloodscourged"
+      },
+      {
+        "GroupAsTarget": 2
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^(\\w+)'s wounds cease to weep foul looking fluids.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Knifeplay"
+      },
+      {
+        "Literal": "Fleshbaned"
+      },
+      {
+        "Literal": "end"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^The (.*) slices? on (\\w+) fester, interfering with the restoration of .* limbs.$",
+    "args": [
+      {
+        "GroupAsTarget": 2
+      },
+      {
+        "Literal": "Knifeplay"
+      },
+      {
+        "Literal": "Fleshbaned"
+      },
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^A pitched hum emanates from (you)r sitara, and you feel that it has reached its peak absorption of magical energies.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Knifeplay"
+      },
+      {
+        "Literal": "Tidalslash"
+      },
+      {
+        "Literal": "full"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^Your precision strike causes (\\w+) in (\\w+).",
+    "args": [
+      {
+        "GroupAsTarget": 2
+      },
+      {
+        "Literal": "Knifeplay"
+      },
+      {
+        "Literal": "Flashkicked"
+      },
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^The antidotes in (.*) blood have finally purged .* body of the awful taint that was scourging it.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Knifeplay"
+      },
+      {
+        "Literal": "Bloodscourged"
+      },
+      {
+        "Literal": "end"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^A look of relief briefly flits over (\\w+)'s face.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Knifeplay"
+      },
+      {
+        "Literal": "Bloodscourged"
+      },
+      {
+        "Literal": "end"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^(\\w+)'s eyes glaze over, and .* shivers uncontrollably, looking increasingly unsteady and ill.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Knifeplay"
+      },
+      {
+        "Literal": "Cirisosis"
+      },
+      {
+        "Literal": "shock"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^Relief floods (\\w+) as the deadly morphing poison is purged from .* system.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Knifeplay"
+      },
+      {
+        "Literal": "Cirisosis"
+      },
+      {
+        "Literal": "end"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^(.*) (trots|scurries) in and looks up at (\\w+) expectantly.$",
+    "args": [
+      {
+        "GroupAsTarget": 3
+      },
+      {
+        "Literal": "Beastmastery"
+      },
+      {
+        "Literal": "Beastcalled"
+      },
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^(You)r (\\w+) is already here with you.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Beastmastery"
+      },
+      {
+        "Literal": "Beastcalled"
+      },
+      {
+        "GroupAsTarget": 2
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^Blood squirts from the open wound upon (\\w+)'?s? neck, drenching .* side.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Knifeplay"
+      },
+      {
+        "Literal": "Veinripped"
+      },
+      {
+        "Literal": "hit"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^With the other paw, a bulky orgyuk rakes into (\\w+) with its wicked claws.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Beastmastery"
+      },
+      {
+        "Literal": "Raked"
+      },
+      {
+        "Literal": "hit"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^The flow of blood slows and thickens from (\\w+)'s neck, pale from from all the loss.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Knifeplay"
+      },
+      {
+        "Literal": "Veinripped"
+      },
+      {
+        "Literal": "end"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "scuttles towards (\\w+) and sinks its venomous fangs into .* body.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Beastmastery"
+      },
+      {
+        "Literal": "Intoxicated"
+      },
+      {
+        "Literal": "hit"
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "Proc"
+  },
+  {
+    "regex": "^(You)r spider is already focused on (\\w+).$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "Beastmastery"
+      },
+      {
+        "Literal": "Intoxicate"
+      },
+      {
+        "Literal": "fail"
+      },
+      {
+        "GroupAsTarget": 2
+      }
+    ],
+    "observation_name": "Proc"
+  }
+]

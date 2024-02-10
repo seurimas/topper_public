@@ -1,4 +1,7 @@
 use crate::curatives::top_missing_aff;
+use crate::curatives::SafetyAlert;
+use crate::curatives::MENTAL_AFFLICTIONS;
+use crate::curatives::PHYSICAL_AFFLICTIONS;
 use crate::timeline::*;
 use crate::types::*;
 
@@ -101,4 +104,19 @@ pub fn handle_combat_action(
         _ => {}
     }
     Ok(())
+}
+
+pub fn get_archivist_alerts(agent: &AgentState) -> Vec<SafetyAlert> {
+    if agent.affs_count(&MENTAL_AFFLICTIONS.to_vec()) >= 3 {
+        if agent.affs_count(&PHYSICAL_AFFLICTIONS.to_vec()) >= 2 {
+            let mut physical_affs = vec![];
+            for aff in PHYSICAL_AFFLICTIONS.iter() {
+                if agent.is(*aff) {
+                    physical_affs.push(*aff);
+                }
+            }
+            return vec![SafetyAlert::InstakillThreat(physical_affs)];
+        }
+    }
+    vec![]
 }

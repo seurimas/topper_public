@@ -166,8 +166,8 @@ static FIRST_AID_BLOCK: &'static str = "\x1b[48;5;232mYour affliction curing pri
                sore_wrist, sore_ankle, muscle_spasms, heatspear]
     pill:     [sensitivity, rend, epilepsy, masochism, loneliness, haemophilia,
                lethargy, vomiting, impairment, crippled, allergies,
-               shaderot_body, shaderot_benign, shaderot_spirit, shaderot_heat,
-               shaderot_wither]
+               rot_body, rot_benign, rot_spirit, rot_heat,
+               rot_wither]
 
 7)  poultice: [ablaze, hypothermia, stuttering, crippled_throat, mauled_face,
                deepwound, stiffness, weak_grip]

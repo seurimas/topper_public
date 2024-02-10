@@ -77,7 +77,10 @@ pub fn get_preferred_parry<DB: AetDatabaseModule + ?Sized>(
     strategy: &String,
     db: Option<&DB>,
 ) -> Result<LType, String> {
-    if let Some(mut class) = db.and_then(|db| db.get_class(target)) {
+    if let Some(mut class) = db.and_then(|db| db.get_class(target)).or_else(|| {
+        let them = timeline.state.borrow_agent(target);
+        them.class_state.get_normalized_class()
+    }) {
         if class.is_mirror() {
             class = class.normal();
         }
@@ -103,6 +106,7 @@ pub fn get_preferred_parry<DB: AetDatabaseModule + ?Sized>(
                 let them = timeline.state.borrow_agent(target);
                 match them.channel_state {
                     ChannelState::Heelrush(limb, _) => Ok(limb),
+                    ChannelState::Direblow(_) => Ok(LType::TorsoDamage),
                     _ => {
                         let myself = timeline.state.borrow_agent(me);
                         if myself.is(FType::Heatspear) {
@@ -117,9 +121,7 @@ pub fn get_preferred_parry<DB: AetDatabaseModule + ?Sized>(
             }
             Class::Sentinel => {
                 let myself = timeline.state.borrow_agent(me);
-                if myself.is(FType::Heartflutter) {
-                    Ok(LType::TorsoDamage)
-                } else if !myself.is(FType::Impatience) {
+                if !myself.is(FType::Impatience) {
                     Ok(LType::HeadDamage)
                 } else if let Some(parry) = get_restore_parry(timeline, me) {
                     Ok(parry)

@@ -84,7 +84,7 @@
         "observation_name": "Proc"
     },
     {
-        "regex": "^(\\w+)'s mental state is overwhelmed as (\\w+) ?\\w* revels in (\\w+) burgeoning emotions.$",
+        "regex": "^(\\w+)'s mental state is overwhelmed as (\\w+) ?.* revels in (\\w+) burgeoning emotions.$",
         "args": [
             {
                 "GroupAsTarget": 1

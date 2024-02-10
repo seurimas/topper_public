@@ -15,10 +15,12 @@ use std::collections::{HashMap, HashSet};
 use std::ops::{Deref, DerefMut};
 use topper_core::observations::EnumFromArgs;
 use topper_core::timeline::db::DatabaseModule;
+use topper_core::timeline::db::DummyDatabaseModule;
 use topper_core::timeline::types::*;
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Default, Debug, Deserialize, Clone)]
 pub enum AetPrompt {
+    #[default]
     Promptless,
     Blackout,
     Simulation,
@@ -213,6 +215,8 @@ pub enum AetObservation {
     Stand(String),
     Sent(String),
     Illusion,
+    #[skip_args]
+    Assess(String, i32, i32),
 }
 
 pub trait AetTimelineStateTrait {
@@ -402,7 +406,7 @@ impl AetTimelineStateTrait for AetTimelineState {
             let before = values.len();
             values.retain(|branch| branch.branch_state.strikes() == lowest_strikes);
             let mid = values.len();
-            if mid > 32 {
+            if mid > 1 {
                 let mut set = HashSet::new();
                 for branch in values.iter() {
                     set.insert(branch.clone());
@@ -466,5 +470,15 @@ impl<DB: AetDatabaseModule + DatabaseModule> BaseTimeline<AetObservation, AetPro
         let result = self.state.apply_time_slice::<DB>(&slice, db);
         self.slices.push(slice);
         result
+    }
+}
+
+impl TestableTimeline<AetObservation, AetPrompt> for AetTimeline {
+    fn test_push_time_slice(
+        &mut self,
+        slice: TimeSlice<AetObservation, AetPrompt>,
+    ) -> Result<(), String> {
+        self.state
+            .apply_time_slice::<DummyDatabaseModule>(&slice, None)
     }
 }

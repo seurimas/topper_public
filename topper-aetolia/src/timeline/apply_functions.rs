@@ -14,6 +14,7 @@ use log::warn;
 use regex::Regex;
 use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
+use std::f32::consts::E;
 use topper_core::observations::strip_ansi;
 use topper_core::timeline::db::DatabaseModule;
 use topper_core::timeline::CType;
@@ -42,19 +43,28 @@ pub fn apply_observation(
                         .initialize_for_normalized_class(class.normal());
                 });
             }
-            handle_combat_action(combat_action, timeline, before, after)?;
+            handle_combat_action(combat_action, timeline, before, after, db)?;
         }
         AetObservation::Proc(combat_action) => {
-            handle_combat_action(combat_action, timeline, before, after)?;
+            handle_combat_action(combat_action, timeline, before, after, db)?;
         }
         AetObservation::SimpleCureAction(simple_cure) => {
             handle_simple_cure_action(simple_cure, timeline, before, after)?;
         }
-        AetObservation::DiscernedCure(who, affliction) => {
-            timeline.set_flag_for_agent(who, affliction, false)?;
-        }
         AetObservation::Cured(affliction) => {
             timeline.set_flag_for_agent(&timeline.me.clone(), affliction, false)?;
+        }
+        AetObservation::DiscernedCure(who, affliction) => {
+            for_agent(timeline, who, &|me| {
+                if let Some(aff_flag) = FType::from_name(&affliction) {
+                    me.toggle_flag(aff_flag, false);
+                }
+            });
+            if let Some(AetObservation::Devenoms(venom)) = before.last() {
+                if venom.eq_ignore_ascii_case("cirisosis") {
+                    timeline.set_flag_for_agent(who, &"cirisosis".to_string(), true);
+                }
+            }
         }
         AetObservation::FlameShield(who) => {
             if timeline.borrow_agent(who).get_count(FType::Ablaze) <= 1 {
@@ -124,7 +134,7 @@ pub fn apply_observation(
                                     if let (Ok(limb), Ok(damage)) =
                                         (get_limb_damage(limb), damage.parse::<f32>())
                                     {
-                                        me.set_limb_damage(limb, (damage * 100.0) as CType);
+                                        me.set_limb_damage(limb, (damage * 100.0) as CType, true);
                                     }
                                 }
                             }
@@ -340,8 +350,14 @@ pub fn apply_observation(
             timeline.finish_agent_restore(&timeline.me.clone(), what)?;
         }
         AetObservation::Stand(who) => {
-            timeline.set_flag_for_agent(who, &"asleep".to_string(), false);
-            timeline.set_flag_for_agent(who, &"fallen".to_string(), false);
+            for_agent(timeline, who, &move |you| {
+                you.toggle_flag(FType::Fallen, false);
+                you.observe_flag(FType::Asleep, false);
+                you.observe_flag(FType::Frozen, false);
+                you.observe_flag(FType::Paralysis, false);
+                you.observe_flag(FType::LeftLegCrippled, false);
+                you.observe_flag(FType::RightLegCrippled, false);
+            });
             if timeline.borrow_agent(who).is(FType::Backstrain) {
                 let after = after.clone();
                 for_agent(timeline, who, &move |you| {
@@ -362,12 +378,34 @@ pub fn apply_observation(
                 me.set_parrying(limb);
             });
         }
+        AetObservation::HiddenAff => {
+            for_agent(
+                timeline,
+                &timeline.me.clone(),
+                &move |me: &mut AgentState| {
+                    me.hidden_state.add_unknown();
+                    if me.hidden_state.unknown() > 0
+                        && !me.is(FType::Recklessness)
+                        && me.get_health_percent() == 1.
+                        && me.get_mana_percent() == 1.
+                    {
+                        println!("Guessing recklessness!");
+                        me.hidden_state.add_guess(FType::Recklessness);
+                    }
+                },
+            );
+        }
         AetObservation::Parry(who, what) => {
-            let limb = get_limb_damage(what)?;
+            let limb = match what.as_str() {
+                "arms" | "legs" => LType::SIZE,
+                _ => get_limb_damage(what)?,
+            };
             let who = who.clone();
             let after = after.clone();
             for_agent(timeline, &who, &move |you: &mut AgentState| {
-                you.set_parrying(limb);
+                if limb != LType::SIZE {
+                    you.set_parrying(limb);
+                }
                 if you.is(FType::SoreWrist) {
                     apply_limb_damage(
                         you,
@@ -443,6 +481,20 @@ pub fn apply_observation(
                     me.pipe_state.refill(&herb);
                 },
             );
+        }
+        AetObservation::Assess(who, current, max) => {
+            let percent = *current as f32 / *max as f32;
+            for_agent(timeline, who, &move |me: &mut AgentState| {
+                if !me.is(FType::Shock) {
+                    if me.is(FType::Deadening) && percent <= 0.4 {
+                        me.toggle_flag(FType::Shock, true);
+                    } else if percent <= 0.25 {
+                        me.toggle_flag(FType::Shock, true);
+                    }
+                }
+                me.set_stat(SType::Health, *current);
+                me.set_max_stat(SType::Health, *max);
+            });
         }
         _ => {}
     }
@@ -621,6 +673,23 @@ pub fn attack_hit(observations: &Vec<AetObservation>) -> bool {
     return true;
 }
 
+pub fn attack_parried(observations: &Vec<AetObservation>) -> bool {
+    for (i, observation) in observations.iter().enumerate() {
+        match (i, observation) {
+            (0, AetObservation::CombatAction(_)) => {}
+            (_, AetObservation::CombatAction(_)) => {
+                // If we see another combat message, assume we're good to apply limb damage.
+                return false;
+            }
+            (_, AetObservation::Parry(_, _)) => {
+                return true;
+            }
+            _ => {}
+        }
+    }
+    return false;
+}
+
 pub fn limb_broken(observations: &Vec<AetObservation>, limb: LType) -> bool {
     let limb_string = limb.to_string();
     for (i, observation) in observations.iter().enumerate() {
@@ -693,7 +762,7 @@ pub fn apply_limb_damage(
                     limb_hit,
                     target.limb_damage.get_damage(limb_hit)
                 );
-                target.set_limb_damage(limb_hit, DAMAGED_VALUE);
+                target.set_limb_damage(limb_hit, DAMAGED_VALUE, false);
             }
             if limb_mangled(observations, limb_hit) {
                 if target.limb_damage.get_damage(limb_hit) <= MANGLED_VALUE {
@@ -712,7 +781,7 @@ pub fn apply_limb_damage(
                     limb_hit,
                     target.limb_damage.get_damage(limb_hit)
                 );
-                target.set_limb_damage(limb_hit, MANGLED_VALUE);
+                target.set_limb_damage(limb_hit, MANGLED_VALUE, false);
             }
         }
     }

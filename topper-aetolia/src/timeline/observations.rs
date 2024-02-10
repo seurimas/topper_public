@@ -118,6 +118,21 @@ pub fn aet_observation_creator(
             arguments.get(0).unwrap().to_string(),
             parse_discern(arguments.get(1).unwrap().to_string()),
         ),
+        "Assess" => AetObservation::Assess(
+            arguments.get(0).unwrap().to_string(),
+            arguments
+                .get(1)
+                .unwrap()
+                .to_string()
+                .parse()
+                .unwrap_or_default(),
+            arguments
+                .get(2)
+                .unwrap()
+                .to_string()
+                .parse()
+                .unwrap_or_default(),
+        ),
         _ => AetObservation::enum_from_args(observation_name, arguments),
     }
 }

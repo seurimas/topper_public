@@ -6,8 +6,9 @@ use topper_core::timeline::db::DummyDatabaseModule;
 
 use crate::{
     bt::*,
-    classes::{FitnessAction, ParryAction},
+    classes::{Action, Class, FitnessAction, ParryAction},
     db::AetDatabaseModule,
+    types::*,
 };
 
 #[macro_use]
@@ -19,6 +20,7 @@ use super::{
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub enum DefenseBehavior {
     Parry,
+    ClassParry(String),
     Repipe,
     Fitness,
     Dodge,
@@ -59,6 +61,32 @@ impl UnpoweredFunction for DefenseBehavior {
                 }
                 Err(err) => println!("Could not parry: {:?}", err),
             },
+            DefenseBehavior::ClassParry(verb) => match DEFENSE_DATABASE.as_ref().try_lock() {
+                Ok(outer_guard) => {
+                    let option = outer_guard.as_ref();
+                    if let Some(inner_mutex) = option {
+                        match inner_mutex.as_ref().read() {
+                            Ok(db) => {
+                                if let Some(limb) = get_needed_parry(
+                                    model,
+                                    &model.who_am_i(),
+                                    &controller.target.clone().unwrap_or_default(),
+                                    &"".to_string(),
+                                    Some(&*db),
+                                ) {
+                                    controller.plan.add_to_qeb(Box::new(Action::new(format!(
+                                        "{} {}",
+                                        verb,
+                                        limb.to_string()
+                                    ))));
+                                };
+                            }
+                            Err(err) => println!("Could not parry, inner: {:?}", err),
+                        }
+                    }
+                }
+                Err(err) => println!("Could not parry: {:?}", err),
+            },
             DefenseBehavior::Repipe => {
                 let refill_actions = get_needed_refills(&model.state.borrow_me());
                 for action in refill_actions {
@@ -67,10 +95,28 @@ impl UnpoweredFunction for DefenseBehavior {
             }
             DefenseBehavior::Fitness => {
                 let me = model.state.borrow_me();
+                if !me.balanced(BType::Fitness) {
+                    return UnpoweredFunctionState::Complete;
+                }
                 if me.lock_duration().is_some() {
                     controller
                         .plan
                         .add_to_qeb(Box::new(FitnessAction::new(model.who_am_i())));
+                } else {
+                    for aggressor in me.aggro.get_aggro_attackers() {
+                        let aggressor = model.state.borrow_agent(&aggressor);
+                        match aggressor.class_state.get_normalized_class() {
+                            Some(Class::Sentinel) => {
+                                if me.is(FType::Asthma) && me.is(FType::Slickness) {
+                                    controller
+                                        .plan
+                                        .add_to_qeb(Box::new(FitnessAction::new(model.who_am_i())));
+                                    return UnpoweredFunctionState::Complete;
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
                 }
             }
             DefenseBehavior::Dodge => {

@@ -53,8 +53,8 @@ mod firstaid_tests {
             "    pill:     [sensitivity, rend, epilepsy, masochism, loneliness, haemophilia,"
                 .into(),
             "               lethargy, vomiting, impairment, crippled, allergies,".into(),
-            "               shaderot_body, shaderot_benign, shaderot_spirit, shaderot_heat,".into(),
-            "               shaderot_wither]".into(),
+            "               rot_body, rot_benign, rot_spirit, rot_heat,".into(),
+            "               rot_wither]".into(),
         ];
         let mut priorities = HashMap::new();
         priorities.insert(FType::Generosity, 1);
@@ -93,11 +93,11 @@ mod firstaid_tests {
         priorities.insert(FType::Impairment, 6);
         priorities.insert(FType::Crippled, 6);
         priorities.insert(FType::Allergies, 6);
-        priorities.insert(FType::ShaderotBody, 6);
-        priorities.insert(FType::ShaderotBenign, 6);
-        priorities.insert(FType::ShaderotSpirit, 6);
-        priorities.insert(FType::ShaderotHeat, 6);
-        priorities.insert(FType::ShaderotWither, 6);
+        priorities.insert(FType::RotBody, 6);
+        priorities.insert(FType::RotBenign, 6);
+        priorities.insert(FType::RotSpirit, 6);
+        priorities.insert(FType::RotHeat, 6);
+        priorities.insert(FType::RotWither, 6);
         let parsed_priorities = parse_priorities(&priority_lines);
         assert_eq!(parsed_priorities, priorities);
     }

@@ -74,6 +74,7 @@ pub fn get_guessed_value(
         FType::Stupidity => 6,
         FType::Paresis => 5,
         FType::Weariness => 4,
+        FType::Recklessness => 3,
         _ => 0,
     }
 }
@@ -108,6 +109,13 @@ pub fn get_guesses(
     let opponent_class = foe.as_ref().map(|you| db.get_class(&you)).flatten();
     if let Some(me) = timeline.state.get_agent(me) {
         for my_state in me {
+            if my_state.hidden_state.guesses() == 1
+                && my_state.get_balance(BType::Tree) < 0.5
+                && my_state.can_tree(true)
+            {
+                // Don't bother to guess if we're just going to tree it away.
+                continue;
+            }
             if let Some((guess_score, guess)) = get_best_guess(my_state, &opponent_class) {
                 if let Some((best_guess_score, best_guess)) = best_guess_with_score {
                     if best_guess_score < guess_score {

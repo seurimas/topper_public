@@ -1,9 +1,13 @@
+pub mod alerts;
+pub mod behavior;
 pub mod first_aid;
 pub mod statics;
 
 use crate::timeline::*;
 use crate::types::*;
 
+pub use alerts::*;
+pub use behavior::*;
 pub use first_aid::*;
 pub use statics::*;
 

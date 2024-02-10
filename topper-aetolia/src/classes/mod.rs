@@ -1,33 +1,38 @@
-use crate::curatives::{MENTAL_AFFLICTIONS, RANDOM_CURES};
+use crate::bt::BehaviorController;
+use crate::curatives::{SafetyAlert, MENTAL_AFFLICTIONS, RANDOM_CURES};
 use crate::db::AetDatabaseModule;
+use crate::non_agent::AetNonAgent;
 use crate::observables::*;
 use crate::timeline::*;
 use crate::types::*;
 use num_enum::TryFromPrimitive;
 use regex::Regex;
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex, RwLock};
 pub mod archivist;
 pub mod ascendril;
 pub mod bard;
 pub mod carnifex;
 pub mod group;
 pub mod indorani;
+pub mod infiltrator;
 pub mod lords;
 pub mod luminary;
 pub mod mirrors;
 pub mod monk;
 pub mod praenomen;
+pub mod predator;
 pub mod sciomancer;
 pub mod sentinel;
 pub mod shaman;
 pub mod shapeshifter;
-pub mod syssin;
 pub mod templar;
 pub mod teradrim;
 pub mod wayfarer;
 pub mod zealot;
 use serde::{Deserialize, Serialize};
 
+use self::archivist::get_archivist_alerts;
 use self::mirrors::normalize_combat_action;
 
 pub struct FitnessAction {
@@ -49,7 +54,9 @@ impl ActiveTransition for FitnessAction {
     }
 }
 
-#[derive(Debug, Serialize, Clone, Copy, Display, TryFromPrimitive, PartialEq, Eq, Hash)]
+#[derive(
+    Debug, Serialize, Deserialize, Clone, Copy, Display, TryFromPrimitive, PartialEq, Eq, Hash,
+)]
 #[repr(u8)]
 pub enum Class {
     Carnifex,
@@ -65,10 +72,11 @@ pub enum Class {
     Zealot,
     Archivists,
     Sciomancer,
-    Syssin,
+    Infiltrator,
     Shapeshifter,
     Wayfarer,
     Bard,
+    Predator,
     Lord,
     // Mirrors
     Revenant,     // Templar
@@ -81,6 +89,8 @@ pub enum Class {
     Ravager,      // Zealot
     Runecarver,   // Sciomancer
     Bloodborn,    // Ascendril
+    Voidseer,     // Archivist
+    Executor,     // Sentinel
 }
 
 impl Class {
@@ -103,11 +113,12 @@ impl Class {
             // Spinesreach
             "Archivist" => Some(Class::Archivists),
             "Sciomancer" => Some(Class::Sciomancer),
-            "Syssin" => Some(Class::Syssin),
+            "Infiltrator" => Some(Class::Infiltrator),
             // Unaffiliated
             "Shapeshifter" => Some(Class::Shapeshifter),
             "Wayfarer" => Some(Class::Wayfarer),
             "Bard" => Some(Class::Bard),
+            "Predator" => Some(Class::Predator),
             "Titan Lord" => Some(Class::Lord),
             "Chaos Lord" => Some(Class::Lord),
             "Lord" => Some(Class::Lord),
@@ -122,6 +133,8 @@ impl Class {
             "Ravager" => Some(Class::Ravager),
             "Runecarver" => Some(Class::Runecarver),
             "Bloodborn" => Some(Class::Bloodborn),
+            "Voidseer" => Some(Class::Voidseer),
+            "Executor" => Some(Class::Executor),
             _ => None,
         }
     }
@@ -144,11 +157,12 @@ impl Class {
             // Spinesreach
             Class::Archivists => "Archivists",
             Class::Sciomancer => "Sciomancer",
-            Class::Syssin => "Syssin",
+            Class::Infiltrator => "Infiltrator",
             // Neutral
             Class::Shapeshifter => "Shapeshifter",
             Class::Wayfarer => "Wayfarer",
             Class::Bard => "Bard",
+            Class::Predator => "Predator",
             Class::Lord => "Lord",
             // Mirrors
             Class::Revenant => "Revenant",
@@ -161,6 +175,8 @@ impl Class {
             Class::Ravager => "Ravager",
             Class::Runecarver => "Runecarver",
             Class::Bloodborn => "Bloodborn",
+            Class::Voidseer => "Voidseer",
+            Class::Executor => "Executor",
             _ => "Unknown",
         }
     }
@@ -175,7 +191,9 @@ impl Class {
             | Class::Akkari
             | Class::Ravager
             | Class::Runecarver
-            | Class::Bloodborn => true,
+            | Class::Bloodborn
+            | Class::Voidseer
+            | Class::Executor => true,
             _ => false,
         }
     }
@@ -191,7 +209,16 @@ impl Class {
             Class::Ravager => Class::Zealot,
             Class::Runecarver => Class::Sciomancer,
             Class::Bloodborn => Class::Ascendril,
+            Class::Voidseer => Class::Archivists,
+            Class::Executor => Class::Sentinel,
             _ => self.clone(),
+        }
+    }
+
+    pub fn get_safety_alerts(&self, agent: &AgentState) -> Vec<SafetyAlert> {
+        match self {
+            Class::Archivists => get_archivist_alerts(agent),
+            _ => Vec::new(),
         }
     }
 }
@@ -215,11 +242,12 @@ pub fn get_skill_class(category: &String) -> Option<Class> {
         // Spinesreach
         "Geometrics" | "Numerology" | "Bioessence" => Some(Class::Archivists),
         "Sciomancy" | "Sorcery" | "Gravitation" => Some(Class::Sciomancer),
-        "Assassination" | "Subterfuge" | "Hypnosis" => Some(Class::Syssin),
+        "Assassination" | "Subterfuge" | "Hypnosis" => Some(Class::Infiltrator),
         // Unaffiliated
         "Ferality" | "Shapeshifting" | "Vocalizing" => Some(Class::Shapeshifter),
         "Tenacity" | "Wayfaring" | "Fury" => Some(Class::Wayfarer),
         "Weaving" | "Performance" | "Songcalling" => Some(Class::Bard),
+        "Knifeplay" | "Predation" | "Beastmastery" => Some(Class::Predator),
         "Titan" | "Chaos" => Some(Class::Lord),
         // Mirrors
         "Riving" | "Chirography" | "Manifestation" => Some(Class::Revenant),
@@ -232,6 +260,8 @@ pub fn get_skill_class(category: &String) -> Option<Class> {
         "Brutality" | "Ravaging" | "Egotism" => Some(Class::Ravager),
         "Malediction" | "Runecarving" | "Sporulation" => Some(Class::Runecarver),
         "Humourism" | "Esoterica" | "Hematurgy" => Some(Class::Bloodborn),
+        "Enlightenment" | "Cultivation" | "Voidgazing" => Some(Class::Voidseer),
+        "Bladedancing" | "Artifice" | "Subversion" => Some(Class::Executor),
         _ => None,
     }
 }
@@ -242,25 +272,27 @@ pub fn has_special_cure(class: &Class, affliction: FType) -> bool {
     }
     match (affliction, class) {
         (FType::Asthma, Class::Monk) => true,
-        (FType::Asthma, Class::Syssin) => true,
+        (FType::Asthma, Class::Infiltrator) => true,
         (FType::Paresis, Class::Zealot) => true,
         _ => false,
     }
 }
 
-pub fn is_affected_by(class: &Class, affliction: FType) -> bool {
+pub fn is_affected_by(class: Class, affliction: FType) -> bool {
     if class.is_mirror() {
-        return is_affected_by(&class.normal(), affliction);
+        return is_affected_by(class.normal(), affliction);
     }
     match (affliction, class) {
-        (FType::Clumsiness, Class::Syssin) => true,
+        (FType::Clumsiness, Class::Infiltrator) => true,
         (FType::Clumsiness, Class::Bard) => true,
         (FType::Clumsiness, Class::Templar) => true,
-        (FType::Clumsiness, Class::Carnifex) => true,
         (FType::Clumsiness, Class::Sentinel) => true,
         (FType::Clumsiness, Class::Wayfarer) => true,
         (FType::Clumsiness, Class::Teradrim) => true,
+        (FType::Clumsiness, Class::Predator) => true,
         (FType::Clumsiness, Class::Zealot) => true,
+        (FType::Weariness, Class::Carnifex) => true,
+        (FType::Weariness, Class::Sciomancer) => true,
         (FType::Peace, Class::Luminary) => true,
         (FType::Disfigurement, Class::Sentinel) => true,
         (FType::Disfigurement, Class::Carnifex) => true,
@@ -268,10 +300,15 @@ pub fn is_affected_by(class: &Class, affliction: FType) -> bool {
         (FType::Disfigurement, Class::Indorani) => true,
         (FType::Disfigurement, Class::Teradrim) => true,
         (FType::Lethargy, Class::Bard) => true,
-        (FType::Lethargy, Class::Syssin) => true,
+        (FType::Lethargy, Class::Infiltrator) => true,
         (FType::Lethargy, Class::Sentinel) => true,
         (FType::Lethargy, Class::Carnifex) => true,
         (FType::Lethargy, Class::Templar) => true,
+        // Class cures get blocked!
+        (FType::Paresis, Class::Indorani) => true,
+        (FType::Paresis, Class::Sciomancer) => true,
+        (FType::Paresis, Class::Ascendril) => true,
+        (FType::Paresis, Class::Teradrim) => true,
         _ => false,
     }
 }
@@ -283,7 +320,7 @@ lazy_static! {
 }
 
 pub fn handle_sent(command: &String, agent_states: &mut AetTimelineState) {
-    syssin::handle_sent(command, agent_states);
+    infiltrator::handle_sent(command, agent_states);
     if let Some(captures) = DIAGNOSING.captures(command) {
         let me = agent_states.me.clone();
         let time = agent_states.time;
@@ -301,13 +338,15 @@ pub fn get_attack(
     if let Some(class) = db.and_then(|db| db.get_class(me)) {
         match class {
             Class::Sentinel => sentinel::get_attack(timeline, target, strategy, db),
-            Class::Syssin => syssin::get_attack(timeline, target, strategy, db),
+            Class::Infiltrator => infiltrator::get_attack(timeline, target, strategy, db),
             Class::Bard => bard::get_attack(timeline, target, strategy, db),
             Class::Zealot => zealot::get_attack(timeline, target, strategy, db),
-            _ => syssin::get_attack(timeline, target, strategy, db),
+            Class::Predator => predator::get_attack(timeline, target, strategy, db),
+            Class::Monk => monk::get_attack(timeline, target, strategy, db),
+            _ => infiltrator::get_attack(timeline, target, strategy, db),
         }
     } else {
-        syssin::get_attack(timeline, target, strategy, db)
+        infiltrator::get_attack(timeline, target, strategy, db)
     }
 }
 
@@ -316,17 +355,29 @@ pub fn handle_combat_action(
     agent_states: &mut AetTimelineState,
     before: &Vec<AetObservation>,
     after: &Vec<AetObservation>,
+    db: Option<&impl AetDatabaseModule>,
 ) -> Result<(), String> {
     if let Some(class) = get_skill_class(&combat_action.category) {
         if class.is_mirror() {
-            return handle_combat_action(&combat_action.normalized(), agent_states, before, after);
+            return handle_combat_action(
+                &combat_action.normalized(),
+                agent_states,
+                before,
+                after,
+                db,
+            );
         }
     }
     if !combat_action.target.is_empty() && !combat_action.caster.eq(&combat_action.target) {
         let my_room = agent_states.borrow_me().room_id;
+        let my_elevation = agent_states.borrow_me().elevation;
         for_agent(agent_states, &combat_action.target, &|me| {
-            me.register_hit();
+            me.register_hit(Some(&combat_action.caster));
             me.room_id = my_room;
+            me.elevation = my_elevation;
+            if me.is(FType::Pacifism) && me.balanced(BType::Pacifism) {
+                me.toggle_flag(FType::Pacifism, false);
+            }
         });
     }
     match combat_action.category.as_ref() {
@@ -367,7 +418,7 @@ pub fn handle_combat_action(
             shapeshifter::handle_combat_action(combat_action, agent_states, before, after)
         }
         "Subterfuge" | "Assassination" | "Hypnosis" => {
-            syssin::handle_combat_action(combat_action, agent_states, before, after)
+            infiltrator::handle_combat_action(combat_action, agent_states, before, after)
         }
         "Battlefury" | "Righteousness" | "Bladefire" => {
             templar::handle_combat_action(combat_action, agent_states, before, after)
@@ -380,6 +431,9 @@ pub fn handle_combat_action(
         }
         "Weaving" | "Performance" | "Songcalling" => {
             bard::handle_combat_action(combat_action, agent_states, before, after)
+        }
+        "Knifeplay" | "Predation" | "Beastmastery" => {
+            predator::handle_combat_action(combat_action, agent_states, before, after, db)
         }
         "Purification" | "Zeal" | "Psionics" => {
             zealot::handle_combat_action(combat_action, agent_states, before, after)
@@ -626,6 +680,159 @@ pub fn handle_combat_action(
     }
 }
 
+#[derive(Debug, Display, Serialize, Deserialize, PartialEq, Clone)]
+pub enum LockType {
+    // Just asthma/slickness/anorexia
+    Soft,
+    // Asthma, slickness, anorexia, paralysis, and stupidity
+    Buffered,
+    // Asthma, slickness, anorexia, paralysis, and focus blocked
+    Hard,
+    // Only the venom affs
+    HardVenom,
+}
+
+impl LockType {
+    pub fn affs(&self) -> Vec<FType> {
+        match self {
+            LockType::Soft => vec![FType::Anorexia, FType::Slickness, FType::Asthma],
+            LockType::Buffered => vec![
+                FType::Anorexia,
+                FType::Slickness,
+                FType::Stupidity,
+                FType::Asthma,
+                FType::Paresis,
+            ],
+            LockType::HardVenom => vec![
+                FType::Anorexia,
+                FType::Slickness,
+                FType::Asthma,
+                FType::Paresis,
+            ],
+            LockType::Hard => vec![
+                FType::Anorexia,
+                FType::Slickness,
+                FType::Asthma,
+                FType::Paresis,
+                FType::Impatience,
+            ],
+        }
+    }
+
+    pub fn affs_to_lock(&self, agent: &AgentState) -> usize {
+        let needed_affs = self.affs();
+        let affs_on_target = agent.affs_count(&needed_affs);
+        needed_affs.len() - affs_on_target
+    }
+}
+
+pub type VenomType = &'static str;
+
+pub fn get_stack<'s>(
+    timeline: &AetTimeline,
+    attack_class: &'static str,
+    target: &String,
+    strategy: &String,
+    db: Option<&impl AetDatabaseModule>,
+) -> Option<Vec<VenomPlan>> {
+    let stack = if strategy.eq("class") {
+        if let Some(class) = db.and_then(|db| db.get_class(target)) {
+            class.normal().to_str().to_string()
+        } else {
+            "aggro".to_string()
+        }
+    } else {
+        strategy.clone()
+    };
+    let mut stack_name = format!("{}_{}", attack_class, strategy);
+    get_stack_from_file(&attack_class.to_string(), &stack).or_else(|| {
+        db.and_then(|db| {
+            db.get_venom_plan(&stack_name).or_else(|| {
+                get_stack_from_file(&attack_class.to_string(), &"aggro".to_string())
+                    .or_else(|| db.get_venom_plan(&format!("{}_aggro", attack_class)))
+            })
+        })
+    })
+}
+
+pub static mut LOAD_STACK_FUNC: Option<fn(&String, &String) -> String> = None;
+
+lazy_static! {
+    pub static ref LOADED_VENOM_PLANS: RwLock<HashMap<String, Option<Vec<VenomPlan>>>> =
+        { RwLock::new(HashMap::new()) };
+}
+
+pub fn clear_aff_stacks() {
+    let mut stacks = LOADED_VENOM_PLANS.write().unwrap();
+    stacks.clear();
+}
+
+pub fn get_stack_from_file(class: &String, stack_name: &String) -> Option<Vec<VenomPlan>> {
+    {
+        let stacks = LOADED_VENOM_PLANS.read().unwrap();
+        if let Some(stack) = stacks.get(&format!("{}_{}", class, stack_name)) {
+            return stack.clone();
+        }
+    }
+    {
+        let mut trees = LOADED_VENOM_PLANS.write().unwrap();
+        let stack_json = unsafe { LOAD_STACK_FUNC.unwrap()(class, stack_name) };
+        println!(
+            "Loading {}'s {} stack ({})",
+            class,
+            stack_name,
+            stack_json.len()
+        );
+        match serde_json::from_str::<Vec<VenomPlan>>(&stack_json) {
+            Ok(stack_def) => {
+                trees.insert(format!("{}_{}", class, stack_name), Some(stack_def.clone()));
+                Some(stack_def)
+            }
+            Err(err) => {
+                println!("Failed to load {}/{}: {:?}", class, stack_name, err);
+                trees.insert(format!("{}_{}", class, stack_name), None);
+                None
+            }
+        }
+    }
+}
+
+fn get_controller(
+    attack_class: &'static str,
+    me: &String,
+    target: &String,
+    timeline: &topper_core::timeline::Timeline<AetObservation, AetPrompt, AgentState, AetNonAgent>,
+    strategy: &String,
+    db: Option<&impl AetDatabaseModule>,
+) -> BehaviorController {
+    BehaviorController {
+        plan: ActionPlan::new(me),
+        target: Some(target.clone()),
+        aff_priorities: get_stack(timeline, attack_class, target, strategy, db),
+        allies: timeline
+            .state
+            .non_agent_states
+            .get(&format!("{}_allies", me))
+            .map(|ally_list| {
+                if let AetNonAgent::Players(ally_list) = ally_list {
+                    let mut ally_aggros = HashMap::new();
+                    let my_room = timeline.state.borrow_me().room_id;
+                    for ally in ally_list {
+                        let ally_state = timeline.state.borrow_agent(ally);
+                        if ally_state.room_id == my_room {
+                            ally_aggros.insert(ally.clone(), ally_state.get_aggro());
+                        }
+                    }
+                    ally_aggros
+                } else {
+                    panic!("Non-player list in allies spot!")
+                }
+            })
+            .unwrap_or_default(),
+        ..Default::default()
+    }
+}
+
 lazy_static! {
     pub static ref AFFLICT_VENOMS: HashMap<FType, &'static str> = {
         let mut val = HashMap::new();
@@ -710,8 +917,10 @@ pub fn remove_through(you: &mut AgentState, end: FType, order: &Vec<FType>) {
     }
 }
 
-pub fn is_susceptible(target: &AgentState, affliction: &FType) -> bool {
-    !target.is(*affliction) && !(*affliction == FType::Paresis && target.is(FType::Paralysis))
+pub fn is_susceptible(target: &AgentState, affliction: &FType, afflicted: &Vec<FType>) -> bool {
+    !target.is(*affliction)
+        && !(*affliction == FType::Paresis && target.is(FType::Paralysis))
+        && !afflicted.contains(affliction)
 }
 
 #[macro_export]
@@ -755,23 +964,34 @@ pub fn add_buffers<'s>(ready: &mut Vec<&'s str>, buffers: &Vec<&'s str>) {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum VenomPlan {
     Stick(FType),
-    StickThisIfThat(FType, FType),
     OnTree(FType),
     OffTree(FType),
+    OnFocus(FType),
+    OffFocus(FType),
+    OnFitness(FType),
+    OffFitness(FType),
     OneOf(FType, FType),
     IfDo(FType, Box<VenomPlan>),
     IfNotDo(FType, Box<VenomPlan>),
+    IfClassHates(FType, Box<VenomPlan>),
+    IfNotClassHates(FType, Box<VenomPlan>),
 }
 
 impl VenomPlan {
     pub fn affliction(&self) -> FType {
         match self {
             VenomPlan::Stick(aff)
-            | VenomPlan::StickThisIfThat(aff, _)
             | VenomPlan::OnTree(aff)
             | VenomPlan::OffTree(aff)
+            | VenomPlan::OnFocus(aff)
+            | VenomPlan::OffFocus(aff)
+            | VenomPlan::OnFitness(aff)
+            | VenomPlan::OffFitness(aff)
             | VenomPlan::OneOf(aff, _) => *aff,
             VenomPlan::IfDo(_pred, plan) | VenomPlan::IfNotDo(_pred, plan) => plan.affliction(),
+            VenomPlan::IfClassHates(aff, plan) | VenomPlan::IfNotClassHates(aff, plan) => {
+                plan.affliction()
+            }
         }
     }
 }
@@ -786,37 +1006,79 @@ pub fn get_simple_plan(afflictions: Vec<FType>) -> Vec<VenomPlan> {
 #[macro_export]
 macro_rules! affliction_plan_stacker {
     ($add_name:ident, $get_name:ident, $stack:expr, $returned:ty) => {
-        pub fn $add_name(item: &VenomPlan, target: &AgentState, venoms: &mut Vec<$returned>) {
+        pub fn $add_name(
+            item: &VenomPlan,
+            target: &AgentState,
+            venoms: &mut Vec<$returned>,
+            afflicted: &mut Vec<FType>,
+        ) {
             match item {
                 VenomPlan::Stick(aff) => {
-                    if is_susceptible(target, aff) {
+                    if is_susceptible(target, aff, afflicted) {
                         if let Some(venom) = $stack.get(aff) {
                             venoms.insert(0, *venom);
-                        }
-                    }
-                }
-                VenomPlan::StickThisIfThat(this, that) => {
-                    if target.is(*this) && is_susceptible(target, that) {
-                        if let Some(venom) = $stack.get(that) {
-                            venoms.insert(0, *venom);
+                            afflicted.push(*aff);
                         }
                     }
                 }
                 VenomPlan::OnTree(aff) => {
                     if (target.balanced(BType::Tree) || target.get_balance(BType::Tree) < 1.5)
-                        && is_susceptible(target, aff)
+                        && is_susceptible(target, aff, afflicted)
                     {
                         if let Some(venom) = $stack.get(aff) {
                             venoms.insert(0, *venom);
+                            afflicted.push(*aff);
                         }
                     }
                 }
                 VenomPlan::OffTree(aff) => {
                     if !(target.balanced(BType::Tree) || target.get_balance(BType::Tree) < 1.5)
-                        && is_susceptible(target, aff)
+                        && is_susceptible(target, aff, afflicted)
                     {
                         if let Some(venom) = $stack.get(aff) {
                             venoms.insert(0, *venom);
+                            afflicted.push(*aff);
+                        }
+                    }
+                }
+                VenomPlan::OnFocus(aff) => {
+                    if (target.balanced(BType::Focus) || target.get_balance(BType::Focus) < 1.5)
+                        && is_susceptible(target, aff, afflicted)
+                    {
+                        if let Some(venom) = $stack.get(aff) {
+                            venoms.insert(0, *venom);
+                            afflicted.push(*aff);
+                        }
+                    }
+                }
+                VenomPlan::OffFocus(aff) => {
+                    if !(target.balanced(BType::Focus) || target.get_balance(BType::Focus) < 1.5)
+                        && is_susceptible(target, aff, afflicted)
+                    {
+                        if let Some(venom) = $stack.get(aff) {
+                            venoms.insert(0, *venom);
+                            afflicted.push(*aff);
+                        }
+                    }
+                }
+                VenomPlan::OnFitness(aff) => {
+                    if (target.balanced(BType::Fitness) || target.get_balance(BType::Fitness) < 1.5)
+                        && is_susceptible(target, aff, afflicted)
+                    {
+                        if let Some(venom) = $stack.get(aff) {
+                            venoms.insert(0, *venom);
+                            afflicted.push(*aff);
+                        }
+                    }
+                }
+                VenomPlan::OffFitness(aff) => {
+                    if !(target.balanced(BType::Fitness)
+                        || target.get_balance(BType::Fitness) < 1.5)
+                        && is_susceptible(target, aff, afflicted)
+                    {
+                        if let Some(venom) = $stack.get(aff) {
+                            venoms.insert(0, *venom);
+                            afflicted.push(*aff);
                         }
                     }
                 }
@@ -824,21 +1086,41 @@ macro_rules! affliction_plan_stacker {
                     if let (Some(priority_venom), Some(secondary_venom)) =
                         ($stack.get(priority), $stack.get(secondary))
                     {
-                        if !is_susceptible(target, priority) && is_susceptible(target, secondary) {
+                        if !is_susceptible(target, priority, afflicted)
+                            && is_susceptible(target, secondary, afflicted)
+                        {
                             venoms.insert(0, *secondary_venom);
-                        } else if is_susceptible(target, priority) {
+                            afflicted.push(*secondary);
+                        } else if is_susceptible(target, priority, afflicted) {
                             venoms.insert(0, *priority_venom);
+                            afflicted.push(*priority);
                         }
                     }
                 }
                 VenomPlan::IfDo(when, plan) => {
-                    if !is_susceptible(target, when) {
-                        $add_name(plan, target, venoms);
+                    if !is_susceptible(target, when, afflicted) {
+                        $add_name(plan, target, venoms, afflicted);
                     }
                 }
                 VenomPlan::IfNotDo(when, plan) => {
-                    if is_susceptible(target, when) {
-                        $add_name(plan, target, venoms);
+                    if is_susceptible(target, when, afflicted) {
+                        $add_name(plan, target, venoms, afflicted);
+                    }
+                }
+                VenomPlan::IfClassHates(when, plan) => {
+                    if let Some(class) = target.get_normalized_class() {
+                        if is_affected_by(class, *when) {
+                            $add_name(plan, target, venoms, afflicted);
+                        }
+                    }
+                }
+                VenomPlan::IfNotClassHates(when, plan) => {
+                    if let Some(class) = target.get_normalized_class() {
+                        if !is_affected_by(class, *when) {
+                            $add_name(plan, target, venoms, afflicted);
+                        }
+                    } else {
+                        $add_name(plan, target, venoms, afflicted);
                     }
                 }
             }
@@ -850,8 +1132,9 @@ macro_rules! affliction_plan_stacker {
             target: &AgentState,
         ) -> Vec<$returned> {
             let mut venoms = Vec::new();
+            let mut afflicted = Vec::new();
             for item in plan.iter() {
-                $add_name(item, target, &mut venoms);
+                $add_name(item, target, &mut venoms, &mut afflicted);
                 if count == venoms.len() {
                     break;
                 }

@@ -25,6 +25,13 @@ pub trait AetDatabaseModule {
         priorities_name: &String,
     ) -> Option<FirstAidPriorities>;
 
+    fn set_first_aid_priorities(
+        &self,
+        who: &String,
+        priorities_name: &String,
+        priorities: FirstAidPriorities,
+    );
+
     fn insert_hint(&self, key: &String, value: &String);
 
     fn get_hint(&self, key: &String) -> Option<String>;
@@ -54,6 +61,19 @@ impl<T: DatabaseModule> AetDatabaseModule for T {
 
     fn get_hypno_plan(&self, stack_name: &String) -> Option<Vec<Hypnosis>> {
         self.get_json::<Vec<Hypnosis>>("hypnosis", stack_name)
+    }
+
+    fn set_first_aid_priorities(
+        &self,
+        who: &String,
+        priorities_name: &String,
+        priorities: FirstAidPriorities,
+    ) {
+        self.insert_json::<FirstAidPriorities>(
+            "first_aid",
+            &format!("{}_{}", who, priorities_name),
+            priorities,
+        );
     }
 
     fn get_first_aid_priorities(

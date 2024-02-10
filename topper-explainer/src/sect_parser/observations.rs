@@ -23,6 +23,7 @@ lazy_static! {
         results.push(include_str!("../../../triggers/Sentinel Spoof.json").to_string());
         results.push(include_str!("../../../triggers/Simple Aff Messages.json").to_string());
         results.push(include_str!("../../../triggers/Subterfuge Spoofs.json").to_string());
+        results.push(include_str!("../../../triggers/Predator Spoof.json").to_string());
         results.push(include_str!("../../../triggers/Praekkari Spoofs.json").to_string());
         results.push(include_str!("../../../triggers/Titan Lord Spoofs.json").to_string());
         results.push(include_str!("../../../triggers/Wielding.json").to_string());

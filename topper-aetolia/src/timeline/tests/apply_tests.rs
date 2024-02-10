@@ -1,7 +1,6 @@
 mod apply_tests {
     use topper_core::observations::ObservationParser;
     use topper_core::timeline::db::DummyDatabaseModule;
-    use topper_core::timeline::BaseTimeline;
 
     use super::super::*;
 

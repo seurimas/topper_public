@@ -81,7 +81,8 @@ pub struct BardClassState {
 }
 
 const SONG_FUDGE: CType = (0.33 * BALANCE_SCALE) as CType;
-const RUNEBAND_TIMEOUT: CType = (8.0 * BALANCE_SCALE) as CType;
+const RUNEBAND_DELAY: CType = (8.0 * BALANCE_SCALE) as CType;
+const RUNEBAND_TIMEOUT: CType = (10.0 * BALANCE_SCALE) as CType;
 const IMPETUS_TIMEOUT: CType = (30.0 * BALANCE_SCALE) as CType;
 const VOICE_SONG_TIMEOUT: CType = (8.0 * BALANCE_SCALE) as CType;
 const INSTRUMENT_SONG_TIMEOUT: CType = (6.0 * BALANCE_SCALE) as CType;
@@ -165,8 +166,8 @@ impl BardClassState {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum RunebandState {
     Inactive,
-    Normal(usize, CType),
-    Reverse(usize, CType),
+    Normal(usize, Timer),
+    Reverse(usize, Timer),
 }
 
 impl Default for RunebandState {
@@ -177,15 +178,16 @@ impl Default for RunebandState {
 
 impl RunebandState {
     pub fn wait(&mut self, time: CType) {
-        *self = match self {
-            Self::Inactive => Self::Inactive,
-            Self::Normal(aff_idx, timer) => Self::Normal(*aff_idx, *timer - time),
-            Self::Reverse(aff_idx, timer) => Self::Reverse(*aff_idx, *timer - time),
+        match self {
+            Self::Inactive => {}
+            Self::Reverse(_, timer) | Self::Normal(_, timer) => {
+                timer.wait(time);
+            }
         };
     }
 
     pub fn initial() -> Self {
-        Self::Normal(0, RUNEBAND_TIMEOUT)
+        Self::Normal(0, Timer::count_up_observe(RUNEBAND_DELAY, RUNEBAND_TIMEOUT))
     }
 
     pub fn reverse(&mut self) {
@@ -203,7 +205,7 @@ impl RunebandState {
     pub fn is_active(&self) -> bool {
         match self {
             Self::Inactive => false,
-            _ => true,
+            Self::Normal(_, timer) | Self::Reverse(_, timer) => timer.is_active(),
         }
     }
 
@@ -466,7 +468,7 @@ impl BardBoard {
         }
     }
 
-    pub fn next_runeband(&self) -> Option<(FType, CType)> {
+    pub fn next_runeband(&self) -> Option<(FType, Timer)> {
         match self.runeband_state {
             RunebandState::Normal(aff_idx, timer) => Some((RUNEBAND_AFFS[aff_idx], timer)),
             RunebandState::Reverse(aff_idx, timer) => Some((RUNEBAND_AFFS[aff_idx], timer)),
@@ -482,7 +484,10 @@ impl BardBoard {
                 } else {
                     aff_idx + 1
                 };
-                self.runeband_state = RunebandState::Normal(new_idx, RUNEBAND_TIMEOUT);
+                self.runeband_state = RunebandState::Normal(
+                    new_idx,
+                    Timer::count_up_observe(RUNEBAND_DELAY, RUNEBAND_TIMEOUT),
+                );
                 Some(RUNEBAND_AFFS[aff_idx])
             }
             RunebandState::Reverse(aff_idx, _) => {
@@ -491,14 +496,17 @@ impl BardBoard {
                 } else {
                     aff_idx - 1
                 };
-                self.runeband_state = RunebandState::Reverse(new_idx, RUNEBAND_TIMEOUT);
+                self.runeband_state = RunebandState::Reverse(
+                    new_idx,
+                    Timer::count_up_observe(RUNEBAND_DELAY, RUNEBAND_TIMEOUT),
+                );
                 Some(RUNEBAND_AFFS[aff_idx])
             }
             _ => None,
         }
     }
 
-    pub fn runeband_timer(&self) -> Option<CType> {
+    pub fn runeband_timer(&self) -> Option<Timer> {
         match self.runeband_state {
             RunebandState::Normal(_, timer) | RunebandState::Reverse(_, timer) => Some(timer),
             _ => None,

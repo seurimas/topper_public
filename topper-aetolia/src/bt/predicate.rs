@@ -4,13 +4,20 @@ use topper_bt::unpowered::*;
 
 use crate::classes::bard::BardPredicate;
 use crate::classes::get_affs_from_plan;
+use crate::classes::infiltrator::InfiltratorPredicate;
+use crate::classes::is_affected_by;
+use crate::classes::predator::PredatorPredicate;
+use crate::classes::Class;
+use crate::classes::LockType;
 use crate::classes::VenomPlan;
 use crate::curatives::get_cure_depth;
+use crate::non_agent::AetTimelineRoomExt;
 use crate::timeline::*;
 use crate::types::*;
 
 use super::BehaviorController;
 use super::BehaviorModel;
+use super::LimbDescriptor;
 
 pub const QUEUE_TIME: f32 = 0.25;
 
@@ -35,31 +42,76 @@ impl AetTarget {
                 .target
                 .as_ref()
                 .and_then(|target| model.state.get_agent(&target))
-                .and_then(|branches| branches.get(0)),
+                .and_then(|branches| branches.get(0))
+                .or(Some(&model.default_agent)),
+        }
+    }
+
+    pub fn get_name<'a>(
+        &self,
+        model: &'a BehaviorModel,
+        controller: &BehaviorController,
+    ) -> String {
+        match self {
+            AetTarget::Me => model.who_am_i(),
+            AetTarget::Target => controller
+                .target
+                .clone()
+                .unwrap_or_else(|| "enemy".to_string()),
         }
     }
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub enum AetPredicate {
+    // Affs
     AllAffs(AetTarget, Vec<FType>),
     SomeAffs(AetTarget, Vec<FType>),
     NoAffs(AetTarget, Vec<FType>),
     AffCountOver(AetTarget, usize, Vec<FType>),
     AffCountUnder(AetTarget, usize, Vec<FType>),
+    // Limbs
+    IsRestoring(AetTarget, LimbDescriptor),
+    CanBreak(AetTarget, LimbDescriptor, f32),
+    CanMangled(AetTarget, LimbDescriptor, f32),
+    // Priorities
     PriorityAffIs(AetTarget, FType),
+    // Buffer/locks
     CannotCure(AetTarget, FType),
     Buffered(AetTarget, FType),
     Locked(AetTarget, bool),
+    NearLocked(AetTarget, LockType, usize),
+    // Timing
     ReboundingWindow(AetTarget, CType),
+    SalveBlocked(AetTarget, CType),
+    // Hints
+    LimbHintIs(String, LType),
     HintSet(String, String),
+    // Stats
+    HealthUnder(AetTarget, f32),
+    // Balances
     HasBalanceEquilibrium(AetTarget),
     HasBalance(AetTarget),
     HasEquilibrium(AetTarget),
-    HasTree(AetTarget),
-    HasFocus(AetTarget),
-    HasFitness(AetTarget),
+    HasTree(AetTarget, f32),
+    HasFocus(AetTarget, f32),
+    HasFitness(AetTarget, f32),
+    HasClassCure(AetTarget, f32),
+    // Elevation
+    IsGrounded(AetTarget),
+    IsFlying(AetTarget),
+    IsClimbing(AetTarget),
+    // Room tags
+    RoomIsTagged(String),
+    // Parries
+    KnownParry(AetTarget, LimbDescriptor),
+    CanParry(AetTarget),
+    // Class-specific
+    IsAffectedBy(AetTarget, FType),
+    ClassIn(AetTarget, Vec<Class>),
     BardPredicate(AetTarget, BardPredicate),
+    PredatorPredicate(AetTarget, PredatorPredicate),
+    InfiltratorPredicate(AetTarget, InfiltratorPredicate),
 }
 
 pub trait TargetPredicate {
@@ -203,12 +255,51 @@ impl UnpoweredFunction for AetPredicate {
                     UnpoweredFunctionState::Failed
                 }
             }
+            AetPredicate::IsRestoring(target, limb_descriptor) => {
+                if let Some(limb) = limb_descriptor.get_limb(model, controller, target) {
+                    if let Some(target) = target.get_target(model, controller) {
+                        if target.get_limb_state(limb).is_restoring {
+                            return UnpoweredFunctionState::Complete;
+                        }
+                    }
+                }
+                UnpoweredFunctionState::Failed
+            }
+            AetPredicate::CanBreak(target, limb_descriptor, damage) => {
+                if let Some(limb) = limb_descriptor.get_limb(model, controller, target) {
+                    if let Some(target) = target.get_target(model, controller) {
+                        if target.get_limb_state(limb).hits_to_break(*damage) == 1 {
+                            return UnpoweredFunctionState::Complete;
+                        }
+                    }
+                }
+                UnpoweredFunctionState::Failed
+            }
+            AetPredicate::CanMangled(target, limb_descriptor, damage) => {
+                if let Some(limb) = limb_descriptor.get_limb(model, controller, target) {
+                    if let Some(target) = target.get_target(model, controller) {
+                        if target.get_limb_state(limb).hits_to_mangle(*damage) == 1 {
+                            return UnpoweredFunctionState::Complete;
+                        }
+                    }
+                }
+                UnpoweredFunctionState::Failed
+            }
             AetPredicate::Locked(target, hard_only) => {
                 if let Some(target) = target.get_target(model, controller) {
                     if let Some(lock) = target.lock_duration() {
                         if !*hard_only || lock >= 10.0 {
                             return UnpoweredFunctionState::Complete;
                         }
+                    }
+                }
+                UnpoweredFunctionState::Failed
+            }
+            AetPredicate::NearLocked(target, lock_type, aff_count) => {
+                if let Some(target) = target.get_target(model, controller) {
+                    let affs_to_lock = lock_type.affs_to_lock(target);
+                    if affs_to_lock <= *aff_count {
+                        return UnpoweredFunctionState::Complete;
                     }
                 }
                 UnpoweredFunctionState::Failed
@@ -256,6 +347,16 @@ impl UnpoweredFunction for AetPredicate {
                 }
                 UnpoweredFunctionState::Failed
             }
+            AetPredicate::SalveBlocked(target, minimum) => {
+                if let Some(target) = target.get_target(model, controller) {
+                    if let Some(restore) = target.limb_damage.restore_timer {
+                        if restore.get_time_left() > *minimum {
+                            return UnpoweredFunctionState::Complete;
+                        }
+                    }
+                }
+                UnpoweredFunctionState::Failed
+            }
             AetPredicate::HasBalance(target) => {
                 if let Some(target) = target.get_target(model, controller) {
                     if target.get_balance(BType::Balance) < QUEUE_TIME {
@@ -272,25 +373,55 @@ impl UnpoweredFunction for AetPredicate {
                 }
                 UnpoweredFunctionState::Failed
             }
-            AetPredicate::HasFocus(target) => {
+            AetPredicate::HasFocus(target, buffer) => {
                 if let Some(target) = target.get_target(model, controller) {
-                    if target.get_balance(BType::Focus) < QUEUE_TIME {
+                    if target.get_balance(BType::Focus) < QUEUE_TIME + *buffer
+                        && target.can_focus(true)
+                    {
                         return UnpoweredFunctionState::Complete;
                     }
                 }
                 UnpoweredFunctionState::Failed
             }
-            AetPredicate::HasTree(target) => {
+            AetPredicate::KnownParry(target, limb_descriptor) => {
+                if let Some(limb) = limb_descriptor.get_limb(model, controller, target) {
+                    if let Some(target) = target.get_target(model, controller) {
+                        if target.get_parrying() == Some(limb) {
+                            return UnpoweredFunctionState::Complete;
+                        }
+                    }
+                }
+                UnpoweredFunctionState::Failed
+            }
+            AetPredicate::CanParry(target) => {
                 if let Some(target) = target.get_target(model, controller) {
-                    if target.get_balance(BType::Tree) < QUEUE_TIME {
+                    if target.can_parry() {
                         return UnpoweredFunctionState::Complete;
                     }
                 }
                 UnpoweredFunctionState::Failed
             }
-            AetPredicate::HasFitness(target) => {
+            AetPredicate::HasTree(target, buffer) => {
                 if let Some(target) = target.get_target(model, controller) {
-                    if target.get_balance(BType::Fitness) < QUEUE_TIME {
+                    if target.get_balance(BType::Tree) < QUEUE_TIME + *buffer
+                        && target.can_tree(true)
+                    {
+                        return UnpoweredFunctionState::Complete;
+                    }
+                }
+                UnpoweredFunctionState::Failed
+            }
+            AetPredicate::HasFitness(target, buffer) => {
+                if let Some(target) = target.get_target(model, controller) {
+                    if target.get_balance(BType::Fitness) < QUEUE_TIME + *buffer {
+                        return UnpoweredFunctionState::Complete;
+                    }
+                }
+                UnpoweredFunctionState::Failed
+            }
+            AetPredicate::HasClassCure(target, buffer) => {
+                if let Some(target) = target.get_target(model, controller) {
+                    if target.get_balance(BType::ClassCure1) < QUEUE_TIME + *buffer {
                         return UnpoweredFunctionState::Complete;
                     }
                 }
@@ -313,6 +444,31 @@ impl UnpoweredFunction for AetPredicate {
                     UnpoweredFunctionState::Failed
                 }
             }
+            AetPredicate::PredatorPredicate(target, predator_predicate) => {
+                if predator_predicate.check(target, model, controller) {
+                    UnpoweredFunctionState::Complete
+                } else {
+                    UnpoweredFunctionState::Failed
+                }
+            }
+            AetPredicate::InfiltratorPredicate(target, infiltrator_predicate) => {
+                if infiltrator_predicate.check(target, model, controller) {
+                    UnpoweredFunctionState::Complete
+                } else {
+                    UnpoweredFunctionState::Failed
+                }
+            }
+            AetPredicate::LimbHintIs(hint, limb) => {
+                if let Some(hint) = controller.get_hint(hint) {
+                    if hint.eq_ignore_ascii_case(&limb.to_string()) {
+                        UnpoweredFunctionState::Complete
+                    } else {
+                        UnpoweredFunctionState::Failed
+                    }
+                } else {
+                    UnpoweredFunctionState::Failed
+                }
+            }
             AetPredicate::HintSet(hint, value) => {
                 if let Some(hint) = controller.get_hint(hint) {
                     if hint.eq_ignore_ascii_case(value) {
@@ -323,6 +479,81 @@ impl UnpoweredFunction for AetPredicate {
                 } else {
                     UnpoweredFunctionState::Failed
                 }
+            }
+            AetPredicate::IsGrounded(target) => {
+                if let Some(target) = target.get_target(model, controller) {
+                    if target.elevation == Elevation::Ground {
+                        UnpoweredFunctionState::Complete
+                    } else {
+                        UnpoweredFunctionState::Failed
+                    }
+                } else {
+                    UnpoweredFunctionState::Failed
+                }
+            }
+            AetPredicate::IsFlying(target) => {
+                if let Some(target) = target.get_target(model, controller) {
+                    if target.elevation == Elevation::Flying {
+                        UnpoweredFunctionState::Complete
+                    } else {
+                        UnpoweredFunctionState::Failed
+                    }
+                } else {
+                    UnpoweredFunctionState::Failed
+                }
+            }
+            AetPredicate::IsClimbing(target) => {
+                if let Some(target) = target.get_target(model, controller) {
+                    if target.elevation == Elevation::Trees || target.elevation == Elevation::Roof {
+                        UnpoweredFunctionState::Complete
+                    } else {
+                        UnpoweredFunctionState::Failed
+                    }
+                } else {
+                    UnpoweredFunctionState::Failed
+                }
+            }
+            AetPredicate::RoomIsTagged(tag) => {
+                if let Some(room) = model.state.get_my_room() {
+                    if room.has_tag(tag) {
+                        UnpoweredFunctionState::Complete
+                    } else {
+                        UnpoweredFunctionState::Failed
+                    }
+                } else {
+                    UnpoweredFunctionState::Failed
+                }
+            }
+            AetPredicate::HealthUnder(target, percent) => {
+                if let Some(target) = target.get_target(model, controller) {
+                    if target.get_health_percent() < *percent {
+                        UnpoweredFunctionState::Complete
+                    } else {
+                        UnpoweredFunctionState::Failed
+                    }
+                } else {
+                    UnpoweredFunctionState::Failed
+                }
+            }
+            AetPredicate::IsAffectedBy(target, aff) => {
+                if let Some(target) = target.get_target(model, controller) {
+                    if let Some(class) = target.class_state.get_normalized_class() {
+                        if is_affected_by(class, *aff) {
+                            return UnpoweredFunctionState::Complete;
+                        }
+                    }
+                }
+                UnpoweredFunctionState::Failed
+            }
+            AetPredicate::ClassIn(target, classes) => {
+                if let Some(target) = target.get_target(model, controller) {
+                    if let Some(class) = target.class_state.get_normalized_class() {
+                        if classes.contains(&class) {
+                            return UnpoweredFunctionState::Complete;
+                        }
+                    }
+                }
+                UnpoweredFunctionState::Failed
             }
         }
     }

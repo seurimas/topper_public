@@ -5,7 +5,7 @@ use std::convert::TryFrom;
 use std::fmt;
 use topper_core::timeline::BaseAgentState;
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, TryFromPrimitive)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, TryFromPrimitive, Serialize, Deserialize)]
 #[repr(u8)]
 pub enum LType {
     HeadDamage,
@@ -19,6 +19,17 @@ pub enum LType {
 }
 
 impl LType {
+    pub fn from_name(name: &String) -> Self {
+        match name.to_ascii_lowercase().as_ref() {
+            "head" => LType::HeadDamage,
+            "torso" => LType::TorsoDamage,
+            "left arm" => LType::LeftArmDamage,
+            "right arm" => LType::RightArmDamage,
+            "left leg" => LType::LeftLegDamage,
+            "right leg" => LType::RightLegDamage,
+            _ => LType::HeadDamage,
+        }
+    }
     pub fn to_string(&self) -> String {
         match self {
             LType::HeadDamage => "head".to_string(),
@@ -88,22 +99,22 @@ pub fn get_damage_limb(what: LType) -> Result<String, String> {
 
 pub fn get_damage_barrier(aff: &String) -> Result<(LType, CType), String> {
     match aff.as_ref() {
-        "head_mangled" => Ok((LType::HeadDamage, 666)),
-        "head_damaged" => Ok((LType::HeadDamage, 333)),
-        "torso_mangled" => Ok((LType::TorsoDamage, 666)),
-        "torso_damaged" => Ok((LType::TorsoDamage, 333)),
-        "left_arm_mangled" => Ok((LType::LeftArmDamage, 666)),
-        "left_arm_damaged" => Ok((LType::LeftArmDamage, 333)),
-        "right_arm_mangled" => Ok((LType::RightArmDamage, 666)),
-        "right_arm_damaged" => Ok((LType::RightArmDamage, 333)),
-        "left_leg_mangled" => Ok((LType::LeftLegDamage, 666)),
-        "left_leg_damaged" => Ok((LType::LeftLegDamage, 333)),
-        "right_leg_mangled" => Ok((LType::RightLegDamage, 666)),
-        "right_leg_damaged" => Ok((LType::RightLegDamage, 333)),
-        "left_arm_amputated" => Ok((LType::LeftArmDamage, 1000)),
-        "right_arm_amputated" => Ok((LType::RightArmDamage, 1000)),
-        "left_leg_amputated" => Ok((LType::LeftLegDamage, 1000)),
-        "right_leg_amputated" => Ok((LType::RightLegDamage, 1000)),
+        "head_mangled" => Ok((LType::HeadDamage, 6666)),
+        "head_damaged" => Ok((LType::HeadDamage, 3333)),
+        "torso_mangled" => Ok((LType::TorsoDamage, 6666)),
+        "torso_damaged" => Ok((LType::TorsoDamage, 3333)),
+        "left_arm_mangled" => Ok((LType::LeftArmDamage, 6666)),
+        "left_arm_damaged" => Ok((LType::LeftArmDamage, 3333)),
+        "right_arm_mangled" => Ok((LType::RightArmDamage, 6666)),
+        "right_arm_damaged" => Ok((LType::RightArmDamage, 3333)),
+        "left_leg_mangled" => Ok((LType::LeftLegDamage, 6666)),
+        "left_leg_damaged" => Ok((LType::LeftLegDamage, 3333)),
+        "right_leg_mangled" => Ok((LType::RightLegDamage, 6666)),
+        "right_leg_damaged" => Ok((LType::RightLegDamage, 3333)),
+        "left_arm_amputated" => Ok((LType::LeftArmDamage, 10000)),
+        "right_arm_amputated" => Ok((LType::RightArmDamage, 10000)),
+        "left_leg_amputated" => Ok((LType::LeftLegDamage, 10000)),
+        "right_leg_amputated" => Ok((LType::RightLegDamage, 10000)),
         _ => Err(format!("Could not find damage for {}", aff)),
     }
 }
@@ -122,7 +133,8 @@ pub struct Limb {
 pub struct LimbSet {
     pub limbs: [Limb; LType::SIZE as usize],
     pub restoring: Option<LType>,
-    pub restore_timer: Option<CType>,
+    pub restore_timer: Option<Timer>,
+    pub fleshbaned_count: usize,
     pub regenerating: bool,
     pub first_person_restore: bool,
 }
@@ -142,6 +154,7 @@ pub struct LimbState {
     pub is_dislocated: bool,
     pub welt: bool,
     pub bruise_level: usize,
+    pub fleshbaned_count: usize,
 }
 
 impl LimbState {
@@ -152,9 +165,23 @@ impl LimbState {
         }
         i32::max((damage / 30.0) as i32, 0)
     }
+
     pub fn hits_to_break(&self, damage: f32) -> i32 {
         let damaged_value = (DAMAGED_VALUE + 1) as f32 / 100.0;
         f32::ceil((damaged_value - self.damage) / damage) as i32
+    }
+
+    pub fn hits_to_mangle(&self, damage: f32) -> i32 {
+        let damaged_value = (MANGLED_VALUE + 1) as f32 / 100.0;
+        f32::ceil((damaged_value - self.damage) / damage) as i32
+    }
+
+    pub fn assume_restore(&mut self) {
+        let mut restore_value = 30.0;
+        restore_value -= restore_value * self.fleshbaned_count as f32 * 2.0;
+        if restore_value > 0. {
+            self.damage -= restore_value;
+        }
     }
 }
 
@@ -227,7 +254,7 @@ impl fmt::Display for LimbSet {
         for idx in 0..(LType::SIZE as usize) {
             if let Ok(damage) = LType::try_from(idx as u8) {
                 if let Ok(limb) = get_damage_limb(damage) {
-                    if self.limbs[idx].damage > DAMAGED_VALUE {
+                    if self.limbs[idx].damage >= DAMAGED_VALUE {
                         if wrote {
                             write!(f, ", ")?;
                         }
@@ -299,6 +326,10 @@ impl LimbSet {
             LType::TorsoDamage | LType::HeadDamage => {}
             _ => {
                 self.limbs[limb as usize].crippled = damaged;
+                if !damaged {
+                    self.limbs[limb as usize].broken = false;
+                    self.limbs[limb as usize].mangled = false;
+                }
             }
         }
     }
@@ -317,10 +348,13 @@ impl LimbSet {
             }
         }
         self.limbs[limb as usize].broken = damaged;
+        if !damaged {
+            self.limbs[limb as usize].mangled = false;
+        }
         if damaged && self.limbs[limb as usize].damage <= DAMAGED_VALUE {
             self.limbs[limb as usize].damage = DAMAGED_VALUE + 1;
-        } else if !damaged && self.limbs[limb as usize].damage > DAMAGED_VALUE {
-            self.limbs[limb as usize].damage = DAMAGED_VALUE;
+        } else if !damaged && self.limbs[limb as usize].damage >= DAMAGED_VALUE {
+            self.limbs[limb as usize].damage = DAMAGED_VALUE - 1;
         }
     }
 
@@ -338,10 +372,13 @@ impl LimbSet {
             }
         }
         self.limbs[limb as usize].mangled = damaged;
+        if damaged {
+            self.limbs[limb as usize].broken = true;
+        }
         if damaged && self.limbs[limb as usize].damage <= MANGLED_VALUE {
             self.limbs[limb as usize].damage = MANGLED_VALUE + 1;
-        } else if !damaged && self.limbs[limb as usize].damage > MANGLED_VALUE {
-            self.limbs[limb as usize].damage = MANGLED_VALUE;
+        } else if !damaged && self.limbs[limb as usize].damage >= MANGLED_VALUE {
+            self.limbs[limb as usize].damage = MANGLED_VALUE - 1;
         }
     }
 
@@ -353,12 +390,12 @@ impl LimbSet {
         self.limbs[limb as usize].amputated
     }
 
-    pub fn wait(&mut self, duration: CType) -> Option<(LType, bool, bool)> {
-        if let (Some(remaining), Some(restored)) = (self.restore_timer, self.restoring) {
-            if remaining < duration {
+    pub fn wait(&mut self, duration: CType) -> Option<(LType, CType, bool)> {
+        if let (Some(remaining), Some(restored)) = (&mut self.restore_timer, self.restoring) {
+            remaining.wait(duration);
+            if !remaining.is_active() {
                 self.complete_restore(None)
             } else {
-                self.restore_timer = Some(remaining - duration);
                 None
             }
         } else {
@@ -370,13 +407,31 @@ impl LimbSet {
         self.limbs[broken as usize].damage
     }
 
-    pub fn set_limb_damage(&mut self, broken: LType, new_damage: CType) {
+    pub fn set_limb_damage(&mut self, broken: LType, new_damage: CType, assume_break: bool) {
         self.limbs[broken as usize].damage = new_damage;
         if self.limbs[broken as usize].damage < DAMAGED_VALUE {
             self.limbs[broken as usize].broken = false;
             self.limbs[broken as usize].mangled = false;
         } else if self.limbs[broken as usize].damage < MANGLED_VALUE {
             self.limbs[broken as usize].mangled = false;
+            if assume_break {
+                match broken {
+                    LType::TorsoDamage | LType::HeadDamage => {}
+                    _ => {
+                        self.limbs[broken as usize].crippled = true;
+                    }
+                }
+                self.limbs[broken as usize].broken = true;
+            }
+        } else if assume_break {
+            match broken {
+                LType::TorsoDamage | LType::HeadDamage => {}
+                _ => {
+                    self.limbs[broken as usize].crippled = true;
+                }
+            }
+            self.limbs[broken as usize].broken = true;
+            self.limbs[broken as usize].mangled = true;
         }
     }
 
@@ -389,15 +444,18 @@ impl LimbSet {
         }
     }
 
-    pub fn complete_restore(&mut self, broken: Option<LType>) -> Option<(LType, bool, bool)> {
+    pub fn complete_restore(&mut self, broken: Option<LType>) -> Option<(LType, CType, bool)> {
         if broken == self.restoring || broken == None {
             if let Some(broken) = self.restoring {
-                let regenerating = self.regenerating;
+                let regenerating_modifier = if self.regenerating { 1500 } else { 0 };
+                let fleshbane_modifier = self.fleshbaned_count as i32 * -200;
                 let first_person_restore = self.first_person_restore;
                 self.regenerating = false;
                 self.restoring = None;
                 self.restore_timer = None;
-                return Some((broken, regenerating, first_person_restore));
+                self.fleshbaned_count = 0;
+                let heal_modifier = regenerating_modifier + fleshbane_modifier;
+                return Some((broken, heal_modifier, first_person_restore));
             }
             self.regenerating = false;
             self.restoring = None;
@@ -410,21 +468,21 @@ impl LimbSet {
         self.restoring
     }
 
-    pub fn restore(&mut self, limb: LType, regenerating: bool) {
-        let expected_heal = if regenerating { 4500 } else { 3000 };
+    pub fn restore(&mut self, limb: LType, heal_modifier: CType) {
+        let expected_heal = 3000 + heal_modifier;
         let new_damage = self.limbs[limb as usize].damage
             - i32::min(self.limbs[limb as usize].damage, expected_heal);
-        self.set_limb_damage(limb, new_damage);
+        self.set_limb_damage(limb, new_damage, false);
     }
 
     pub fn start_restore(&mut self, broken: LType, first_person: bool) {
         if let Some(timer) = self.restore_timer {
-            if timer < 10 {
+            if !timer.is_active() || timer.get_time_left() < 10 {
                 self.complete_restore(None);
             }
         }
         self.restoring = Some(broken);
-        self.restore_timer = Some(400);
+        self.restore_timer = Some(Timer::count_down(400));
         self.first_person_restore = first_person;
     }
 

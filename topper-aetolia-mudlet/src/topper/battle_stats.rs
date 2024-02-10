@@ -1,7 +1,8 @@
 use serde::Serialize;
 use std::collections::HashMap;
-use topper_aetolia::classes::syssin::{get_hypno_stack, get_hypno_stack_name};
-use topper_aetolia::classes::{get_attack, Class};
+use topper_aetolia::classes::infiltrator::{get_hypno_stack, get_hypno_stack_name};
+use topper_aetolia::classes::{get_attack, Class, LockType};
+use topper_aetolia::curatives::gather_alerts;
 use topper_aetolia::db::AetDatabaseModule;
 use topper_aetolia::timeline::*;
 use topper_aetolia::types::*;
@@ -14,7 +15,7 @@ use super::db::AetMudletDatabaseModule;
 pub struct PlayerStats {
     name: String,
     afflictions: Vec<String>,
-    unknowns: usize,
+    unknowns: isize,
     limbs: HashMap<String, LimbState>,
     balances: HashMap<String, f32>,
     warnings: Vec<String>,
@@ -25,11 +26,11 @@ pub struct PlayerStats {
 fn get_hypno_warning(state: &AgentState) -> Option<String> {
     if let Some(aff) = state.hypno_state.get_next_hypno_aff() {
         Some(format!("<magenta>Next aff: <red>{:?}", aff))
-    } else if state.hypno_state.hypnotized || state.hypno_state.sealed.is_some() {
+    } else if state.hypno_state.is_hypnotized() || state.hypno_state.is_sealed() {
         Some(format!(
             "<magenta>Stack size: <red>{} {}",
-            state.hypno_state.hypnosis_stack.len(),
-            if state.hypno_state.sealed.is_some() {
+            state.hypno_state.suggestion_count(),
+            if state.hypno_state.is_sealed() {
                 "SEALED"
             } else {
                 ""
@@ -42,15 +43,12 @@ fn get_hypno_warning(state: &AgentState) -> Option<String> {
 
 fn get_lock_warning(state: &AgentState) -> Option<String> {
     use topper_aetolia::classes::get_venoms;
-    use topper_aetolia::classes::syssin::{should_lock, SOFT_STACK};
-    if should_lock(
-        None,
-        state,
-        &"".to_string(),
-        &get_venoms(SOFT_STACK.to_vec(), 3, &state),
-        2,
-    ) {
+    if LockType::Soft.affs_to_lock(state) == 1 {
         Some(format!("<pink>Close to a lock!"))
+    } else if LockType::Buffered.affs_to_lock(state) <= 2 {
+        Some(format!("<pink>Close to a lock!"))
+    } else if LockType::Hard.affs_to_lock(state) <= 2 {
+        Some(format!("<magenta>Close to a lock!"))
     } else {
         None
     }
@@ -181,6 +179,7 @@ impl<'s> TopperModule<'s, AetTimeSlice, BattleStats> for BattleStatsModule {
 pub struct BattleStats {
     pub feed: Vec<String>,
     pub my_stats: PlayerStats,
+    pub alerts: Vec<String>,
     pub target_stats: Option<PlayerStats>,
     pub plan: String,
     pub class_state: String,
@@ -223,6 +222,10 @@ pub fn get_battle_stats(
     } else {
         None
     };
+    let alerts = gather_alerts(&timeline, timeline.who_am_i(), Some(db))
+        .iter()
+        .map(|alert| alert.to_string())
+        .collect();
     let mut lines_available = 16;
     lines.push(format_self_limbs(&timeline.state.borrow_me()));
     if let Some(target) = target {
@@ -239,7 +242,7 @@ pub fn get_battle_stats(
         "".to_string()
     };
     let class_state = match my_stats.class.as_ref() {
-        "Syssin" => format!(
+        "Infiltrator" => format!(
             "{}: {:?}",
             get_hypno_stack_name(
                 &timeline,
@@ -254,6 +257,12 @@ pub fn get_battle_stats(
             ),
         ),
         "Bard" => topper_aetolia::classes::bard::get_class_state(
+            &timeline,
+            target.as_ref().unwrap_or(&"".to_string()),
+            plan.as_ref().unwrap_or(&"".to_string()),
+            Some(db),
+        ),
+        "Predator" => topper_aetolia::classes::predator::get_class_state(
             &timeline,
             target.as_ref().unwrap_or(&"".to_string()),
             plan.as_ref().unwrap_or(&"".to_string()),
@@ -298,6 +307,7 @@ pub fn get_battle_stats(
         feed: lines,
         my_stats,
         target_stats,
+        alerts,
         plan: plan_str,
         class_state,
     }

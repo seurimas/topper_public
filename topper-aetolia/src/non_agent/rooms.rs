@@ -66,15 +66,15 @@ impl Room {
         AetNonAgent::Room(Room::default())
     }
 
-    pub fn add_tag(&mut self, tag: &str) {
+    pub fn add_tag(&mut self, tag: impl ToString) {
         self.tags.insert(tag.to_string());
     }
 
-    pub fn remove_tag(&mut self, tag: &str) {
+    pub fn remove_tag(&mut self, tag: impl ToString) {
         self.tags.remove(&tag.to_string());
     }
 
-    pub fn has_tag(&self, tag: &str) -> bool {
+    pub fn has_tag(&self, tag: impl ToString) -> bool {
         self.tags.contains(&tag.to_string())
     }
 }

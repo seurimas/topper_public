@@ -6,8 +6,10 @@ use crate::types::*;
 use self::akkari::map_mentis;
 
 mod akkari;
+mod executor;
 mod ravager;
 mod revenant;
+mod voidseer;
 
 lazy_static! {
     static ref ABILITY_MAPPING: HashMap<(String, String), (String, String)> = {
@@ -47,6 +49,8 @@ lazy_static! {
         revenant::add_mappings(&mut mapping);
         ravager::add_mappings(&mut mapping);
         akkari::add_mappings(&mut mapping);
+        executor::add_mappings(&mut mapping);
+        voidseer::add_mappings(&mut mapping);
         mapping
     };
 }

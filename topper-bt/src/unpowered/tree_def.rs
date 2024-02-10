@@ -6,6 +6,7 @@ use super::{nodes::*, UnpoweredFunction};
 pub enum UnpoweredTreeDef<U: UserNodeDefinition> {
     Sequence(Vec<UnpoweredTreeDef<U>>),
     Selector(Vec<UnpoweredTreeDef<U>>),
+    Executor(Vec<UnpoweredTreeDef<U>>),
     Repeat(Box<UnpoweredTreeDef<U>>, usize),
     RepeatUntilSuccess(Box<UnpoweredTreeDef<U>>),
     RepeatUntilFail(Box<UnpoweredTreeDef<U>>),
@@ -57,6 +58,13 @@ impl<U: UserNodeDefinition> UnpoweredTreeDef<U> {
                     .map(|node_def| node_def.create_tree())
                     .collect();
                 Box::new(Selector::new(nodes))
+            }
+            UnpoweredTreeDef::Executor(node_defs) => {
+                let nodes = node_defs
+                    .iter()
+                    .map(|node_def| node_def.create_tree())
+                    .collect();
+                Box::new(Executor::new(nodes))
             }
             UnpoweredTreeDef::Repeat(node_def, repeats) => {
                 let node = node_def.create_tree();

@@ -9,7 +9,7 @@ use topper_core::timeline::BaseAgentState;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct HiddenState {
-    unknown: usize,          // Truly unknown, with no guesses. Non-branched.
+    unknown: isize,          // Truly unknown, with no guesses. Non-branched.
     guessed: HashSet<FType>, // Partially unknown, some guesses existing in this branch.
 }
 
@@ -41,14 +41,19 @@ impl HiddenState {
             self.unknown = self.unknown - 1;
         }
     }
-    pub fn unknown(&self) -> usize {
+    pub fn unknown(&self) -> isize {
         self.unknown
     }
     pub fn clear_unknown(&mut self) {
         self.unknown = 0;
     }
     pub fn add_guess(&mut self, flag: FType) -> bool {
-        !self.guessed.insert(flag)
+        if self.guessed.insert(flag) {
+            self.unknown = self.unknown - 1;
+            false
+        } else {
+            true
+        }
     }
     pub fn unhide(&mut self, flag: FType) {
         self.guessed.remove(&flag);

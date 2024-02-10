@@ -54,6 +54,24 @@
     "observation_name": "DiscernedCure"
   },
   {
+    "regex": "^(\\w+) nimbly stays on .* feet.$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Literal": "fallen"
+      },
+      {
+        "Literal": ""
+      },
+      {
+        "Literal": ""
+      }
+    ],
+    "observation_name": "DiscernedCure"
+  },
+  {
     "regex": "^A thick, hardened shell of paste has formed around (\\w+).$",
     "args": [
       {
@@ -216,7 +234,7 @@
     "observation_name": "DiscernedCure"
   },
   {
-    "regex": "^(\\w+) swoons? as (\\w+) ?\\w* suffers? a toxic relapse.$",
+    "regex": "^(\\w+) swoons? as [\\w ]* suffers? a toxic relapse.$",
     "args": [
       {
         "GroupAsTarget": 1
@@ -551,5 +569,20 @@
     "regex": "^\\*\\* Illusion \\*\\*",
     "args": [],
     "observation_name": "Illusion"
+  },
+  {
+    "regex": "^You glance over (\\w+) and see that .* health is at (\\d+)/(\\d+).$",
+    "args": [
+      {
+        "GroupAsTarget": 1
+      },
+      {
+        "Group": 2
+      },
+      {
+        "Group": 3
+      }
+    ],
+    "observation_name": "Assess"
   }
 ]

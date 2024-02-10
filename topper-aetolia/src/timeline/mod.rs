@@ -5,4 +5,5 @@ pub mod types;
 pub use apply_functions::*;
 pub use gmcp_functions::*;
 pub use observations::*;
+pub use topper_core::timeline::{BaseTimeline, TestableTimeline};
 pub use types::*;

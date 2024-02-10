@@ -448,7 +448,7 @@ pub fn handle_combat_action(
             if let Some(limb_hit) = limb_hit {
                 for_agent(agent_states, target, &move |you: &mut AgentState| {
                     if limb_damaged {
-                        you.set_limb_damage(limb_hit, DAMAGED_VALUE);
+                        you.set_limb_damage(limb_hit, DAMAGED_VALUE, true);
                         you.limb_damage.set_limb_broken(limb_hit, true);
                     } else {
                         you.set_flag(limb_hit.crippled().unwrap(), true);

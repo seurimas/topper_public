@@ -1,9 +1,11 @@
-use crate::timeline::db::DatabaseModule;
+use crate::{observations, timeline::db::DatabaseModule};
 use log::warn;
 use regex::Regex;
 use serde::Deserialize;
 use serde_json::Value;
 use std::{collections::HashMap, fmt::Debug};
+
+use super::db::DummyDatabaseModule;
 pub type CType = i32;
 pub const BALANCE_SCALE: f32 = 100.0;
 pub type GMCP = (String, Value);
@@ -16,6 +18,19 @@ pub struct TimeSlice<O, P> {
     pub prompt: P,
     pub time: CType,
     pub me: String,
+}
+
+impl<O, P: Default> TimeSlice<O, P> {
+    pub fn new(me: String, time: CType, observations: Vec<O>) -> Self {
+        TimeSlice {
+            observations: Some(observations),
+            gmcp: Vec::new(),
+            lines: Vec::new(),
+            prompt: P::default(),
+            time: 0,
+            me,
+        }
+    }
 }
 
 pub trait BaseAgentState {
@@ -188,10 +203,15 @@ pub struct Timeline<O, P, A, N> {
     pub slices: Vec<TimeSlice<O, P>>,
     pub digest: Vec<BattleEvent>,
     pub state: TimelineState<A, N>,
+    pub default_agent: A,
 }
 
 pub trait BaseTimeline<O, P, DB> {
     fn push_time_slice(&mut self, slice: TimeSlice<O, P>, db: Option<&DB>) -> Result<(), String>;
+}
+
+pub trait TestableTimeline<O, P> {
+    fn test_push_time_slice(&mut self, slice: TimeSlice<O, P>) -> Result<(), String>;
 }
 
 impl<O, P, A: BaseAgentState + Clone, N: Clone> Timeline<O, P, A, N> {
@@ -200,6 +220,7 @@ impl<O, P, A: BaseAgentState + Clone, N: Clone> Timeline<O, P, A, N> {
             slices: Vec::new(),
             digest: Vec::new(),
             state: TimelineState::<A, N>::new(),
+            default_agent: A::get_base_state(),
         }
     }
 
@@ -208,6 +229,7 @@ impl<O, P, A: BaseAgentState + Clone, N: Clone> Timeline<O, P, A, N> {
             slices: Vec::new(),
             digest: self.digest.clone(),
             state: self.state.clone(),
+            default_agent: self.default_agent.clone(),
         }
     }
 

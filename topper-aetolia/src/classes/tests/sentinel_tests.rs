@@ -2,7 +2,6 @@ mod sentinel_timeline_tests {
     use crate::timeline::*;
     use crate::types::*;
     use topper_core::timeline::db::DummyDatabaseModule;
-    use topper_core::timeline::BaseTimeline;
 
     #[test]
     fn test_salve_attacks() {

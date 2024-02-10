@@ -1,6 +1,4 @@
 mod timeline_tests {
-    use topper_core::timeline::BaseTimeline;
-
     use crate::curatives::*;
     use crate::timeline::*;
     use crate::types::*;
@@ -80,12 +78,12 @@ mod timeline_tests {
         timeline
             .state
             .for_agent(&"Seurimas".into(), &move |updated_seur: &mut AgentState| {
-                updated_seur.set_limb_damage(LType::LeftLegDamage, 1500);
+                updated_seur.set_limb_damage(LType::LeftLegDamage, 1500, false);
             });
         timeline.state.for_agent(
             &"Benedicto".into(),
             &move |updated_bene: &mut AgentState| {
-                updated_bene.set_limb_damage(LType::LeftLegDamage, 1500);
+                updated_bene.set_limb_damage(LType::LeftLegDamage, 1500, false);
             },
         );
         let restore_slice = AetTimeSlice {

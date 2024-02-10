@@ -4,7 +4,6 @@ mod zealot_timeline_tests {
     use crate::types::*;
     use topper_core::observations::*;
     use topper_core::timeline::db::DummyDatabaseModule;
-    use topper_core::timeline::BaseTimeline;
 
     lazy_static! {
         static ref observer: ObservationParser<AetObservation> =
@@ -21,7 +20,7 @@ mod zealot_timeline_tests {
         timeline
             .state
             .for_agent(&"Tina".to_string(), &move |me: &mut AgentState| {
-                me.set_limb_damage(LType::TorsoDamage, 1700);
+                me.set_limb_damage(LType::TorsoDamage, 1700, false);
             });
         let mut no_break = AetTimeSlice {
             observations: None,

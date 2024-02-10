@@ -5,14 +5,13 @@ use serde_json::from_str;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, RwLock};
 use topper_aetolia::bt::{clear_behavior_trees, DEBUG_TREES};
-use topper_aetolia::classes::get_attack;
+use topper_aetolia::classes::{clear_aff_stacks, get_attack, VenomPlan};
 use topper_aetolia::defense::DEFENSE_DATABASE;
 use topper_aetolia::non_agent::{AetNonAgent, AetTimelineRoomExt};
 use topper_aetolia::timeline::*;
 use topper_aetolia::types::AgentState;
 use topper_core::observations;
 use topper_core::observations::{ObservationParser, BENCHMARKS};
-use topper_core::timeline::BaseTimeline;
 use topper_core_mudlet::topper::{
     TelnetModule, TimelineModule, Topper, TopperCore, TopperHandler, TopperMessage, TopperModule,
     TopperRequest, TopperResponse,
@@ -24,13 +23,16 @@ pub mod db;
 pub mod first_aid;
 pub mod group;
 pub mod prediction;
+pub mod stacks;
 pub mod web_ui;
 use crate::topper::basher::BasherModule;
 use crate::topper::behavior_trees::initialize_load_tree_func;
 use crate::topper::prediction::prioritize_cures;
+use crate::topper::stacks::initialize_load_stack_func;
 
 use self::battle_stats::BattleStats;
 use self::db::AetMudletDatabaseModule;
+use self::first_aid::FirstAidModule;
 use self::web_ui::WebModule;
 
 pub type AetTimelineModule = TimelineModule<AetObservation, AetPrompt, AgentState, AetNonAgent>;
@@ -122,6 +124,7 @@ pub struct AetTopper {
     pub battle_module: BattleModule,
     pub prediction_module: PredictionModule,
     pub group_module: GroupModule,
+    pub firstaid_module: FirstAidModule,
     pub basher_module: BasherModule,
     pub battlestats_module: BattleStatsModule,
     pub database_module: Arc<RwLock<AetMudletDatabaseModule>>,
@@ -149,10 +152,12 @@ impl AetTopper {
         path: String,
         triggers_dir: String,
         behavior_trees_dir: String,
+        stacks_dir: String,
     ) -> Self {
         println!("DB: {:?}", std::fs::canonicalize(path.clone()).unwrap());
         let database_module = AetMudletDatabaseModule::new(path);
         initialize_load_tree_func(behavior_trees_dir);
+        initialize_load_stack_func(stacks_dir);
         AetTopper {
             debug_mode: false,
             triggers_dir: triggers_dir.clone(),
@@ -163,6 +168,7 @@ impl AetTopper {
             prediction_module: PredictionModule::default(),
             basher_module: BasherModule::new(),
             group_module: GroupModule::new(&database_module),
+            firstaid_module: FirstAidModule::default(),
             battlestats_module: BattleStatsModule::new(),
             database_module: Arc::new(RwLock::new(database_module)),
             web_module: WebModule::new(),
@@ -228,6 +234,9 @@ impl TopperHandler<BattleStats> for AetTopper {
                 } else if "core".eq(module) && "reload trees".eq(command) {
                     println!("Reloading behavior trees");
                     clear_behavior_trees();
+                } else if "core".eq(module) && "reload stacks".eq(command) {
+                    println!("Reloading aff stacks");
+                    clear_aff_stacks();
                 }
             }
             _ => {}
@@ -253,6 +262,10 @@ impl TopperHandler<BattleStats> for AetTopper {
                     &self.core_module.target,
                     &database_module,
                 ),
+            )?)
+            .then(self.firstaid_module.handle_message(
+                &topper_msg,
+                (&mut self.timeline_module.timeline, &database_module),
             )?)
             .then(self.group_module.handle_message(
                 &topper_msg,

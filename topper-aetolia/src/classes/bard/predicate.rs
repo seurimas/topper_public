@@ -125,7 +125,7 @@ impl TargetPredicate for BardPredicate {
                 BardPredicate::RunebandTimerNear(time) => target
                     .bard_board
                     .runeband_timer()
-                    .map(|timer| (timer.abs_diff(*time) as CType) < (BALANCE_SCALE as CType))
+                    .map(|timer| timer.abs_diff(*time) < (BALANCE_SCALE as CType))
                     .unwrap_or(false),
                 BardPredicate::NeedlingFor(aff) => {
                     if !target.bard_board.needling() {

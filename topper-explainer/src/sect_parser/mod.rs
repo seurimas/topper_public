@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 
-use topper_aetolia::timeline::{AetTimeSlice, AetTimeline, AetTimelineTrait};
-use topper_core::timeline::{db::DummyDatabaseModule, BaseTimeline};
+use topper_aetolia::timeline::{AetTimeSlice, AetTimeline, AetTimelineTrait, BaseTimeline};
+use topper_core::timeline::db::DummyDatabaseModule;
 
 mod loader;
 mod observations;
