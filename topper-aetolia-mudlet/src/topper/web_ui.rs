@@ -67,6 +67,8 @@ impl<'s> TopperModule<'s, AetTimeSlice, BattleStats> for WebModule {
                             if let Ok(mut explainer_page) = parser.parse_nodes(sect_log) {
                                 println!("Explainer page parsed successfully!");
                                 explainer_page.filter_out_from_body("Tells");
+                                explainer_page.filter_out_from_body("a sprawling venantium cuff");
+                                explainer_page.filter_out_from_body("an insignia of the Blades");
                                 explainer_page.filter_out_command("tell");
                                 explainer_page.filter_out_command("gtells");
                                 explainer_page.filter_out_command("gtstells");
