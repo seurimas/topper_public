@@ -153,6 +153,7 @@ impl AetTopper {
         triggers_dir: String,
         behavior_trees_dir: String,
         stacks_dir: String,
+        publish_dir: Option<String>,
     ) -> Self {
         println!("DB: {:?}", std::fs::canonicalize(path.clone()).unwrap());
         let database_module = AetMudletDatabaseModule::new(path);
@@ -171,7 +172,7 @@ impl AetTopper {
             firstaid_module: FirstAidModule::default(),
             battlestats_module: BattleStatsModule::new(),
             database_module: Arc::new(RwLock::new(database_module)),
-            web_module: WebModule::new(),
+            web_module: WebModule::new(publish_dir),
             observation_parser: ObservationParser::<AetObservation>::new_from_directory(
                 triggers_dir,
                 aet_observation_creator,

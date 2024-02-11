@@ -14,7 +14,7 @@ pub fn check_for_link<T: Component>(
             let window = window().unwrap();
             let location = window.location();
             if let Ok(mut link) = location.search() {
-                if link.len() == 0 {
+                if link.len() <= 1 {
                     return None;
                 }
                 link.remove(0);
@@ -32,7 +32,10 @@ pub async fn load_page(result: Result<JsValue, JsValue>) -> ExplainerMessage {
             let link_str = loaded.as_string().unwrap_or("Not a string".to_string());
             match serde_json::from_str(&link_str) {
                 Ok(loaded) => ExplainerMessage::LoadedPage(loaded),
-                Err(err) => ExplainerMessage::Error(format!("{:?}", err)),
+                Err(_) => match serde_json::from_str(&link_str) {
+                    Ok(loaded) => ExplainerMessage::LoadedPublished(loaded),
+                    Err(err) => ExplainerMessage::Error(format!("{:?}", err)),
+                },
             }
         }
         Err(error) => ExplainerMessage::Error(format!("Could not parse: {:?}", error)),

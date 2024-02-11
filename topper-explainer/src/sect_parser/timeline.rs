@@ -1,7 +1,10 @@
 use topper_aetolia::timeline::{AetPrompt, AetTimeSlice, AetTimeline, AetTimelineState};
-use topper_core::timeline::{db::DummyDatabaseModule, BaseTimeline};
+use topper_core::{
+    colored_lines::get_content_of_raw_colored_text,
+    timeline::{db::DummyDatabaseModule, BaseTimeline},
+};
 
-use crate::{colored_lines::get_content_of_raw_colored_text, explainer::ExplainerPage};
+use crate::explainer::ExplainerPage;
 
 use super::{
     observations::OBSERVER,

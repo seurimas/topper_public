@@ -16,6 +16,14 @@ body {
     }
 }
 
+.published {
+    color: gold;
+
+    &:visited {
+        color: red;
+    }
+}
+
 .page {
     font-family: 'Courier New';
     color: white;

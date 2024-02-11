@@ -46,18 +46,20 @@ impl<'s, O, P, BS> TopperModule<'s, TimeSlice<O, P>, BS> for TelnetModule {
 
 pub fn proxy<BS: Serialize>(receive_lines: Receiver<String>) {
     println!("Starting proxy!");
-    let listener = TcpListener::bind("0.0.0.0:12323").unwrap();
+    if let Ok(listener) = TcpListener::bind("0.0.0.0:12323") {
+        for stream in listener.incoming() {
+            let stream = stream.unwrap();
+            let addr = stream.peer_addr();
+            println!("Found connection!");
 
-    for stream in listener.incoming() {
-        let stream = stream.unwrap();
-        let addr = stream.peer_addr();
-        println!("Found connection!");
-
-        println!(
-            "Connection: {:?} ({:?})",
-            handle_connection::<BS>(stream, &receive_lines),
-            addr,
-        );
+            println!(
+                "Connection: {:?} ({:?})",
+                handle_connection::<BS>(stream, &receive_lines),
+                addr,
+            );
+        }
+    } else {
+        println!("XXXXXXXXXXX NO TELNET");
     }
 }
 

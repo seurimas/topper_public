@@ -1,14 +1,9 @@
-use crate::{
-    bindings::*, colored_lines::get_content_of_raw_colored_text, explainer::ExplainerPage,
-};
+use crate::{bindings::*, explainer::ExplainerPage};
 use regex::Regex;
-use std::{cmp::Ordering, marker::PhantomData};
-use topper_aetolia::timeline::{AetPrompt, AetTimeSlice, AetTimeline};
+use topper_core::colored_lines::get_content_of_raw_colored_text;
 use wasm_bindgen::JsCast;
 
 use web_sys::*;
-
-use super::observations::OBSERVER;
 
 lazy_static! {
     pub static ref PROMPT_REGEX: Regex =

@@ -259,6 +259,10 @@ where
             for (match_num, regex) in self.regexes.iter().enumerate() {
                 // let now = Instant::now();
                 let mapping = self.mappings.get(match_num).unwrap();
+                if regex.find(&stripped).is_none() {
+                    // A quick find on 99% of lines is faster than a find and a full match on 100% of lines
+                    continue;
+                }
                 if let Some(arguments) = mapping.try_get_arguments(&slice, &regex, &stripped) {
                     observations.push((self.observation_creator)(
                         &mapping.observation_name,

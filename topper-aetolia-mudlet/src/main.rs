@@ -26,6 +26,7 @@ use topper_core_mudlet::topper::Topper;
 
 use crate::topper::battle_stats::BattleStats;
 use crate::topper::AetTopper;
+mod sect_parser;
 mod topper;
 
 fn main() {
@@ -69,6 +70,8 @@ fn main() {
         .get(5)
         .map_or("aff_stacks".to_string(), |string| string.to_string());
 
+    let publish_dir = args.get(6).cloned();
+
     WriteLogger::init(
         LevelFilter::Debug,
         Config::default(),
@@ -83,6 +86,7 @@ fn main() {
             triggers_dir,
             behavior_trees_dir,
             stacks_dir,
+            publish_dir,
         );
         topper.provide_action();
     });

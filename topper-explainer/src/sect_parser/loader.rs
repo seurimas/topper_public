@@ -1,8 +1,8 @@
-use wasm_bindgen::{JsCast, JsValue};
+use wasm_bindgen::JsCast;
 use web_sys::*;
 use yew::prelude::*;
 
-use crate::{explainer::ExplainerModel, msg::ExplainerMessage};
+use crate::{models::ExplainerModel, msg::ExplainerMessage};
 
 pub fn load_sect_into_iframe(ctx: &Context<ExplainerModel>, loaded: &String) -> Html {
     let link = ctx.link();

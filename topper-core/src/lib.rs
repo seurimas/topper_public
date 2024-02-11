@@ -11,6 +11,7 @@ extern crate regex;
 extern crate log;
 extern crate chrono;
 extern crate simplelog;
+pub mod colored_lines;
 pub mod combinatorics;
 pub mod observations;
 pub mod timeline;
