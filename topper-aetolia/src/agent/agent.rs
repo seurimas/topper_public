@@ -413,11 +413,20 @@ impl AgentState {
     }
 
     pub fn set_balance(&mut self, balance: BType, value: f32) {
-        self.balances[balance as usize].start_count_down_seconds(value);
+        match balance {
+            BType::Induce => self.assume_bard(&|mut bard| bard.set_induce_timer(value)),
+            _ => self.balances[balance as usize].start_count_down_seconds(value),
+        }
     }
 
     pub fn get_raw_balance(&self, balance: BType) -> CType {
-        self.balances[balance as usize].get_time_left()
+        match balance {
+            BType::Induce => self
+                .check_if_bard(&|bard| bard.get_induce_time_left())
+                .map(|time: i32| time as CType)
+                .unwrap_or(0),
+            _ => self.balances[balance as usize].get_time_left(),
+        }
     }
 
     pub fn get_qeb_balance(&self) -> f32 {
@@ -431,11 +440,22 @@ impl AgentState {
     }
 
     pub fn get_balance(&self, balance: BType) -> f32 {
-        self.balances[balance as usize].get_time_left_seconds()
+        match balance {
+            BType::Induce => self
+                .check_if_bard(&|bard| bard.get_induce_time_left())
+                .map(|time: i32| time as f32 / BALANCE_SCALE)
+                .unwrap_or(0.0),
+            _ => self.balances[balance as usize].get_time_left_seconds(),
+        }
     }
 
     pub fn balanced(&self, balance: BType) -> bool {
-        !self.balances[balance as usize].is_active()
+        match balance {
+            BType::Induce => self
+                .check_if_bard(&|bard| bard.induce_ready())
+                .unwrap_or(false),
+            _ => self.balances[balance as usize].is_active(),
+        }
     }
 
     pub fn qeb_balance(&self) -> BType {
@@ -450,15 +470,13 @@ impl AgentState {
         let mut earliest: Option<&BType> = None;
         for balance in balances {
             if let Some(earliest_bal) = earliest {
-                if !self.balances[*earliest_bal as usize].is_active() {
+                if self.balanced(*balance) {
                     // Do nothing.
-                } else if self.balances[*balance as usize].get_time_left()
-                    < self.balances[*earliest_bal as usize].get_time_left()
-                {
-                    earliest = Some(balance)
+                } else if self.get_raw_balance(*balance) < self.get_raw_balance(*earliest_bal) {
+                    earliest = Some(balance);
                 }
             } else {
-                earliest = Some(balance)
+                earliest = Some(balance);
             }
         }
         earliest.cloned()

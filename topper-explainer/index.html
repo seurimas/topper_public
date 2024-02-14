@@ -7,6 +7,48 @@
   <link data-trunk rel="copy-dir" href="helps" />
   <link data-trunk rel="copy-dir" href="my_logs" />
   <script type="text/javascript">
+    let paused = false;
+    let playbackSpeed;
+    let playbackTime;
+    let playingBack;
+    let playbackCb;
+
+    function remember_playback_cb(cb) {
+      playbackCb = cb;
+    }
+
+    function toggle_playback(speed, time) {
+      if (playingBack) {
+        clearInterval(playingBack);
+        autoscroll_off();
+        playingBack = null;
+      } else {
+        paused = false;
+        autoscroll_on();
+        playbackSpeed = speed;
+        playbackTime = time;
+        let lastTime = new Date().getTime();
+        playingBack = setInterval(() => {
+          const currentTime = new Date().getTime();
+          const delta = (currentTime - lastTime) / 10;
+          lastTime = currentTime;
+          if (paused) {
+            return;
+          }
+          playbackTime += delta * playbackSpeed;
+          playbackCb(playbackTime);
+        }, 40);
+      }
+    }
+
+    function update_playback_time(time) {
+      playbackTime = time;
+    }
+
+    function update_playback_speed(speed) {
+      playbackSpeed = speed;
+    }
+
     function export_json(exported) {
       console.log(exported);
       const page = JSON.parse(exported);
@@ -25,12 +67,44 @@
       }
     }
 
-    function bounce(cb) {
-      setTimeout(cb, 5000);
-    }
-
     function is_unlocked() {
       return location.hash === "#unlocked";
+    }
+
+    const resizeObserver = new ResizeObserver(entries => {
+      window.scrollTo(0, document.body.scrollHeight);
+    });
+    let autoscrolling = false;
+    let observing = false;
+
+    function autoscroll_on() {
+      if (!observing) {
+        resizeObserver.observe(document.querySelector(".page"));
+        observing = true;
+      }
+      autoscrolling = true;
+    }
+
+    function autoscroll_off() {
+      autoscrolling = false;
+    }
+
+    function autoscroll_once() {
+      const intervalTime = 10;
+      const currentHeight = document.body.scrollHeight;
+      let life = 100;
+      const interval = setInterval(() => {
+        console.log(document.body.scrollHeight, currentHeight);
+        window.scrollTo(0, document.body.scrollHeight);
+        if (Math.abs(document.body.scrollHeight - currentHeight) > 10) {
+          clearInterval(interval);
+        } else {
+          life -= intervalTime;
+          if (life <= 0) {
+            clearInterval(interval);
+          }
+        }
+      }, intervalTime);
     }
 
     function set_title(title) {
@@ -39,6 +113,10 @@
 
     function get_time() {
       return new Date().getTime() / 1000;
+    }
+
+    function trace(message) {
+      console.log(message, get_time());
     }
 
     function fetch_file(link) {
@@ -56,6 +134,85 @@
           return response.text();
         }
       });
+    }
+
+    const synth = window.speechSynthesis;
+    const voices = synth.getVoices();
+    let voiceId = 0;
+    let rate = 2;
+
+    function ttsSpeak(text) {
+      if (voiceId === -1) {
+        return;
+      }
+      synth.cancel();
+      const utterThis = new SpeechSynthesisUtterance(text);
+      utterThis.voice = voices[voiceId];
+      utterThis.rate = rate;
+      synth.speak(utterThis);
+    }
+
+    function ttsQueue(text) {
+      if (voiceId === -1) {
+        return;
+      }
+      const utterThis = new SpeechSynthesisUtterance(text);
+      utterThis.voice = voices[voiceId];
+      utterThis.rate = rate;
+      synth.speak(utterThis);
+    }
+
+    document.onkeydown = (e) => {
+      if (e.key === "PageDown") {
+        playbackTime += 1000;
+        playbackCb(playbackTime);
+        if (playingBack) {
+          e.preventDefault();
+        }
+      } else if (e.key === "PageUp") {
+        playbackTime -= 1000;
+        playbackCb(playbackTime);
+        if (playingBack) {
+          e.preventDefault();
+        }
+      } else if (e.key === "1" || e.key === "2" || e.key === "3" || e.key === "4" || e.key === "5") {
+        if (voiceId < voices.length) {
+          voiceId = parseInt(e.key) - 1;
+          ttsSpeak("Voice changed");
+        }
+      } else if (e.key === "0") {
+        if (voiceId === -1) {
+          voiceId = 0;
+          ttsSpeak("Voice on");
+        } else {
+          ttsSpeak("Voice off");
+          voiceId = -1;
+        }
+      } else if (e.key === "-") {
+        rate -= 0.1;
+        if (rate < 0.1) {
+          rate = 0.1;
+        }
+        synth.rate = rate;
+        ttsSpeak("Speed down");
+      } else if (e.key === "+" || e.key === "=") {
+        rate += 0.1;
+        if (rate > 3) {
+          rate = 3;
+        }
+        synth.rate = rate;
+        ttsSpeak("Speed up");
+      } else if (e.key === " ") {
+        if (playingBack) {
+          paused = !paused;
+          if (paused) {
+            autoscroll_off();
+          } else {
+            autoscroll_on();
+          }
+          e.preventDefault();
+        }
+      }
     }
   </script>
 </head>

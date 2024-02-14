@@ -190,6 +190,8 @@ pub enum BType {
 
     UNKNOWN,
     SIZE,
+
+    Induce,
 }
 
 impl BType {

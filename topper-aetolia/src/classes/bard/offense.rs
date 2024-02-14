@@ -49,6 +49,10 @@ fn add_hints(db: Option<&impl AetDatabaseModule>, controller: &mut BehaviorContr
         if let Some(instrument) = db.get_hint(&INSTRUMENT_HINT.to_string()) {
             controller.hint_plan(INSTRUMENT_HINT.to_string(), instrument);
         }
+
+        if let Some(use_instrument) = db.get_hint(&USE_INSTRUMENT_HINT.to_string()) {
+            controller.hint_plan(USE_INSTRUMENT_HINT.to_string(), use_instrument);
+        }
     }
 }
 

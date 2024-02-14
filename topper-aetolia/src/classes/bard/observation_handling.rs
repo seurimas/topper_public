@@ -1,3 +1,5 @@
+use std::mem;
+
 use crate::{
     classes::remove_through, curatives::RANDOM_CURES, non_agent::AetTimelineRoomExt,
     observables::*, timeline::*, types::*,
@@ -808,12 +810,35 @@ pub fn handle_songcalling_action(
                 },
             );
         }
-        ("Induce", emotion) => {
+        ("Induce Sadness", play_or_empty)
+        | ("Induce Happiness", play_or_empty)
+        | ("Induce Surprise", play_or_empty)
+        | ("Induce Anger", play_or_empty)
+        | ("Induce Stress", play_or_empty)
+        | ("Induce Fear", play_or_empty)
+        | ("Induce Disgust", play_or_empty) => {
+            let emotion = match combat_action.skill.as_ref() {
+                "Induce Sadness" => Some(Emotion::Sadness),
+                "Induce Happiness" => Some(Emotion::Happiness),
+                "Induce Surprise" => Some(Emotion::Surprise),
+                "Induce Anger" => Some(Emotion::Anger),
+                "Induce Stress" => Some(Emotion::Stress),
+                "Induce Fear" => Some(Emotion::Fear),
+                "Induce Disgust" => Some(Emotion::Disgust),
+                _ => None,
+            };
+            for_agent(agent_states, &combat_action.caster, &|me| {
+                if play_or_empty.is_empty() {
+                    me.set_balance(BType::Induce, 14.0);
+                } else {
+                    me.set_balance(BType::Induce, 18.0);
+                }
+            });
             for_agent(
                 agent_states,
                 &combat_action.target,
                 &|me: &mut AgentState| {
-                    if let Some(emotion) = Emotion::try_from_name(emotion) {
+                    if let Some(emotion) = emotion {
                         me.bard_board.induce(emotion);
                     }
                 },

@@ -11,7 +11,11 @@ pub enum BardPredicate {
     Undithered,
     InRhythm,
     InHalfBeat,
+    HalfbeatWithin(f32),
+    HalfbeatNear(f32),
     InWholeBeat,
+    WholebeatWithin(f32),
+    WholebeatNear(f32),
     Runebanded,
     RunebandForward,
     RunebandReversed,
@@ -31,7 +35,7 @@ pub enum BardPredicate {
     Bladestorm,
     HasAnelace(Option<usize>),
     Needled(Option<String>),
-    NeedleAlmostPending,
+    NeedleAlmostPending(f32),
     RunebandTimerNear(CType),
     NeedlePending,
     NeedlingFor(FType),
@@ -59,8 +63,44 @@ impl TargetPredicate for BardPredicate {
                 BardPredicate::InHalfBeat => target
                     .check_if_bard(&|bard| bard.half_beat.active())
                     .unwrap_or(false),
+                BardPredicate::HalfbeatWithin(time) => target
+                    .check_if_bard(&|bard| {
+                        bard.half_beat
+                            .get_time_to_active()
+                            .map(|t| t < (*time * BALANCE_SCALE) as CType)
+                            .unwrap_or(false)
+                    })
+                    .unwrap_or(false),
+                BardPredicate::HalfbeatNear(time) => target
+                    .check_if_bard(&|bard| {
+                        bard.half_beat
+                            .get_time_to_active()
+                            .map(|t| {
+                                t.abs_diff((*time * BALANCE_SCALE) as i32) < (BALANCE_SCALE as u32)
+                            })
+                            .unwrap_or(false)
+                    })
+                    .unwrap_or(false),
                 BardPredicate::InWholeBeat => target
                     .check_if_bard(&|bard| bard.half_beat.resting())
+                    .unwrap_or(false),
+                BardPredicate::WholebeatWithin(time) => target
+                    .check_if_bard(&|bard| {
+                        bard.half_beat
+                            .get_time_to_inactive()
+                            .map(|t| t < (*time * BALANCE_SCALE) as CType)
+                            .unwrap_or(false)
+                    })
+                    .unwrap_or(false),
+                BardPredicate::WholebeatNear(time) => target
+                    .check_if_bard(&|bard| {
+                        bard.half_beat
+                            .get_time_to_inactive()
+                            .map(|t| {
+                                t.abs_diff((*time * BALANCE_SCALE) as i32) < (BALANCE_SCALE as u32)
+                            })
+                            .unwrap_or(false)
+                    })
                     .unwrap_or(false),
                 BardPredicate::ImpetusReady => target
                     .check_if_bard(&|bard| bard.impetus_ready())
@@ -120,7 +160,9 @@ impl TargetPredicate for BardPredicate {
                 }
                 BardPredicate::Bladestorm => target.bard_board.blades_count > 0,
                 BardPredicate::Needled(None) => target.bard_board.needle_venom.is_some(),
-                BardPredicate::NeedleAlmostPending => target.bard_board.almost_needling(),
+                BardPredicate::NeedleAlmostPending(time) => {
+                    target.bard_board.almost_needling(*time)
+                }
                 BardPredicate::NeedlePending => target.bard_board.needling(),
                 BardPredicate::RunebandTimerNear(time) => target
                     .bard_board

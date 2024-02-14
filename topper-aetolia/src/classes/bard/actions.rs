@@ -311,12 +311,21 @@ impl PerformanceAttack {
             _ => false,
         }
     }
+
     pub fn needs_voice(&self) -> bool {
         match self {
             Self::Ridicule | Self::Guilt | Self::Seduce | Self::Quip => true,
             _ => false,
         }
     }
+
+    pub fn is_needle(&self) -> bool {
+        match self {
+            Self::Needle(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn must_stand(&self) -> bool {
         match self {
             Self::TempoNaked

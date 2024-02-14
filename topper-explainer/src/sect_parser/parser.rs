@@ -139,6 +139,9 @@ pub fn parse_prompt_time(line: &String, last_time: i32) -> Option<i32> {
             let second: i32 = second.as_str().parse().unwrap();
             let centi: i32 = centi.as_str().parse().unwrap();
             let mut time = centi + (((((hour * 60) + minute) * 60) + second) * 100);
+            if centi == 0 && time < last_time && time + 100 > last_time {
+                time = time + 99; // Rounding! Way to go, Rapture!
+            }
             if time < last_time {
                 // It's a braaand neww day, and the sun is hiiigh.
                 time = time + (24 * 360000);

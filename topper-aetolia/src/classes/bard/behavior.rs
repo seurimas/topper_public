@@ -87,7 +87,7 @@ impl UnpoweredFunction for BardBehavior {
                     }
                 }
                 if *weavable != Weavable::Impetus
-                    && !assure_unwielded(&me, model, controller, false)
+                    && !assure_unwielded(&me, model, controller, *weavable == Weavable::Anelace)
                 {
                     return UnpoweredFunctionState::Failed;
                 }
@@ -115,19 +115,34 @@ impl UnpoweredFunction for BardBehavior {
                             return UnpoweredFunctionState::Failed;
                         } else if !you.bard_board.iron_collar_state.is_active() {
                             return UnpoweredFunctionState::Failed;
-                        } else if you.bard_board.emotion_state.primary.is_none() {
-                            return UnpoweredFunctionState::Failed;
-                        } else if you
-                            .bard_board
-                            .emotion_state
-                            .get_emotion_level(you.bard_board.emotion_state.primary.unwrap())
-                            < 50
+                        } else if you.bard_board.emotion_state.primary.is_none()
+                            || you
+                                .bard_board
+                                .emotion_state
+                                .get_emotion_level(you.bard_board.emotion_state.primary.unwrap())
+                                < 50
                         {
-                            return UnpoweredFunctionState::Failed;
+                            if !me.balanced(BType::Induce) {
+                                return UnpoweredFunctionState::Failed;
+                            } else if let Some(induce_me) =
+                                you.bard_board.emotion_state.get_emotion_over(60)
+                            {
+                                controller.plan.add_to_qeb(Box::new(InduceAction::new(
+                                    model.who_am_i(),
+                                    target.to_string(),
+                                    induce_me,
+                                )));
+                            } else {
+                                return UnpoweredFunctionState::Failed;
+                            }
                         } else if let Some(room) = model.state.get_my_room() {
                             if !room.has_tag("boundary") {
                                 return UnpoweredFunctionState::Failed;
                             }
+                        }
+                    } else if weave_attack == &WeavingAttack::Globes {
+                        if you.bard_board.globes_state.is_full() {
+                            return UnpoweredFunctionState::Failed;
                         }
                     }
                     if you.is(FType::Shielded) {
@@ -218,6 +233,8 @@ impl UnpoweredFunction for BardBehavior {
                     if performance_attack.gets_rebounded()
                         && (you.is(FType::Rebounding) || you.is(FType::Shielded))
                     {
+                        return UnpoweredFunctionState::Failed;
+                    } else if performance_attack.is_needle() && you.bard_board.is_needled() {
                         return UnpoweredFunctionState::Failed;
                     } else if performance_attack.must_stand() && me.stuck_fallen() {
                         return UnpoweredFunctionState::Failed;
@@ -434,12 +451,7 @@ impl UnpoweredFunction for BardBehavior {
             }
             BardBehavior::Induce(emotion) => {
                 let me = model.state.borrow_me();
-                if !me
-                    .check_if_bard(&|bard| {
-                        bard.instrument_song.is_some() || bard.voice_song.is_some()
-                    })
-                    .unwrap_or(false)
-                {
+                if !me.balanced(BType::Induce) {
                     return UnpoweredFunctionState::Failed;
                 }
                 if let Some(target) = &controller.target {

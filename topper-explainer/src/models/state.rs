@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
-use topper_aetolia::{curatives::MENTAL_AFFLICTIONS, timeline::AetTimelineState, types::*};
+use topper_aetolia::{curatives::MENTAL_AFFLICTIONS, timeline::AetTimeline, types::*};
 use yew::prelude::*;
+
+use crate::bindings::trace;
 
 use super::page::ExplainerPageMessage;
 
@@ -14,14 +16,14 @@ pub struct StateBlock;
 
 #[derive(Properties)]
 pub struct StateBlockProperties {
-    pub state: AetTimelineState,
+    pub timeline: AetTimeline,
     pub me: String,
     pub you: String,
 }
 
 impl PartialEq for StateBlockProperties {
     fn eq(&self, other: &Self) -> bool {
-        self.state.time == other.state.time
+        self.timeline.state.time == other.timeline.state.time
     }
 }
 
@@ -34,8 +36,8 @@ impl Component for StateBlock {
     }
     fn view(&self, ctx: &Context<Self>) -> Html {
         let props = ctx.props();
-        let me = props.state.borrow_agent(&props.me);
-        let you = props.state.borrow_agent(&props.you);
+        let me = props.timeline.state.borrow_agent(&props.me);
+        let you = props.timeline.state.borrow_agent(&props.you);
         html!(<div class="page__state">
             <PlayerState state={me} />
             <PlayerState state={you} />
@@ -178,7 +180,7 @@ fn LimbsIndicator(props: &LimbsIndicatorProps) -> Html {
         );
         html!(<div
             class={classes}
-            title={format!("{} and damage level {}", broken_state, damage_id)}
+            title={format!("{} and damage level {}/10", broken_state, damage_id)}
         >
             {name}
         </div>)

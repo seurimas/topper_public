@@ -65,6 +65,38 @@ impl HalfbeatState {
             _ => false,
         }
     }
+
+    pub fn get_time_to_active(&self) -> Option<CType> {
+        match self {
+            HalfbeatState::WholeBeat(time) => Some(*time),
+            _ => None,
+        }
+    }
+
+    pub fn get_time_to_inactive(&self) -> Option<CType> {
+        match self {
+            HalfbeatState::HalfBeat(time) => Some(*time),
+            _ => None,
+        }
+    }
+
+    pub fn wait(&mut self, time: CType) {
+        match self {
+            HalfbeatState::HalfBeat(timer) | HalfbeatState::WholeBeat(timer) => {
+                *timer -= time;
+            }
+            _ => {}
+        }
+    }
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
+pub enum ThuribleState {
+    #[default]
+    Inactive,
+    Missing,
+    InHand,
+    InRoom(Timer),
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
@@ -78,6 +110,8 @@ pub struct BardClassState {
     pub impetus_timer: CType,
     pub half_beat: HalfbeatState,
     pub anelaces: usize,
+    pub thurible_location: ThuribleState,
+    pub induce_timer: Timer,
 }
 
 const SONG_FUDGE: CType = (0.33 * BALANCE_SCALE) as CType;
@@ -87,6 +121,7 @@ const IMPETUS_TIMEOUT: CType = (30.0 * BALANCE_SCALE) as CType;
 const VOICE_SONG_TIMEOUT: CType = (8.0 * BALANCE_SCALE) as CType;
 const INSTRUMENT_SONG_TIMEOUT: CType = (6.0 * BALANCE_SCALE) as CType;
 const NEEDLE_TIMEOUT: CType = (3.25 * BALANCE_SCALE) as CType;
+const HALFBEAT_TIMEOUT: CType = (20.0 * BALANCE_SCALE) as CType;
 
 impl BardClassState {
     pub fn wait(&mut self, duration: i32) {
@@ -106,6 +141,8 @@ impl BardClassState {
         if self.instrument_timeout <= -SONG_FUDGE {
             self.instrument_song = None;
         }
+        self.induce_timer.wait(duration);
+        self.half_beat.wait(duration);
     }
 
     pub fn on_tempo(&mut self, count: usize) {
@@ -125,11 +162,11 @@ impl BardClassState {
     }
 
     pub fn half_beat_pickup(&mut self) {
-        self.half_beat = HalfbeatState::HalfBeat(0);
+        self.half_beat = HalfbeatState::HalfBeat(HALFBEAT_TIMEOUT);
     }
 
     pub fn half_beat_slowdown(&mut self) {
-        self.half_beat = HalfbeatState::WholeBeat(0);
+        self.half_beat = HalfbeatState::WholeBeat(HALFBEAT_TIMEOUT);
     }
 
     pub fn half_beat_end(&mut self) {
@@ -160,6 +197,18 @@ impl BardClassState {
 
     pub fn impetus_ready(&self) -> bool {
         self.impetus_timer > 0
+    }
+
+    pub fn set_induce_timer(&mut self, time: f32) {
+        self.induce_timer = Timer::count_down_seconds(time);
+    }
+
+    pub fn get_induce_time_left(&self) -> CType {
+        self.induce_timer.get_time_left()
+    }
+
+    pub fn induce_ready(&self) -> bool {
+        !self.induce_timer.is_active()
     }
 }
 
@@ -245,6 +294,13 @@ impl GlobesState {
         match self {
             Self::None => false,
             _ => true,
+        }
+    }
+
+    pub fn is_full(&self) -> bool {
+        match self {
+            Self::Floating(count) => *count == 3,
+            _ => false,
         }
     }
 }
@@ -401,6 +457,22 @@ impl EmotionState {
         }
         return 0;
     }
+
+    pub fn get_emotion_over(&self, level: CType) -> Option<Emotion> {
+        let mut max_emotion_and_level = None;
+        for (my_emotion, my_level) in &self.levels {
+            if *my_level > level {
+                if let Some((max_emotion, max_level)) = max_emotion_and_level {
+                    if *my_level > max_level {
+                        max_emotion_and_level = Some((*my_emotion, *my_level));
+                    }
+                } else {
+                    max_emotion_and_level = Some((*my_emotion, *my_level));
+                }
+            }
+        }
+        max_emotion_and_level.map(|(emotion, _)| emotion)
+    }
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
@@ -412,6 +484,7 @@ pub struct BardBoard {
     pub iron_collar_state: IronCollarState,
     pub blades_count: usize,
     pub needle_venom: Option<String>,
+    // Not a timer, because we have some rather specific logic.
     pub needle_timer: CType,
     pub dumb: Option<bool>,
 }
@@ -439,12 +512,16 @@ impl BardBoard {
         needled
     }
 
+    pub fn is_needled(&self) -> bool {
+        self.needle_venom.is_some()
+    }
+
     pub fn needling(&self) -> bool {
         self.needle_venom.is_some() && self.needle_timer <= 0 as CType
     }
 
-    pub fn almost_needling(&self) -> bool {
-        self.needle_venom.is_some() && self.needle_timer <= (1.5 * BALANCE_SCALE) as CType
+    pub fn almost_needling(&self, time: f32) -> bool {
+        self.needle_venom.is_some() && self.needle_timer <= (time * BALANCE_SCALE) as CType
     }
 
     pub fn next_globe(&self) -> Option<FType> {

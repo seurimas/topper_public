@@ -9,8 +9,9 @@ mod parser;
 mod timeline;
 
 pub use loader::*;
+pub use parser::parse_prompt_time;
 pub use parser::{is_prompt, parse_me_and_you, AetoliaSectParser};
-pub use timeline::{build_time_slices, get_timeline_state};
+pub use timeline::{build_line_times, build_time_slices};
 
 pub fn get_selected_slice(time_slices: &Vec<AetTimeSlice>, line_idx: usize) -> usize {
     time_slices

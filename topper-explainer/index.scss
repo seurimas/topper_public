@@ -1,7 +1,8 @@
 $one_unit: 8px;
 $two_unit: 16px;
 $comment_color: midnightblue;
-$state_color: goldenrod;
+$time_color: blue;
+$state_color: #8b8;
 
 body {
     background-color: black;
@@ -21,6 +22,68 @@ body {
 
     &:visited {
         color: red;
+    }
+}
+
+.time_control {
+    position: fixed;
+    right: $one_unit;
+    bottom: 50%;
+    transform: translateY(50%);
+    background-color: $time_color;
+    display: flex;
+    flex-direction: column;
+    height: 80%;
+
+    &__label {
+        padding: $one_unit;
+        color: white;
+    }
+
+    &__display {
+        flex-grow: 1;
+        margin-left: $one_unit;
+        margin-right: $one_unit;
+        margin-bottom: $one_unit;
+        background-color: black;
+        opacity: .8;
+        position: relative;
+
+        &__filled {
+            background-color: white;
+            position: absolute;
+            top: 0;
+            width: 100%;
+            pointer-events: none;
+        }
+    }
+
+    &__playback {
+        display: grid;
+        grid-template-columns: 1fr 40px 1fr;
+        grid-template-rows: 1fr 1fr;
+
+        &__button {
+            grid-column-start: 1;
+            grid-column-end: 4;
+            text-align: center;
+        }
+
+        &__increment,
+        &__decrement {
+            background-color: black;
+            color: white;
+            text-align: center;
+            user-select: none;
+            cursor: pointer;
+        }
+    }
+
+    &__end {
+        width: 100%;
+        padding: $one_unit;
+        color: white;
+        background-color: black;
     }
 }
 

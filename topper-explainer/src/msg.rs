@@ -10,6 +10,7 @@ pub enum ExplainerMessage {
     LoadedPublished(Vec<String>),
     LoadFile(JsFuture),
     LoadedFile(String),
+    SetTime(i32),
     InitializeSect(HtmlIFrameElement),
     Error(String),
 }

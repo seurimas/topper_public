@@ -206,6 +206,38 @@ pub struct Timeline<O, P, A, N> {
     pub default_agent: A,
 }
 
+impl<O, P, A, N> Debug for Timeline<O, P, A, N>
+where
+    A: Debug,
+    N: Debug,
+    O: Debug,
+    P: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!(
+            "Timeline {{ slices: {:?}, digest: {:?}, state: {:?}, default_agent: {:?} }}",
+            self.slices, self.digest, self.state, self.default_agent
+        ))
+    }
+}
+
+impl<O, P, A, N> Clone for Timeline<O, P, A, N>
+where
+    A: Clone,
+    N: Clone,
+    O: Clone,
+    P: Clone,
+{
+    fn clone(&self) -> Self {
+        Timeline {
+            slices: self.slices.clone(),
+            digest: self.digest.clone(),
+            state: self.state.clone(),
+            default_agent: self.default_agent.clone(),
+        }
+    }
+}
+
 pub trait BaseTimeline<O, P, DB> {
     fn push_time_slice(&mut self, slice: TimeSlice<O, P>, db: Option<&DB>) -> Result<(), String>;
 }
